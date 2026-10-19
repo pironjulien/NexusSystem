@@ -5,7 +5,7 @@
       "args": [
         "--python",
         "3.14",
-        "nexus-android==0.7.0"
+        "nexus-android==0.7.1"
       ],
       "env": {
         "NEXUS_ANDROID_ADB": "${NEXUS_ANDROID_ADB:-}",

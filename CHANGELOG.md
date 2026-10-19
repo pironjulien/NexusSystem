@@ -3,6 +3,13 @@
 All notable changes to this marketplace are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [1.2.3] - 2026-10-19
+
+### Changed
+- `nexus-android` pinned to 0.7.1: `act(then="changes")` returns only what changed on screen after the gestures
+  (numbers kept), phone numbers are no longer masked as security codes, larger screenshot marks; its skill now
+  documents marks, `then="changes"`, precise screens with `launch` and the `clipboard` tool; `uv.lock` updated.
+
 ## [1.2.2] - 2026-10-19
 
 ### Changed
