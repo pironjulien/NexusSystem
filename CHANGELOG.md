@@ -3,6 +3,12 @@
 All notable changes to this marketplace are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [1.1.3] - 2026-10-19
+
+### Changed
+- `nexus-browser` pinned to 2.10.1: its server instructions no longer compare it with other tools (a server must not
+  steer the model toward its tools or away from other ones); `uv.lock` updated.
+
 ## [1.1.2] - 2026-10-19
 
 ### Added

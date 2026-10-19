@@ -10,7 +10,7 @@ installed once (Windows 10/11, Chrome 116+): follow https://github.com/pironjuli
 them, the server starts but every call answers with an error pointing to that install.
 
 ## What it runs
-The plugin starts the open-source MCP server [`nexus-browser`](https://pypi.org/project/nexus-browser/) 2.10.0 from
+The plugin starts the open-source MCP server [`nexus-browser`](https://pypi.org/project/nexus-browser/) 2.10.1 from
 PyPI with `uvx --python 3.14` (uv downloads Python 3.14 if needed; versions and hashes of the server and its
 dependencies recorded in `uv.lock`), over stdio, with `NEXUS_BROWSER_AGENT=Claude`
 (the name of the agent's tab group). It talks only to the local bridge on this PC; the plugin sends nothing anywhere.
