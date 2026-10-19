@@ -3,6 +3,13 @@
 All notable changes to this marketplace are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [1.2.1] - 2026-10-19
+
+### Changed
+- `nexus-windows` pinned to 0.10.1 and `nexus-browser` to 2.11.0: everything their servers send to the client (tool
+  and parameter descriptions, step reports, refusals, errors) is now in English, with the same guardrails; `uv.lock`
+  updated.
+
 ## [1.2.0] - 2026-10-19
 
 ### Added

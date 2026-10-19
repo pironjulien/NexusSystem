@@ -48,8 +48,8 @@ Per-plugin requirements:
 ```mermaid
 flowchart LR
     C["Claude Code"] -- "stdio (MCP)" --> A["uvx nexus-android==0.6.2"] -- ADB --> P["Android phone"]
-    C -- "stdio (MCP)" --> W["uvx nexus-windows==0.9.3"] -- "UI Automation, Win32" --> D["Windows apps"]
-    C -- "stdio (MCP)" --> B["uvx nexus-browser==2.10.1"] -- "local bridge" --> E["Chrome extension"] --> T["Chrome tabs"]
+    C -- "stdio (MCP)" --> W["uvx nexus-windows==0.10.1"] -- "UI Automation, Win32" --> D["Windows apps"]
+    C -- "stdio (MCP)" --> B["uvx nexus-browser==2.11.0"] -- "local bridge" --> E["Chrome extension"] --> T["Chrome tabs"]
 ```
 
 Each plugin is a folder with a manifest, an icon, a `.mcp.json` launcher, a `pyproject.toml` with its `uv.lock`, and a
