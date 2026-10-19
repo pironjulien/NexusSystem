@@ -3,6 +3,13 @@
 All notable changes to this marketplace are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [1.2.0] - 2026-10-19
+
+### Added
+- "Try it" example prompts in every plugin README (each one run for real before release) and a "Testing" section for
+  reviewers: Android emulator through `NEXUS_ANDROID_SERIAL`, any Windows PC, public test pages for the browser.
+- `nexus-android` passes `NEXUS_ANDROID_ADB` and `NEXUS_ANDROID_SERIAL` from the environment to its server.
+
 ## [1.1.3] - 2026-10-19
 
 ### Changed

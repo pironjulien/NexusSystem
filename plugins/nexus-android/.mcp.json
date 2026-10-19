@@ -6,7 +6,11 @@
         "--python",
         "3.14",
         "nexus-android==0.6.2"
-      ]
+      ],
+      "env": {
+        "NEXUS_ANDROID_ADB": "${NEXUS_ANDROID_ADB:-}",
+        "NEXUS_ANDROID_SERIAL": "${NEXUS_ANDROID_SERIAL:-}"
+      }
     }
   }
 }

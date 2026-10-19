@@ -2,6 +2,7 @@
 
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -40,8 +41,10 @@ def read_reply(proc: subprocess.Popen, want: int) -> dict:
 
 
 def smoke(name: str, server: dict, root: Path, data: Path) -> int:
-    def expand(text: str) -> str:  # what Claude Code does for a plugin's .mcp.json
-        return text.replace("${CLAUDE_PLUGIN_ROOT}", str(root)).replace("${CLAUDE_PLUGIN_DATA}", str(data))
+    def expand(text: str) -> str:  # what Claude Code does for a plugin's .mcp.json: ${VAR} and ${VAR:-default}
+        known = {**os.environ, "CLAUDE_PLUGIN_ROOT": str(root), "CLAUDE_PLUGIN_DATA": str(data)}
+        return re.sub(r"\$\{([A-Za-z_][A-Za-z0-9_]*)(?::-([^}]*))?\}",
+                      lambda m: known.get(m.group(1)) or (m.group(2) or ""), text)
 
     env = {**os.environ, **{k: expand(v) for k, v in server.get("env", {}).items()}}
     cmd = [server["command"], *map(expand, server["args"])]

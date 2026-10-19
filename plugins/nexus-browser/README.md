@@ -15,6 +15,16 @@ PyPI with `uvx --python 3.14` (uv downloads Python 3.14 if needed; versions and 
 dependencies recorded in `uv.lock`), over stdio, with `NEXUS_BROWSER_AGENT=Claude`
 (the name of the agent's tab group). It talks only to the local bridge on this PC; the plugin sends nothing anywhere.
 
+## Try it
+- "Open https://httpbin.org/forms/post in a background tab and fill the form with test values, without submitting it."
+- "Open news.ycombinator.com and summarise the top five stories."
+- "Open https://example.com in a background tab and give me the page as Markdown."
+
+## Testing
+After the one-time install (Windows, Chrome 116+), any Chrome profile works: no account is needed for the examples
+above. `https://httpbin.org/forms/post` is a public test form; the agent's tab opens in the background, in its own
+tab group, and every field is read back.
+
 ## Requirements
 - [uv](https://docs.astral.sh/uv/), Chrome, and the NexusBrowser install above.
 

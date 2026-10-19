@@ -29,6 +29,11 @@ use it.
 3. Start a new conversation and ask, for example: *"Look at my phone and tell me what is on the screen."* or
    *"Open Notepad and write a shopping list."*
 
+More examples, and how to test each plugin without your own phone or data, are in each plugin's README
+([nexus-android](https://github.com/pironjulien/nexus-plugins/tree/main/plugins/nexus-android#try-it),
+[nexus-windows](https://github.com/pironjulien/nexus-plugins/tree/main/plugins/nexus-windows#try-it),
+[nexus-browser](https://github.com/pironjulien/nexus-plugins/tree/main/plugins/nexus-browser#try-it)).
+
 Per-plugin requirements:
 
 - **nexus-android**: Android Platform Tools (`winget install Google.PlatformTools`), USB debugging on the phone and
