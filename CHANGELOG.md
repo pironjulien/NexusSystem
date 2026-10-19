@@ -3,6 +3,14 @@
 All notable changes to this marketplace are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [1.2.2] - 2026-10-19
+
+### Changed
+- `nexus-android` pinned to 0.7.0: screen reads in about 0.2 s (was about 3 s), numbered marks on screenshots, a
+  `clipboard` tool, `launch` opening a precise screen (calls, sends, payments and power actions need `confirm=true`,
+  banking and identity apps refused), stronger guardrails (payment pages, subscriptions, bookings, price buttons),
+  security codes masked in more languages, English output; `uv.lock` updated.
+
 ## [1.2.1] - 2026-10-19
 
 ### Changed
