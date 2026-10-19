@@ -1,9 +1,10 @@
-"""Start each plugin's MCP server exactly as its .mcp.json says (uvx from PyPI) and list its tools over stdio."""
+"""Start each plugin's MCP server exactly as its .mcp.json says (uv run on the locked PyPI package), list its tools."""
 
 import json
 import os
 import subprocess
 import sys
+import tempfile
 import threading
 from pathlib import Path
 
@@ -38,9 +39,12 @@ def read_reply(proc: subprocess.Popen, want: int) -> dict:
     return result
 
 
-def smoke(name: str, server: dict) -> int:
-    env = {**os.environ, **server.get("env", {})}
-    cmd = [server["command"], *server["args"]]
+def smoke(name: str, server: dict, root: Path, data: Path) -> int:
+    def expand(text: str) -> str:  # what Claude Code does for a plugin's .mcp.json
+        return text.replace("${CLAUDE_PLUGIN_ROOT}", str(root)).replace("${CLAUDE_PLUGIN_DATA}", str(data))
+
+    env = {**os.environ, **{k: expand(v) for k, v in server.get("env", {}).items()}}
+    cmd = [server["command"], *map(expand, server["args"])]
     proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
                             text=True, encoding="utf-8", env=env)
     try:
@@ -65,7 +69,8 @@ def smoke(name: str, server: dict) -> int:
 
 
 failures = 0
-for mcp in sorted((ROOT / "plugins").glob("*/.mcp.json")):
-    for name, server in json.loads(mcp.read_text(encoding="utf-8"))["mcpServers"].items():
-        failures += smoke(name, server)
+with tempfile.TemporaryDirectory(prefix="nexus-plugins-data-") as tmp:
+    for mcp in sorted((ROOT / "plugins").glob("*/.mcp.json")):
+        for name, server in json.loads(mcp.read_text(encoding="utf-8"))["mcpServers"].items():
+            failures += smoke(name, server, mcp.parent, Path(tmp) / name)
 sys.exit(1 if failures else 0)

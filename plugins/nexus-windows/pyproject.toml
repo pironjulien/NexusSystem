@@ -1,0 +1,9 @@
+# Launcher environment of the nexus-windows plugin: the pinned PyPI server, locked with hashes in uv.lock.
+[project]
+name = "nexus-windows-plugin"
+version = "0.9.3"
+requires-python = ">=3.14"
+dependencies = ["nexus-windows==0.9.3"]
+
+[tool.uv]
+package = false

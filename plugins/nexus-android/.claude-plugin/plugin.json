@@ -17,6 +17,5 @@
     "computer-use",
     "mcp"
   ],
-  "privacyPolicyUrl": "https://github.com/pironjulien/NexusAndroid#privacy",
-  "supportUrl": "https://github.com/pironjulien/NexusAndroid/issues"
+  "icon": "./.claude-plugin/icon.png"
 }

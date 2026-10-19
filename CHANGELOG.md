@@ -3,6 +3,20 @@
 All notable changes to this marketplace are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [1.1.0] - 2026-10-19
+
+### Changed
+- Every plugin now starts its server with `uv run --frozen` on a `uv.lock` that pins the server and all its
+  dependencies by version and hash (instead of `uvx`), as the Claude directory asks for its Verified badge; the
+  environment lives in the plugin's data folder, never in the plugin folder.
+- `test.ps1 -Full` also checks that every `uv.lock` matches its `pyproject.toml`.
+
+### Added
+- A square icon for each plugin (`.claude-plugin/icon.png`).
+
+### Removed
+- `privacyPolicyUrl` and `supportUrl` from the manifests (not plugin fields; the links stay in each README).
+
 ## [1.0.0] - 2026-10-19
 
 ### Added

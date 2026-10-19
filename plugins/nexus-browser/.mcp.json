@@ -1,15 +1,16 @@
 {
   "mcpServers": {
     "nexus-browser": {
-      "command": "uvx",
+      "command": "uv",
       "args": [
-        "--python",
-        "3.14",
-        "--from",
-        "nexus-browser==2.10.0",
+        "run",
+        "--frozen",
+        "--project",
+        "${CLAUDE_PLUGIN_ROOT}",
         "nexus-browser"
       ],
       "env": {
+        "UV_PROJECT_ENVIRONMENT": "${CLAUDE_PLUGIN_DATA}/venv",
         "NEXUS_BROWSER_AGENT": "Claude"
       }
     }

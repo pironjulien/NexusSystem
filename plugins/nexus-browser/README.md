@@ -11,7 +11,8 @@ them, the server starts but every call answers with an error pointing to that in
 
 ## What it runs
 The plugin starts the open-source MCP server [`nexus-browser`](https://pypi.org/project/nexus-browser/) 2.10.0 from
-PyPI with `uvx --python 3.14` (uv downloads Python 3.14 if needed), over stdio, with `NEXUS_BROWSER_AGENT=Claude`
+PyPI with `uv run --frozen` (version and dependencies locked with hashes in `uv.lock`; uv downloads Python 3.14 if
+needed and keeps the environment in the plugin's data folder), over stdio, with `NEXUS_BROWSER_AGENT=Claude`
 (the name of the agent's tab group). It talks only to the local bridge on this PC; the plugin sends nothing anywhere.
 
 ## Requirements

@@ -1,5 +1,6 @@
 # Full offline check of the marketplace (exit code 0 when everything is fine).
-# -Full also starts every MCP server from PyPI with uvx, in a throwaway uv cache, and lists its tools.
+# -Full also checks each uv.lock against its pyproject.toml and starts every MCP server from PyPI exactly as its
+# .mcp.json says, in a throwaway uv cache, then lists its tools.
 param([switch]$Full)
 $ErrorActionPreference = 'Stop'
 $env:PYTHONDONTWRITEBYTECODE = '1'
@@ -11,6 +12,10 @@ if ($Full) {
     $cache = Join-Path ([IO.Path]::GetTempPath()) "nexus-plugins-uv-$PID"
     $env:UV_CACHE_DIR = $cache
     try {
+        foreach ($plugin in Get-ChildItem (Join-Path $PSScriptRoot 'plugins') -Directory) {
+            uv lock --check --project $plugin.FullName --quiet
+            if ($LASTEXITCODE) { throw "uv.lock out of date in $($plugin.Name)" }
+        }
         python -B (Join-Path $PSScriptRoot 'tests\smoke_mcp.py')
         $code = $LASTEXITCODE
     } finally {

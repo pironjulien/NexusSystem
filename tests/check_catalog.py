@@ -2,7 +2,9 @@
 
 import json
 import re
+import struct
 import sys
+import tomllib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -73,8 +75,25 @@ for entry in entries:
     if list(servers) != [name]:
         fail(f"{where}: .mcp.json must declare exactly the server {name}")
     server = servers.get(name, {})
-    if server.get("command") != "uvx" or f"{name}=={version}" not in server.get("args", []):
-        fail(f"{where}: server must start with uvx pinned to {name}=={version}")
+    args = server.get("args", [])
+    if server.get("command") != "uv" or args[:4] != ["run", "--frozen", "--project", "${CLAUDE_PLUGIN_ROOT}"]:
+        fail(f"{where}: server must start with uv run --frozen --project ${{CLAUDE_PLUGIN_ROOT}}")
+    if server.get("env", {}).get("UV_PROJECT_ENVIRONMENT") != "${CLAUDE_PLUGIN_DATA}/venv":
+        fail(f"{where}: the environment must live in ${{CLAUDE_PLUGIN_DATA}}, not in the plugin folder")
+    project = tomllib.loads((folder / "pyproject.toml").read_text(encoding="utf-8")).get("project", {})
+    if project.get("dependencies") != [f"{name}=={version}"] or project.get("version") != version:
+        fail(f"{where}: pyproject.toml must depend on exactly {name}=={version}")
+    lock = (folder / "uv.lock").read_text(encoding="utf-8") if (folder / "uv.lock").is_file() else ""
+    if f'name = "{name}"\nversion = "{version}"' not in lock or "sha256:" not in lock:
+        fail(f"{where}: uv.lock must lock {name} {version} with hashes")
+    icon = folder / ".claude-plugin" / "icon.png"
+    if manifest.get("icon") != "./.claude-plugin/icon.png" or not icon.is_file():
+        fail(f"{where}: icon must be ./.claude-plugin/icon.png")
+    else:
+        head = icon.read_bytes()[:24]
+        width, height = struct.unpack(">II", head[16:24])
+        if head[:8] != bytes.fromhex("89504e470d0a1a0a") or width != height or not 512 <= width <= 2048:
+            fail(f"{where}: icon must be a square PNG of 512 to 2048 px")
     if name == "nexus-browser" and "extension" not in entry.get("description", "").lower():
         fail(f"{where}: description must say that the Chrome extension is required")
     skills = sorted((folder / "skills").glob("*/SKILL.md"))
@@ -86,7 +105,7 @@ for entry in entries:
             fail(f"{skill.relative_to(ROOT)}: frontmatter needs name = folder and a real description")
 
 for path in ROOT.rglob("*"):
-    if not path.is_file() or ".git" in path.parts or path.suffix not in {".json", ".md"}:
+    if not path.is_file() or ".git" in path.parts or path.suffix not in {".json", ".md", ".toml"}:
         continue
     if path.name == "CHANGELOG.md":
         continue

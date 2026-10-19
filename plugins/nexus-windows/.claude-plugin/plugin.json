@@ -17,6 +17,5 @@
     "computer-use",
     "mcp"
   ],
-  "privacyPolicyUrl": "https://github.com/pironjulien/NexusWindows-Claude#privacy",
-  "supportUrl": "https://github.com/pironjulien/NexusWindows-Claude/issues"
+  "icon": "./.claude-plugin/icon.png"
 }

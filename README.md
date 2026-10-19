@@ -5,7 +5,7 @@
 
 **Computer use in the background for Claude Code.** A plugin marketplace with three plugins that give Claude your
 Android phone, your Windows desktop apps and your real Chrome, while you keep working. Each plugin starts an
-open-source MCP server from PyPI with `uvx`, pinned to an exact version, and adds a skill that teaches Claude how to
+open-source MCP server from PyPI with uv, pinned to an exact version and locked with hashes, and adds a skill that teaches Claude how to
 use it.
 
 | Plugin | What Claude gets | Server |
@@ -42,12 +42,13 @@ Per-plugin requirements:
 
 ```mermaid
 flowchart LR
-    C["Claude Code"] -- "stdio (MCP)" --> A["uvx nexus-android==0.6.2"] -- ADB --> P["Android phone"]
-    C -- "stdio (MCP)" --> W["uvx nexus-windows==0.9.3"] -- "UI Automation, Win32" --> D["Windows apps"]
-    C -- "stdio (MCP)" --> B["uvx nexus-browser==2.10.0"] -- "local bridge" --> E["Chrome extension"] --> T["Chrome tabs"]
+    C["Claude Code"] -- "stdio (MCP)" --> A["nexus-android 0.6.2 (uv)"] -- ADB --> P["Android phone"]
+    C -- "stdio (MCP)" --> W["nexus-windows 0.9.3 (uv)"] -- "UI Automation, Win32" --> D["Windows apps"]
+    C -- "stdio (MCP)" --> B["nexus-browser 2.10.0 (uv)"] -- "local bridge" --> E["Chrome extension"] --> T["Chrome tabs"]
 ```
 
-Each plugin is a folder with a manifest, a `.mcp.json` launcher and a skill. Updating a plugin moves its pin to the
+Each plugin is a folder with a manifest, an icon, a `.mcp.json` launcher, a `pyproject.toml` with its `uv.lock`, and a
+skill. Updating a plugin moves its pin to the
 new server version, checked by `test.ps1 -Full` (the server is started from PyPI and lists its tools).
 
 ## Safeguards
@@ -59,8 +60,10 @@ tools for two minutes. Details in each server's README.
 
 ## Privacy
 
-- This repository contains no code that runs on your PC besides the launchers: `uvx --python 3.14 --from
-  <package>==<version> <package>`. uv downloads Python 3.14 and the package from PyPI and caches them in uv's cache.
+- This repository contains no code that runs on your PC besides the launchers: `uv run --frozen --project
+  <plugin folder> <package>`, with the package and all its dependencies locked by version and hash in the plugin's
+  `uv.lock`. uv downloads Python 3.14 and those packages from PyPI, caches them in uv's cache and keeps the
+  environment in the plugin's data folder (`~/.claude/plugins/data/`).
 - The plugins send nothing anywhere. The servers run locally and return what they read (screen, messages, pages) to
   your Claude client only; what each server reads, stores (logs, screenshots) and how to remove it is in its
   README's Privacy section: [NexusAndroid](https://github.com/pironjulien/NexusAndroid#privacy),

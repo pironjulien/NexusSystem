@@ -6,8 +6,9 @@ action. Irreversible gestures need your explicit "yes"; Ctrl+Alt+Shift+Esc stops
 
 ## What it runs
 The plugin starts the open-source MCP server [`nexus-windows`](https://pypi.org/project/nexus-windows/) 0.9.3 from
-PyPI with `uvx --python 3.14` (uv downloads Python 3.14 if needed), over stdio. The plugin itself contains only this
-launcher and a skill; it sends nothing anywhere.
+PyPI with `uv run --frozen`, over stdio. Its exact version and every dependency are locked with hashes in `uv.lock`;
+uv downloads Python 3.14 if needed and keeps the environment in the plugin's data folder. The plugin itself
+contains only this launcher, the lock file and a skill; it sends nothing anywhere.
 
 ## Requirements
 - Windows 10 or 11.

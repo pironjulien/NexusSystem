@@ -1,15 +1,16 @@
 {
   "mcpServers": {
     "nexus-windows": {
-      "command": "uvx",
+      "command": "uv",
       "args": [
-        "--python",
-        "3.14",
-        "--from",
-        "nexus-windows==0.9.3",
+        "run",
+        "--frozen",
+        "--project",
+        "${CLAUDE_PLUGIN_ROOT}",
         "nexus-windows"
       ],
       "env": {
+        "UV_PROJECT_ENVIRONMENT": "${CLAUDE_PLUGIN_DATA}/venv",
         "PYTHONUTF8": "1"
       }
     }

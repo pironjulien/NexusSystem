@@ -5,8 +5,8 @@
     "url": "https://github.com/pironjulien"
   },
   "metadata": {
-    "description": "Computer use in the background for Claude Code: your Android phone over ADB, your Windows desktop apps, your real Chrome. Each plugin starts its open-source MCP server from PyPI with uvx.",
-    "version": "1.0.0"
+    "description": "Computer use in the background for Claude Code: your Android phone over ADB, your Windows desktop apps, your real Chrome. Each plugin starts its open-source MCP server from PyPI with uv, locked with hashes.",
+    "version": "1.1.0"
   },
   "plugins": [
     {
