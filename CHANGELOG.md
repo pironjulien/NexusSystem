@@ -3,6 +3,14 @@
 All notable changes to this marketplace are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [1.2.4] - 2026-10-19
+
+### Changed
+- `nexus-android` pinned to 0.7.2: new `capture` tool (screenshots with security codes blacked out, screen videos up
+  to 180 s, saved on the PC, e.g. for a support request; never while a banking app is open) and `logs` tool
+  (grouped crashes, ANR, recent log of one app, with codes, tokens, e-mail addresses and phone numbers masked);
+  another automation tool holding the phone's accessibility connection is named; skill updated; `uv.lock` updated.
+
 ## [1.2.3] - 2026-10-19
 
 ### Changed
