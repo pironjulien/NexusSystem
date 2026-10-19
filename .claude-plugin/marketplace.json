@@ -1,0 +1,64 @@
+{
+  "name": "nexus-plugins",
+  "owner": {
+    "name": "Julien Piron",
+    "url": "https://github.com/pironjulien"
+  },
+  "metadata": {
+    "description": "Computer use in the background for Claude Code: your Android phone over ADB, your Windows desktop apps, your real Chrome. Each plugin starts its open-source MCP server from PyPI with uvx.",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "nexus-android",
+      "source": "./plugins/nexus-android",
+      "description": "Android phone over plain ADB (no root, no app): screen, gestures, SMS/RCS, notifications, files, settings. Needs uv, Android Platform Tools and USB debugging.",
+      "version": "0.6.2",
+      "category": "productivity",
+      "keywords": [
+        "android",
+        "adb",
+        "phone",
+        "computer-use",
+        "mcp"
+      ],
+      "homepage": "https://julienpiron.fr/nexusandroid/",
+      "repository": "https://github.com/pironjulien/NexusAndroid",
+      "license": "MIT"
+    },
+    {
+      "name": "nexus-windows",
+      "source": "./plugins/nexus-windows",
+      "description": "Windows desktop apps in the background (look, click, type, menus, shortcuts, launch) without taking your mouse, keyboard or foreground. Windows 10/11, needs uv.",
+      "version": "0.9.3",
+      "category": "productivity",
+      "keywords": [
+        "windows",
+        "desktop",
+        "ui-automation",
+        "computer-use",
+        "mcp"
+      ],
+      "homepage": "https://julienpiron.fr/nexuswindows/claude/",
+      "repository": "https://github.com/pironjulien/NexusWindows-Claude",
+      "license": "MIT"
+    },
+    {
+      "name": "nexus-browser",
+      "source": "./plugins/nexus-browser",
+      "description": "Your real Chrome (your sessions) driven in background tabs: forms, network, dialogs, cross-origin iframes, exports, downloads. Requires the one-time NexusBrowser install (Chrome extension + local bridge, Windows).",
+      "version": "2.10.0",
+      "category": "productivity",
+      "keywords": [
+        "chrome",
+        "browser",
+        "cdp",
+        "automation",
+        "mcp"
+      ],
+      "homepage": "https://julienpiron.fr/nexusbrowser/",
+      "repository": "https://github.com/pironjulien/NexusBrowser",
+      "license": "MIT"
+    }
+  ]
+}

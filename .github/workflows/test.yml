@@ -1,0 +1,16 @@
+name: test
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  catalog:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: Catalog checks and real server start from PyPI
+        shell: pwsh
+        run: ./test.ps1 -Full

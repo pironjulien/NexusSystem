@@ -1,0 +1,22 @@
+{
+  "name": "nexus-android",
+  "displayName": "Nexus Android",
+  "version": "0.6.2",
+  "description": "Android phone over plain ADB (no root, no app): screen, gestures, SMS/RCS, notifications, files, settings.",
+  "author": {
+    "name": "Julien Piron",
+    "url": "https://github.com/pironjulien"
+  },
+  "homepage": "https://julienpiron.fr/nexusandroid/",
+  "repository": "https://github.com/pironjulien/NexusAndroid",
+  "license": "MIT",
+  "keywords": [
+    "android",
+    "adb",
+    "phone",
+    "computer-use",
+    "mcp"
+  ],
+  "privacyPolicyUrl": "https://github.com/pironjulien/NexusAndroid#privacy",
+  "supportUrl": "https://github.com/pironjulien/NexusAndroid/issues"
+}

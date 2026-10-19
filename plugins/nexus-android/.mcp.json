@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "nexus-android": {
+      "command": "uvx",
+      "args": [
+        "--python",
+        "3.14",
+        "--from",
+        "nexus-android==0.6.2",
+        "nexus-android"
+      ]
+    }
+  }
+}

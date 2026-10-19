@@ -1,0 +1,22 @@
+{
+  "name": "nexus-windows",
+  "displayName": "Nexus Windows",
+  "version": "0.9.3",
+  "description": "Windows desktop apps in the background (look, click, type, menus, shortcuts, launch) without taking your mouse, keyboard or foreground.",
+  "author": {
+    "name": "Julien Piron",
+    "url": "https://github.com/pironjulien"
+  },
+  "homepage": "https://julienpiron.fr/nexuswindows/claude/",
+  "repository": "https://github.com/pironjulien/NexusWindows-Claude",
+  "license": "MIT",
+  "keywords": [
+    "windows",
+    "desktop",
+    "ui-automation",
+    "computer-use",
+    "mcp"
+  ],
+  "privacyPolicyUrl": "https://github.com/pironjulien/NexusWindows-Claude#privacy",
+  "supportUrl": "https://github.com/pironjulien/NexusWindows-Claude/issues"
+}
