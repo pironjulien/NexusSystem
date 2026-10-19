@@ -3,6 +3,12 @@
 All notable changes to this marketplace are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [1.1.2] - 2026-10-19
+
+### Added
+- `documentationUrl`, `privacyPolicyUrl` and `supportUrl` in every manifest: the Claude directory shows them on the
+  listing (Claude Code ignores them).
+
 ## [1.1.1] - 2026-10-19
 
 ### Fixed

@@ -17,5 +17,8 @@
     "automation",
     "mcp"
   ],
-  "icon": "./.claude-plugin/icon.png"
+  "icon": "./.claude-plugin/icon.png",
+  "documentationUrl": "https://github.com/pironjulien/NexusBrowser#readme",
+  "privacyPolicyUrl": "https://github.com/pironjulien/NexusBrowser#privacy",
+  "supportUrl": "https://github.com/pironjulien/NexusBrowser/issues"
 }

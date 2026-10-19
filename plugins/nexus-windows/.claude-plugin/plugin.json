@@ -17,5 +17,8 @@
     "computer-use",
     "mcp"
   ],
-  "icon": "./.claude-plugin/icon.png"
+  "icon": "./.claude-plugin/icon.png",
+  "documentationUrl": "https://github.com/pironjulien/NexusWindows-Claude#readme",
+  "privacyPolicyUrl": "https://github.com/pironjulien/NexusWindows-Claude#privacy",
+  "supportUrl": "https://github.com/pironjulien/NexusWindows-Claude/issues"
 }
