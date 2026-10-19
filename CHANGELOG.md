@@ -3,6 +3,13 @@
 All notable changes to this marketplace are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [1.1.1] - 2026-10-19
+
+### Fixed
+- Launchers back to `uvx --python 3.14 <package>==<version>`, the only form the Claude directory's validator reads
+  (`uv run --project` and a `UV_PROJECT_ENVIRONMENT` setting are refused); each plugin keeps its `pyproject.toml`
+  and `uv.lock`, which record the server and all its dependencies by version and hash.
+
 ## [1.1.0] - 2026-10-19
 
 ### Changed

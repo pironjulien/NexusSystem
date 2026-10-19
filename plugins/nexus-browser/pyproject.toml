@@ -1,4 +1,4 @@
-# Launcher environment of the nexus-browser plugin: the pinned PyPI server, locked with hashes in uv.lock.
+# Lock of the nexus-browser plugin: pinned PyPI server that .mcp.json starts with uvx: every dependency by version and hash in uv.lock.
 [project]
 name = "nexus-browser-plugin"
 version = "2.10.0"

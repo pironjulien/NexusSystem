@@ -76,10 +76,11 @@ for entry in entries:
         fail(f"{where}: .mcp.json must declare exactly the server {name}")
     server = servers.get(name, {})
     args = server.get("args", [])
-    if server.get("command") != "uv" or args[:4] != ["run", "--frozen", "--project", "${CLAUDE_PLUGIN_ROOT}"]:
-        fail(f"{where}: server must start with uv run --frozen --project ${{CLAUDE_PLUGIN_ROOT}}")
-    if server.get("env", {}).get("UV_PROJECT_ENVIRONMENT") != "${CLAUDE_PLUGIN_DATA}/venv":
-        fail(f"{where}: the environment must live in ${{CLAUDE_PLUGIN_DATA}}, not in the plugin folder")
+    # The directory's validator reads exactly "uvx <package>==<version>", with uv.lock next to the manifest.
+    if server.get("command") != "uvx" or args != ["--python", "3.14", f"{name}=={version}"]:
+        fail(f"{where}: server must start with uvx --python 3.14 {name}=={version}")
+    if any(key.startswith("UV_") for key in server.get("env", {})):
+        fail(f"{where}: no uv setting in the server env (the directory blocks registry redirects)")
     project = tomllib.loads((folder / "pyproject.toml").read_text(encoding="utf-8")).get("project", {})
     if project.get("dependencies") != [f"{name}=={version}"] or project.get("version") != version:
         fail(f"{where}: pyproject.toml must depend on exactly {name}=={version}")

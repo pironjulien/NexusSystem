@@ -1,4 +1,4 @@
-"""Start each plugin's MCP server exactly as its .mcp.json says (uv run on the locked PyPI package), list its tools."""
+"""Start each plugin's MCP server exactly as its .mcp.json says (uvx from PyPI) and list its tools."""
 
 import json
 import os

@@ -6,9 +6,9 @@ and quick settings. Sending, paying and other irreversible gestures need your ex
 
 ## What it runs
 The plugin starts the open-source MCP server [`nexus-android`](https://pypi.org/project/nexus-android/) 0.6.2 from
-PyPI with `uv run --frozen`, over stdio. Its exact version and every dependency are locked with hashes in `uv.lock`;
-uv downloads Python 3.14 if needed and keeps the environment in the plugin's data folder. The plugin itself
-contains only this launcher, the lock file and a skill; it sends nothing anywhere.
+PyPI with `uvx --python 3.14`, over stdio (uv downloads Python 3.14 if needed). The exact version of the server and
+of every dependency is recorded with its hash in `uv.lock`. The plugin itself contains only this launcher, the lock
+file and a skill; it sends nothing anywhere.
 
 ## Requirements
 - [uv](https://docs.astral.sh/uv/) and Android Platform Tools (`adb`), e.g. `winget install Google.PlatformTools`.

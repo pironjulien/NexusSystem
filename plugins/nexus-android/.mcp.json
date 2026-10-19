@@ -1,17 +1,12 @@
 {
   "mcpServers": {
     "nexus-android": {
-      "command": "uv",
+      "command": "uvx",
       "args": [
-        "run",
-        "--frozen",
-        "--project",
-        "${CLAUDE_PLUGIN_ROOT}",
-        "nexus-android"
-      ],
-      "env": {
-        "UV_PROJECT_ENVIRONMENT": "${CLAUDE_PLUGIN_DATA}/venv"
-      }
+        "--python",
+        "3.14",
+        "nexus-android==0.6.2"
+      ]
     }
   }
 }
