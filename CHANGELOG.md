@@ -3,6 +3,13 @@
 All notable changes to this marketplace are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [1.3.1] - 2026-10-20
+
+### Changed
+- `nexus-windows` pinned to 0.15.7: password fields also refuse Shift+letter and editing shortcuts; `launch` follows
+  the window the user picks while it waits; sharper focus checks for typing in rich editors and with the real
+  keyboard; sign-in codes masked in notifications even without the word "code". `uv.lock` updated.
+
 ## [1.3.0] - 2026-10-20
 
 ### Changed
