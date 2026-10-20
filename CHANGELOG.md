@@ -3,6 +3,20 @@
 All notable changes to this marketplace are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [1.3.0] - 2026-10-20
+
+### Changed
+- `nexus-android` pinned to 0.9.3: new `map` (where a setting is, open it; `snapshot`/`diff` of the phone state),
+  `apps`, `web` (read the page shown in Chrome or a WebView) and `functions` (actions apps expose to assistants)
+  tools; a screen video is erased if a banking app comes to the front; skill updated.
+- `nexus-windows` pinned to 0.15.2: new `notifications` tool (Windows notification center, codes masked); `launch`
+  opens Settings pages and asks `confirm=true` for addresses that call or message someone; outward actions (send,
+  call, pay, publish, transfer) need a single-use accord token after the user's yes; skill updated.
+- `nexus-browser` pinned to 2.17.0: new `browser_batch`, `browser_wait_for`, `browser_webmcp_tools` and
+  `browser_webmcp_call` tools; outward gestures need a one-time accord token after the user's yes; tabs opened by
+  the agent's tab and orphaned tabs after a restart; skill updated.
+- CI: `actions/checkout` 7.0.1 and `astral-sh/setup-uv` 10.3.0 (pinned by commit SHA). `uv.lock` files updated.
+
 ## [1.2.5] - 2026-10-20
 
 ### Changed
