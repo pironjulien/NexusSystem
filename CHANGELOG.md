@@ -3,6 +3,14 @@
 All notable changes to this marketplace are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [1.2.5] - 2026-10-20
+
+### Changed
+- GitHub Actions pinned by commit SHA, checkout without persisted credentials (zizmor clean).
+
+### Added
+- OpenSSF Scorecard workflow and badge; Dependabot for GitHub Actions and the plugins' `uv.lock` (7-day cooldown).
+
 ## [1.2.4] - 2026-10-19
 
 ### Changed

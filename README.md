@@ -1,6 +1,7 @@
 # Nexus plugins for Claude Code
 
 [![test](https://github.com/pironjulien/nexus-plugins/actions/workflows/test.yml/badge.svg)](https://github.com/pironjulien/nexus-plugins/actions/workflows/test.yml)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/pironjulien/nexus-plugins/badge)](https://scorecard.dev/viewer/?uri=github.com/pironjulien/nexus-plugins)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/pironjulien/nexus-plugins/blob/main/LICENSE)
 
 **Computer use in the background for Claude Code.** A plugin marketplace with three plugins that give Claude your
