@@ -296,7 +296,7 @@ wheels = [
 
 [[package]]
 name = "nexus-windows"
-version = "0.15.7"
+version = "0.15.8"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "comtypes", marker = "sys_platform == 'win32'" },
@@ -312,21 +312,21 @@ dependencies = [
     { name = "winrt-windows-media-ocr", marker = "sys_platform == 'win32'" },
     { name = "winrt-windows-storage-streams", marker = "sys_platform == 'win32'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/2a/18/dd8764c32e37b2efebfdff2387f7a9d4d620afde1eed159141eef86b057a/nexus_windows-0.15.7.tar.gz", hash = "sha256:144bac9d791eccd82b25cb51b8e1e0f20c05bbc55afcf36978db31249ae29fa1", size = 335896, upload-time = "2026-10-20T15:13:53.726Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/8f/65/b826275282ddcc0ce78f44fb09a5ee4e955e3de4cc03e1f0fcaea5d2c76b/nexus_windows-0.15.8.tar.gz", hash = "sha256:5d456ce7dc2d472095c359ed7b45cbed9f61ff58ccac6acc6aa57d6f0e6fb001", size = 336771, upload-time = "2026-10-20T17:19:34.05Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/7b/24/d7a3445eae318ea7cf5c51e0e77fa702f149977b76a448248395f68c2e4c/nexus_windows-0.15.7-py3-none-any.whl", hash = "sha256:a4210e3bb20951286cfb09aa551c536c41278c7a1bca465f6c74e9b2559ae8ef", size = 344109, upload-time = "2026-10-20T15:13:51.983Z" },
+    { url = "https://files.pythonhosted.org/packages/5c/29/fc588f2082a933377e9c555b38f534bdc418added6c2fa3fa74fe683b7f8/nexus_windows-0.15.8-py3-none-any.whl", hash = "sha256:eed2d94210abf19123d7086d93c0cdaa6651fd847b69f97446c8bdd82c16f616", size = 344923, upload-time = "2026-10-20T17:19:32.426Z" },
 ]
 
 [[package]]
 name = "nexus-windows-plugin"
-version = "0.15.7"
+version = "0.15.8"
 source = { virtual = "." }
 dependencies = [
     { name = "nexus-windows" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "nexus-windows", specifier = "==0.15.7" }]
+requires-dist = [{ name = "nexus-windows", specifier = "==0.15.8" }]
 
 [[package]]
 name = "numpy"

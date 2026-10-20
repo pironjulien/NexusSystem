@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Computer use in the background for Claude Code: your Android phone over ADB, your Windows desktop apps, your real Chrome. Each plugin starts its open-source MCP server from PyPI with uvx, pinned and locked with hashes.",
-    "version": "1.3.1"
+    "version": "1.3.2"
   },
   "plugins": [
     {
@@ -30,7 +30,7 @@
       "name": "nexus-windows",
       "source": "./plugins/nexus-windows",
       "description": "Windows desktop apps in the background (look, click, type, menus, shortcuts, launch) without taking your mouse, keyboard or foreground. Windows 10/11, needs uv.",
-      "version": "0.15.7",
+      "version": "0.15.8",
       "category": "productivity",
       "keywords": [
         "windows",

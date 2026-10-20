@@ -5,6 +5,13 @@ All notable changes to this marketplace are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.3.2] - 2026-10-20
+
+### Changed
+- `nexus-windows` pinned to 0.15.8: the first background typing in a Chromium or Electron app launched a moment ago
+  is no longer lost (the app's one-time launch foreground right is handled before any key); live suite 14/14.
+  `uv.lock` updated.
+
 ### Added
 - README: how Claude installs plugins enabled through `settings.json` (installed when a conversation starts, only
   from a marketplace already downloaded; tools available in the following conversation; project-only enabling does
