@@ -3,6 +3,13 @@
 All notable changes to this marketplace are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- README: how Claude installs plugins enabled through `settings.json` (installed when a conversation starts, only
+  from a marketplace already downloaded; tools available in the following conversation; project-only enabling does
+  not install), checked with a real install of 1.3.1 in fresh conversations.
+
 ## [1.3.1] - 2026-10-20
 
 ### Changed

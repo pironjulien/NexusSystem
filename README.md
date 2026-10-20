@@ -30,6 +30,11 @@ use it.
 3. Start a new conversation and ask, for example: *"Look at my phone and tell me what is on the screen."* or
    *"Open Notepad and write a shopping list."*
 
+Enabling the plugins by editing `settings.json` instead (`extraKnownMarketplaces` and `enabledPlugins`, user scope):
+Claude installs an enabled plugin when a conversation starts, and only from a marketplace already downloaded at that
+moment. The first conversation after declaring the marketplace downloads it, the next one installs the plugins, and
+their tools appear in the conversation after that. Enabling them for one project only does not install them.
+
 More examples, and how to test each plugin without your own phone or data, are in each plugin's README
 ([nexus-android](https://github.com/pironjulien/nexus-plugins/tree/main/plugins/nexus-android#try-it),
 [nexus-windows](https://github.com/pironjulien/nexus-plugins/tree/main/plugins/nexus-windows#try-it),
