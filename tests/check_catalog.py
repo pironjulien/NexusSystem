@@ -17,6 +17,9 @@ FORBIDDEN = [
     (re.compile(r"[A-Za-z]:\\Users\\|/home/|USERPROFILE|OneDrive", re.I), "local path"),
     (re.compile(r"nexus-relay", re.I), "private plugin"),
 ]
+# PyPI package started by a plugin, when it differs from the plugin name (NexusWindows for Claude took the family
+# name nexus-windows-claude in 3.0.1; the plugin keeps its name so the tool prefix stays the same).
+PACKAGES = {"nexus-windows": "nexus-windows-claude"}
 errors: list[str] = []
 
 
@@ -76,17 +79,18 @@ for entry in entries:
         fail(f"{where}: .mcp.json must declare exactly the server {name}")
     server = servers.get(name, {})
     args = server.get("args", [])
+    package = PACKAGES.get(name, name)
     # The directory's validator reads exactly "uvx <package>==<version>", with uv.lock next to the manifest.
-    if server.get("command") != "uvx" or args != ["--python", "3.14", f"{name}=={version}"]:
-        fail(f"{where}: server must start with uvx --python 3.14 {name}=={version}")
+    if server.get("command") != "uvx" or args != ["--python", "3.14", f"{package}=={version}"]:
+        fail(f"{where}: server must start with uvx --python 3.14 {package}=={version}")
     if any(key.startswith("UV_") for key in server.get("env", {})):
         fail(f"{where}: no uv setting in the server env (the directory blocks registry redirects)")
     project = tomllib.loads((folder / "pyproject.toml").read_text(encoding="utf-8")).get("project", {})
-    if project.get("dependencies") != [f"{name}=={version}"] or project.get("version") != version:
-        fail(f"{where}: pyproject.toml must depend on exactly {name}=={version}")
+    if project.get("dependencies") != [f"{package}=={version}"] or project.get("version") != version:
+        fail(f"{where}: pyproject.toml must depend on exactly {package}=={version}")
     lock = (folder / "uv.lock").read_text(encoding="utf-8") if (folder / "uv.lock").is_file() else ""
-    if f'name = "{name}"\nversion = "{version}"' not in lock or "sha256:" not in lock:
-        fail(f"{where}: uv.lock must lock {name} {version} with hashes")
+    if f'name = "{package}"\nversion = "{version}"' not in lock or "sha256:" not in lock:
+        fail(f"{where}: uv.lock must lock {package} {version} with hashes")
     icon = folder / ".claude-plugin" / "icon.png"
     if manifest.get("icon") != "./.claude-plugin/icon.png" or not icon.is_file():
         fail(f"{where}: icon must be ./.claude-plugin/icon.png")

@@ -5,6 +5,13 @@ All notable changes to this marketplace are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.3.3] - 2026-10-23
+
+### Changed
+- `nexus-windows` plugin: starts `nexus-windows-claude==3.0.1`, the new PyPI name of NexusWindows for Claude (common
+  tool names `windows`, `look`, `act`, `launch`, `window` across the NexusWindows family, step outcomes ✓ = ~ ✗).
+  `uv.lock` updated.
+
 ## [1.3.2] - 2026-10-20
 
 ### Changed

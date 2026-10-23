@@ -12,7 +12,7 @@ use it.
 | Plugin | What Claude gets | Server |
 | --- | --- | --- |
 | `nexus-android` | Your Android phone over plain ADB (no root, no app): screen, gestures, SMS/RCS, notifications, files, settings | [NexusAndroid](https://github.com/pironjulien/NexusAndroid) · [PyPI](https://pypi.org/project/nexus-android/) |
-| `nexus-windows` | Windows desktop apps in the background: look, click, type, menus, shortcuts, launch, without your mouse or foreground | [NexusWindows-Claude](https://github.com/pironjulien/NexusWindows-Claude) · [PyPI](https://pypi.org/project/nexus-windows/) |
+| `nexus-windows` | Windows desktop apps in the background: look, click, type, menus, shortcuts, launch, without your mouse or foreground | [NexusWindows-Claude](https://github.com/pironjulien/NexusWindows-Claude) · [PyPI](https://pypi.org/project/nexus-windows-claude/) |
 | `nexus-browser` | Your real Chrome with your sessions, in background tabs: forms, network, dialogs, iframes, exports, downloads | [NexusBrowser](https://github.com/pironjulien/NexusBrowser) · [PyPI](https://pypi.org/project/nexus-browser/) |
 
 ## Quick start
@@ -54,7 +54,7 @@ Per-plugin requirements:
 ```mermaid
 flowchart LR
     C["Claude Code"] -- "stdio (MCP)" --> A["uvx nexus-android==0.9.3"] -- ADB --> P["Android phone"]
-    C -- "stdio (MCP)" --> W["uvx nexus-windows==0.15.8"] -- "UI Automation, Win32" --> D["Windows apps"]
+    C -- "stdio (MCP)" --> W["uvx nexus-windows-claude==3.0.1"] -- "UI Automation, Win32" --> D["Windows apps"]
     C -- "stdio (MCP)" --> B["uvx nexus-browser==2.17.0"] -- "local bridge" --> E["Chrome extension"] --> T["Chrome tabs"]
 ```
 
