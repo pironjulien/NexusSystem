@@ -13,6 +13,8 @@ All notable changes to this marketplace are documented here. The format follows
   project in Codex, the user's own Google sign-in, the keys). A product that does not fit the PC is listed with why;
   cells of AI apps a product does not serve show `-`. `-Only`/`-Skip` names `relay`, `agymail`, `keypad`.
 - CI: NexusAGYmail's server started as Antigravity starts it.
+- CI `defender` (measurement): Microsoft Defender's real-time protection on, the one-line install started the way a
+  beginner pastes it, from a file, and with the URL on the command line; detections read back.
 
 ### Fixed
 - Pack: uv's official installer is saved to a file and run from it, never through a PowerShell started with
