@@ -5,7 +5,7 @@ elements, gestures, typing, SMS/RCS reading, reply drafts, notifications, files,
 and quick settings. Sending, paying and other irreversible gestures need your explicit "yes".
 
 ## What it runs
-The plugin starts the open-source MCP server [`nexus-android`](https://pypi.org/project/nexus-android/) 0.9.3 from
+The plugin starts the open-source MCP server [`nexus-android`](https://pypi.org/project/nexus-android/) 0.9.11 from
 PyPI with `uvx --python 3.14`, over stdio (uv downloads Python 3.14 if needed). The exact version of the server and
 of every dependency is recorded with its hash in `uv.lock`. The plugin itself contains only this launcher, the lock
 file and a skill; it sends nothing anywhere.

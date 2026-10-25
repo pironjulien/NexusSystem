@@ -1,7 +1,7 @@
 {
   "name": "nexus-windows",
   "displayName": "Nexus Windows",
-  "version": "3.0.1",
+  "version": "3.1.4",
   "description": "Windows desktop apps in the background (look, click, type, menus, shortcuts, launch) without taking your mouse, keyboard or foreground.",
   "author": {
     "name": "Julien Piron",

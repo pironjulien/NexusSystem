@@ -1,9 +1,9 @@
 # Lock of the nexus-windows plugin: pinned PyPI server that .mcp.json starts with uvx: every dependency by version and hash in uv.lock.
 [project]
 name = "nexus-windows-plugin"
-version = "3.0.1"
+version = "3.1.4"
 requires-python = ">=3.14"
-dependencies = ["nexus-windows-claude==3.0.1"]
+dependencies = ["nexus-windows-claude==3.1.4"]
 
 [tool.uv]
 package = false

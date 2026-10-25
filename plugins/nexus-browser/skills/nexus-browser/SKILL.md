@@ -22,6 +22,10 @@ the bridge, not by the agent.
 - `browser_interactive_map(tab_id)`: visible interactive elements with `mark` numbers (far fewer tokens than HTML).
 - `browser_export(tab_id)`: main content as Markdown. Avoid `browser_content(mode="html")` and `browser_axtree` on
   heavy pages.
+- Images only on request: `browser_screenshot(tab_id, inline=True)` attaches the view (WebP, at most 1568 px);
+  `region=[x1, y1, x2, y2]`, in pixels of the last whole-view image, zooms on an area to read small text. A view
+  unchanged since the last image sent says `unchanged` and attaches nothing (`force=True` resends it).
+  `browser_vision_inspect(tab_id, inline=True)` draws numbered markers with their `image_box`.
 - Single-page apps: after an action, `browser_wait_for(text=...)` (or `gone=True` for a spinner) instead of a fixed
   pause; `browser_wait_load` and `browser_wait_network_idle` also exist.
 
@@ -52,8 +56,7 @@ the bridge, not by the agent.
 - Uploads from secret folders (`~/.ssh`, `~/.claude`, browser profile...) are refused by the bridge.
 
 ## Emergency stop
-**Ctrl+Alt+Shift+Esc** or the STOP button of the extension's control panel stops every agent for 120 s and cancels
-running commands. Never work around it: wait for the user.
+**Ctrl+Alt+Shift+Esc** stops every agent for 120 s and cancels running commands. Never work around it: wait for the user.
 
 ## Not installed yet?
 Without the bridge and the extension, the server still starts and every call answers with an error pointing to the

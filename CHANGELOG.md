@@ -5,6 +5,23 @@ All notable changes to this marketplace are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-10-25
+
+### Changed
+- `nexus-android` pinned to 0.9.11: text first (the element list alone; the image is joined when a gesture is not
+  read back, when nothing is readable, for a zoom or on request), images within the common Nexus limits (WebP, at
+  most 1568 px), no duplicate image, Home and Back read back from Android's own state, faster screen reads; skill
+  updated.
+- `nexus-windows` pinned to `nexus-windows-claude` 3.1.4: text first by default (`auto`: the image only when the tree
+  is too thin to act on or a step ends `~` or `✗`), WebP images without duplicates, Tk and scrolling in the
+  background, Alt+F4 on every window, Win32 menu entries with an ellipsis, File Explorer clicks and right-clicks
+  like a real mouse; skill updated.
+- `nexus-browser` pinned to 2.22.0: inline captures as real MCP images (`inline=True`) with zoom on a region and no
+  duplicate image, `browser_batch` attaches its captures, WebMCP input checked against the tool's schema, stricter
+  tab ownership; three duplicated tools removed (`browser_click_mark`, `browser_semantic_click`,
+  `browser_semantic_fill`: use `browser_click` and `browser_fill`); skill updated (emergency stop by the shortcut).
+- `uv.lock` files updated (`nexus-browser` now also locks Pillow).
+
 ## [1.3.3] - 2026-10-23
 
 ### Changed
