@@ -20,8 +20,8 @@ from smoke_mcp import smoke  # noqa: E402
 HOME = Path(os.environ["USERPROFILE"])
 APPDATA = Path(os.environ["APPDATA"])
 LOCALAPPDATA = Path(os.environ["LOCALAPPDATA"])
-SERVERS = {"windows": "nexus-windows", "android": "nexus-android", "browser": "nexus-browser"}
-AGY_PLUGINS = {"windows": "nexus-computer", "android": "nexus-android", "browser": "nexus-browser"}
+SERVERS = {"windows": "nexus-windows", "android": "nexus-android", "browser": "nexus-browser", "agymail": "nexus-agymail"}
+AGY_PLUGINS = {"windows": "nexus-computer", "android": "nexus-android", "browser": "nexus-browser", "agymail": "nexus-agymail"}
 
 
 def read_json(path: Path) -> dict:

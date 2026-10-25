@@ -50,7 +50,8 @@ try {
         'NexusWindows  for Claude Code, Claude Desktop, Codex, Antigravity',
         'NexusAndroid  for Claude Code, Claude Desktop, Codex, Antigravity',
         'NexusBrowser  for Claude Code, Claude Desktop, Codex, Antigravity',
-        'NexusRelay    not public yet', 'NexusGmail    not public yet', 'NexusKeypad   soon',
+        'NexusRelay    for Claude Code, Codex, Antigravity', 'NexusAGYmail  for Antigravity',
+        'NexusKeypad   needs Logi Options+',
         'Prerequisites, once: uv, Node.js LTS (for Codex)', 'Dry run: nothing installed.')
 
     $result = Invoke-Pack $all "& '$pack' -DryRun -Only windows,codex"
@@ -60,14 +61,23 @@ try {
     Test-Case '-Skip as one comma separated string' $result 0 @('NexusWindows  for Claude Code, Claude Desktop, Antigravity') @('NexusBrowser  for', 'Node.js')
 
     $result = Invoke-Pack $all "& '$pack' -DryRun -Only keypad"
-    Test-Case '-Only a product not public yet' $result 0 @('Nothing to install with these options.')
+    Test-Case 'NexusKeypad without Logi Options+' $result 0 @('NexusKeypad   needs Logi Options+', 'Nothing to install with these options.')
+
+    $logi = Initialize-Profile 'logi' @('.claude', 'AppData\Local\Logi\LogiPluginService')
+    $result = Invoke-Pack $logi "& '$pack' -DryRun -Only keypad"
+    Test-Case 'NexusKeypad with Logi Options+' $result 0 @('NexusKeypad   for your Logi Options+')
+
+    $codexOnly = Initialize-Profile 'codex' @('.codex')
+    $result = Invoke-Pack $codexOnly "& '$pack' -DryRun"
+    Test-Case 'NexusRelay needs Claude Code, NexusAGYmail Antigravity' $result 0 @(
+        'NexusWindows  for Codex', 'NexusRelay    needs Claude Code', 'NexusAGYmail  for Antigravity only')
 
     $result = Invoke-Pack $all "& '$pack' -DryRun -Only nexuswindows"
     Test-Case 'unknown name refused' $result 2 @("Unknown name 'nexuswindows'")
 
     $desktop = Initialize-Profile 'desktop' @('AppData\Roaming\Claude')
     $result = Invoke-Pack $desktop "& '$pack' -DryRun"
-    Test-Case 'Claude Desktop alone also means its Code tab' $result 0 @('AI apps found: Claude Code, Claude Desktop') @('Codex', 'Antigravity')
+    Test-Case 'Claude Desktop alone also means its Code tab' $result 0 @('AI apps found: Claude Code, Claude Desktop', 'NexusRelay    for Claude Code') @('AI apps found: Claude Code, Claude Desktop, Codex')
 
     $store = Initialize-Profile 'store' @('AppData\Local\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Roaming\Claude')
     $result = Invoke-Pack $store "& '$pack' -DryRun"

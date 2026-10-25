@@ -5,6 +5,21 @@ All notable changes to this marketplace are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-10-25
+
+### Added
+- Pack: NexusRelay (`get.ps1`, Claude Code, Codex and Antigravity; needs Claude Code), NexusAGYmail (`setup`, Antigravity
+  only) and NexusKeypad (`get.ps1`, when Logi Options+ is there), each with its steps left to a human (the relay's
+  project in Codex, the user's own Google sign-in, the keys). A product that does not fit the PC is listed with why;
+  cells of AI apps a product does not serve show `-`. `-Only`/`-Skip` names `relay`, `agymail`, `keypad`.
+- CI: NexusAGYmail's server started as Antigravity starts it.
+- CI `defender` (measurement): Microsoft Defender's real-time protection on, the one-line install started the way a
+  beginner pastes it, from a file, and with the URL on the command line; detections read back.
+
+### Fixed
+- Pack: uv's official installer is saved to a file and run from it, never through a PowerShell started with
+  `-Command "irm ... | iex"`, the command line Microsoft Defender's heuristics report as `Trojan:Win32/Commando.A!ml`.
+
 ## [1.5.0] - 2026-10-25
 
 ### Added
