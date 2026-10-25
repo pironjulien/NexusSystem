@@ -49,6 +49,8 @@ jobs:
           $env:PATH = "$env:USERPROFILE\.local\bin;" + [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + [Environment]::GetEnvironmentVariable('Path', 'User')
           uv run --no-project --python 3.14 python -B tests/check_install.py --ais claude-code,claude-desktop,codex,antigravity
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          uv run --no-project --python 3.14 python -B tests/check_install.py --ais antigravity --products agymail
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
           claude mcp list
       - name: Second run changes nothing and stays green
         shell: powershell

@@ -8,8 +8,8 @@
 # official installer, unchanged: nothing of their logic is copied here. Claude Code gets the plugins of this
 # catalog. Then it checks what each AI app now declares and prints a summary and the steps left to a human.
 # Run it again at any time: every installer only does what is missing.
-#   -Only / -Skip  product names (windows, android, browser) or AI names (claude-code, claude-desktop, codex,
-#                  antigravity), comma separated
+#   -Only / -Skip  product names (windows, android, browser, relay, agymail, keypad) or AI names (claude-code,
+#                  claude-desktop, codex, antigravity), comma separated
 #   -DryRun        show the plan and do nothing
 #   -NoGuide       do not open Chrome on its extensions page at the end (the guide is printed instead)
 #   -Catalog       marketplace given to Claude Code (default pironjulien/nexus-plugins; a local folder for tests)
@@ -42,25 +42,33 @@ $AiNames = [ordered]@{
     'antigravity'    = 'Antigravity'
 }
 
-# Products. Each AI app is served by exactly one route: the catalog plugin (Claude Code) or the product installer.
-# Public = $false: not published yet, place kept for the pack.
+# Products. Each AI app is served by exactly one route: the catalog plugin (Claude Code, Plugin) or the product
+# installer. Targets: the AI apps a product serves (an empty list: a device, the MX Creative Keypad).
+$AllAi = @('claude-code', 'claude-desktop', 'codex', 'antigravity')
 $Products = @(
-    @{ Key = 'windows'; Name = 'NexusWindows'; Public = $true; Plugin = 'nexus-windows'
-       Agy = 'nexus-computer'; Server = 'nexus-windows' },
-    @{ Key = 'android'; Name = 'NexusAndroid'; Public = $true; Plugin = 'nexus-android'
-       Agy = 'nexus-android'; Server = 'nexus-android' },
-    @{ Key = 'browser'; Name = 'NexusBrowser'; Public = $true; Plugin = 'nexus-browser'
-       Agy = 'nexus-browser'; Server = 'nexus-browser' },
-    @{ Key = 'relay'; Name = 'NexusRelay'; Public = $false; Note = 'not public yet' },
-    @{ Key = 'gmail'; Name = 'NexusGmail'; Public = $false; Note = 'not public yet' },
-    @{ Key = 'keypad'; Name = 'NexusKeypad'; Public = $false
-       Note = 'soon on the Logitech Marketplace (in review): https://julienpiron.fr/nexuskeypad/' }
+    @{ Key = 'windows'; Name = 'NexusWindows'; Plugin = 'nexus-windows'; Agy = 'nexus-computer'; Server = 'nexus-windows'
+       Targets = $AllAi },
+    @{ Key = 'android'; Name = 'NexusAndroid'; Plugin = 'nexus-android'; Agy = 'nexus-android'; Server = 'nexus-android'
+       Targets = $AllAi },
+    @{ Key = 'browser'; Name = 'NexusBrowser'; Plugin = 'nexus-browser'; Agy = 'nexus-browser'; Server = 'nexus-browser'
+       Targets = $AllAi },
+    # Claude Code opens the exchanges (Claude Desktop's chat is not a relay client); Codex and Antigravity answer.
+    @{ Key = 'relay'; Name = 'NexusRelay'; Agy = 'nexus-relay'; Server = 'nexus-relay'
+       Targets = @('claude-code', 'codex', 'antigravity'); Needs = 'claude-code' },
+    # Claude and Codex have their own official Gmail connector.
+    @{ Key = 'agymail'; Name = 'NexusAGYmail'; Agy = 'nexus-agymail'; Server = 'nexus-agymail'; Targets = @('antigravity') },
+    @{ Key = 'keypad'; Name = 'NexusKeypad'; Targets = @(); Device = 'Logi Options+' }
 )
 
 function Say([string]$Text, [string]$Color = 'Gray') { Write-Host $Text -ForegroundColor $Color }
 
 function Send-Event([hashtable]$Data) {
     if ($EmitEvents) { Write-Host ('NEXUS_PACK_EVENT ' + (New-Object PSObject -Property $Data | ConvertTo-Json -Compress -Depth 5)) }
+}
+
+function Test-LogiService {
+    # The folder of the Logitech plugin service (Logi Options+, opened once), where NexusKeypad goes.
+    return Test-Path -LiteralPath (Join-Path $env:LOCALAPPDATA 'Logi\LogiPluginService')
 }
 
 function Get-ClaudeCli {
@@ -120,6 +128,8 @@ function Split-NameList([string[]]$Names) {
     foreach ($name in $Names) { foreach ($part in ($name -split '[,\s]+')) { if ($part) { $out += $part.ToLowerInvariant() } } }
     return , $out
 }
+
+function Get-Product([string]$Key) { return $Products | Where-Object { $_.Key -eq $Key } | Select-Object -First 1 }
 
 function Test-Wanted([string]$Key, [string[]]$Universe, [string[]]$OnlyList, [string[]]$SkipList) {
     $scoped = @($OnlyList | Where-Object { $Universe -contains $_ })
@@ -270,10 +280,18 @@ function Install-ClaudePlugin([string[]]$Plugins) {
 # --- Checks: what each AI app declares once the installers are done ---------------------------------------------
 
 function Test-ClaudeCode($Product) {
+    if ($Product.Plugin) {
+        $settings = Read-Json (Join-Path $env:USERPROFILE '.claude\settings.json')
+        $key = "$($Product.Plugin)@$Marketplace"
+        return [bool]($settings -and $settings.enabledPlugins -and $settings.enabledPlugins.PSObject.Properties[$key] -and
+            $settings.enabledPlugins.$key -eq $true)
+    }
+    # Declared by the product's own installer, user scope (~\.claude.json), or a plugin of the same name the user has.
+    $config = Read-Json (Join-Path $env:USERPROFILE '.claude.json')
+    if ($config -and $config.mcpServers -and $config.mcpServers.PSObject.Properties[$Product.Server]) { return $true }
     $settings = Read-Json (Join-Path $env:USERPROFILE '.claude\settings.json')
-    $key = "$($Product.Plugin)@$Marketplace"
-    return [bool]($settings -and $settings.enabledPlugins -and $settings.enabledPlugins.PSObject.Properties[$key] -and
-        $settings.enabledPlugins.$key -eq $true)
+    if (-not ($settings -and $settings.enabledPlugins)) { return $false }
+    return [bool]@($settings.enabledPlugins.PSObject.Properties | Where-Object { $_.Name -like "$($Product.Server)@*" -and $_.Value -eq $true }).Count
 }
 
 function Test-ClaudeDesktop($Product) {
@@ -299,11 +317,36 @@ function Test-Antigravity($Product) {
     return Test-Path -LiteralPath (Join-Path $env:USERPROFILE ".gemini\config\plugins\$($Product.Agy)\plugin.json")
 }
 
+function Test-Device($Product) {
+    # NexusKeypad: the full plugin in the folder the Logitech plugin service loads.
+    return Test-Path -LiteralPath (Join-Path $env:LOCALAPPDATA 'Logi\LogiPluginService\Plugins\NexusKeypad')
+}
+
 $Checks = @{
     'claude-code'    = ${function:Test-ClaudeCode}
     'claude-desktop' = ${function:Test-ClaudeDesktop}
     'codex'          = ${function:Test-Codex}
     'antigravity'    = ${function:Test-Antigravity}
+    'pc'             = ${function:Test-Device}
+}
+
+# Why a product does not apply on this PC, or $null when it does.
+function Get-Unfit($Product, [string[]]$Ais) {
+    if ($Product.Device) {
+        if (Test-LogiService) { return $null }
+        return "needs $($Product.Device), opened once (https://www.logitech.com/software/logi-options-plus.html)"
+    }
+    if ($Product.Needs -and $Ais -notcontains $Product.Needs) { return "needs $($AiNames[$Product.Needs])" }
+    if (-not @($Product.Targets | Where-Object { $Ais -contains $_ }).Count) {
+        return "for $((@($Product.Targets) | ForEach-Object { $AiNames[$_] }) -join ', ') only"
+    }
+    return $null
+}
+
+# The cells of a product: its AI apps found here, or 'pc' for a device.
+function Get-Cell($Product, [string[]]$Ais) {
+    if ($Product.Device) { return , @('pc') }
+    return , @($Ais | Where-Object { $Product.Targets -contains $_ })
 }
 
 # --- Main ---------------------------------------------------------------------------------------------------------
@@ -324,7 +367,8 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
     Say 'Nexus pack: computer use in the background for your AI apps (https://julienpiron.fr)' Cyan
     $found = Find-AiApp
     $ais = @($found | Where-Object { Test-Wanted $_ $aiKeys $onlyList $skipList })
-    $selected = @($Products | Where-Object { $_.Public -and (Test-Wanted $_.Key $productKeys $onlyList $skipList) })
+    $wanted = @($Products | Where-Object { Test-Wanted $_.Key $productKeys $onlyList $skipList })
+    $selected = @($wanted | Where-Object { -not (Get-Unfit $_ $ais) })
     if (-not $found.Count) {
         Say 'No AI app found (Claude Code, Claude Desktop, Codex, Antigravity): install one, open it once, then run this again.' Yellow
         return 1
@@ -332,10 +376,17 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
     Say ''
     Say "AI apps found: $(($found | ForEach-Object { $AiNames[$_] }) -join ', ')"
     Send-Event @{ type = 'found'; ais = @($found) }
-    if (-not $ais.Count -or -not $selected.Count) { Say 'Nothing to install with these options.' Yellow; return 0 }
+    if (-not $ais.Count -or -not $selected.Count) {
+        foreach ($product in $wanted | Where-Object { Get-Unfit $_ $ais }) { Say ("  {0,-13} {1}" -f $product.Name, (Get-Unfit $product $ais)) DarkGray }
+        Say 'Nothing to install with these options.' Yellow
+        return 0
+    }
     Say 'It will install:'
-    foreach ($product in $selected) { Say ("  {0,-13} for {1}" -f $product.Name, (($ais | ForEach-Object { $AiNames[$_] }) -join ', ')) }
-    foreach ($product in $Products | Where-Object { -not $_.Public }) { Say ("  {0,-13} {1}" -f $product.Name, $product.Note) DarkGray }
+    foreach ($product in $selected) {
+        $for_ = if ($product.Device) { "your $($product.Device)" } else { ((Get-Cell $product $ais) | ForEach-Object { $AiNames[$_] }) -join ', ' }
+        Say ("  {0,-13} for {1}" -f $product.Name, $for_)
+    }
+    foreach ($product in $wanted | Where-Object { Get-Unfit $_ $ais }) { Say ("  {0,-13} {1}" -f $product.Name, (Get-Unfit $product $ais)) DarkGray }
 
     $wants = @{}
     foreach ($product in $selected) { $wants[$product.Key] = $true }
@@ -378,9 +429,11 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
 
         # 1. Claude Code first: the product installers see its plugins and add no second server.
         if ($for['claude-code']) {
-            $plugins = @($selected | ForEach-Object { $_.Plugin })
-            $code = if ($prereq['uv']) { 1 } else { Install-ClaudePlugin $plugins }
-            foreach ($product in $selected) { $results["$($product.Key)|claude-code"] = $code }
+            $withPlugin = @($selected | Where-Object { $_.Plugin })
+            if ($withPlugin.Count) {
+                $code = if ($prereq['uv']) { 1 } else { Install-ClaudePlugin @($withPlugin | ForEach-Object { $_.Plugin }) }
+                foreach ($product in $withPlugin) { $results["$($product.Key)|claude-code"] = $code }
+            }
         }
         # 2. NexusWindows: one edition per AI app.
         if ($wants['windows']) {
@@ -414,6 +467,23 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
             foreach ($ai in $ais | Where-Object { $_ -ne 'claude-code' }) { $results["browser|$ai"] = $code }
             if ($code -and $for['claude-code']) { $results['browser|claude-code'] = $code }  # bridge missing: plugin useless
         }
+        # 5. NexusRelay: local relay daemon, declared to Claude Code, Codex and Antigravity.
+        if ($wants['relay']) {
+            $code = Invoke-Installer 'NexusRelay' "$Raw/NexusRelay/main/get.ps1" $work
+            foreach ($ai in Get-Cell (Get-Product 'relay') $ais) { $results["relay|$ai"] = $code }
+        }
+        # 6. NexusAGYmail: its Antigravity plugin (the Google sign-in is the user's own step, below).
+        if ($wants['agymail']) {
+            $results['agymail|antigravity'] = if ($prereq['uv']) { 1 } else {
+                Invoke-Native 'NexusAGYmail' {
+                    Invoke-Console (Get-Uvx) @('--python', '3.14', '--refresh-package', 'nexus-agymail', 'nexus-agymail@latest', 'setup')
+                }
+            }
+        }
+        # 7. NexusKeypad: the full plugin for Logi Options+ (keys placed by a guide, below).
+        if ($wants['keypad']) {
+            $results['keypad|pc'] = Invoke-Installer 'NexusKeypad' "$Raw/NexusKeypad/main/get.ps1" $work
+        }
     } finally {
         if ($null -eq $savedPack) { Remove-Item Env:NEXUS_PACK -ErrorAction SilentlyContinue } else { $env:NEXUS_PACK = $savedPack }
         Remove-Item -LiteralPath $work -Recurse -Force -ErrorAction SilentlyContinue
@@ -429,19 +499,24 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
     $width = 16
     $header = '  ' + ''.PadRight(14) + (($ais | ForEach-Object { $AiNames[$_].PadRight($width) }) -join '')
     Say $header
+    $events = @()
     foreach ($product in $selected) {
         Write-Host ('  ' + $product.Name.PadRight(14)) -NoNewline
-        foreach ($ai in $ais) {
+        $cells = Get-Cell $product $ais
+        foreach ($ai in $(if ($product.Device) { @('pc') } else { $ais })) {
+            if ($cells -notcontains $ai) { Write-Host '-'.PadRight($width) -ForegroundColor DarkGray -NoNewline; continue }
             $code = $results["$($product.Key)|$ai"]
             $good = ($null -ne $code) -and ($code -eq 0) -and (& $Checks[$ai] $product)
             if (-not $good) { $failed++ }
-            Send-Event @{ type = 'cell'; product = $product.Key; ai = $ai; ok = [bool]$good }
-            if ($good) { Write-Host "$Ok ok".PadRight($width) -ForegroundColor Green -NoNewline }
-            else { Write-Host "$No failed".PadRight($width) -ForegroundColor Red -NoNewline }
+            $events += @{ type = 'cell'; product = $product.Key; ai = $ai; ok = [bool]$good }
+            $label = if ($product.Device) { "$($product.Device)" } else { '' }
+            if ($good) { Write-Host "$Ok ok $label".PadRight($width) -ForegroundColor Green -NoNewline }
+            else { Write-Host "$No failed $label".PadRight($width) -ForegroundColor Red -NoNewline }
         }
         Write-Host ''
     }
-    foreach ($product in $Products | Where-Object { -not $_.Public }) { Say ("  {0,-13} {1}" -f $product.Name, $product.Note) DarkGray }
+    foreach ($e in $events) { Send-Event $e }  # after the table, each on its own line
+    foreach ($product in $wanted | Where-Object { Get-Unfit $_ $ais }) { Say ("  {0,-13} {1}" -f $product.Name, (Get-Unfit $product $ais)) DarkGray }
 
     Say ''
     Say 'Left to you' Cyan
@@ -461,6 +536,22 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
         Say '     Plug it in with a USB data cable, then run: uvx --python 3.14 nexus-android setup'
         Say '     (https://github.com/pironjulien/NexusAndroid#quick-start)'
     }
+    if ($wants['relay'] -and $for['codex']) {
+        $step++
+        Say "  $step. Codex, once: Add a project, name ""Nexus Relay"", folder $env:USERPROFILE\.nexus\relay\codex-projet"
+        Say '     (https://github.com/pironjulien/NexusRelay#quick-start)'
+    }
+    if ($wants['agymail']) {
+        $step++
+        Say "  $step. Gmail: create your own Google OAuth client (Desktop app), then run:"
+        Say '     uvx --python 3.14 nexus-agymail auth --client-secret <the downloaded JSON file>'
+        Say '     (https://github.com/pironjulien/NexusAGYmail#quick-start)'
+    }
+    if ($wants['keypad']) {
+        $step++
+        Say "  $step. MX Creative Keypad: in Logi Options+, place the NexusKeypad keys as the guide shows"
+        Say '     (https://github.com/pironjulien/NexusKeypad#install)'
+    }
     $step++
     Say "  $step. Restart your AI apps: quit them completely (also from the notification area), then open them again."
     if ($failed) {
@@ -469,7 +560,16 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
         return 1
     }
     Say ''
-    Say 'Done. Ask your AI, for example: "Open Notepad and write a shopping list: milk, eggs, bread."' Green
+    # A first request that shows the first product installed.
+    $examples = [ordered]@{
+        windows = 'Open Notepad and write a shopping list: milk, eggs, bread.'
+        android = 'Look at my phone and tell me what is on the screen.'
+        browser = 'Open https://example.com in a background tab and give me the page as Markdown.'
+        relay   = 'Use Nexus Relay to ask Codex for a second opinion on this file.'
+        agymail = 'Find my unread emails from today and sum them up.'
+    }
+    $first = @($examples.Keys | Where-Object { $wants[$_] }) | Select-Object -First 1
+    if ($first) { Say "Done. Ask your AI, for example: `"$($examples[$first])`"" Green } else { Say 'Done.' Green }
     return 0
 }
 

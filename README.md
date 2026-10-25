@@ -22,12 +22,18 @@ Node.js LTS when Codex is there; Windows asks once), then runs each product's ow
 | NexusWindows | plugin `nexus-windows` (this catalog) | [NexusWindows-Claude](https://github.com/pironjulien/NexusWindows-Claude) `setup.ps1` | [NexusWindows-Codex](https://github.com/pironjulien/NexusWindows-Codex) `setup.ps1` | [NexusWindows-Antigravity](https://github.com/pironjulien/NexusWindows-Antigravity) plugin |
 | NexusAndroid | plugin `nexus-android` | [NexusAndroid](https://github.com/pironjulien/NexusAndroid) `setup` | same | same (a plugin) |
 | NexusBrowser | plugin `nexus-browser` + bridge | [NexusBrowser](https://github.com/pironjulien/NexusBrowser) `get.ps1` | same | same (a plugin) |
+| NexusRelay (experimental) | [NexusRelay](https://github.com/pironjulien/NexusRelay) `get.ps1` | not a relay client | same | same (a plugin) |
+| NexusAGYmail | official Gmail connector instead | official Gmail connector instead | official Gmail connector instead | [NexusAGYmail](https://github.com/pironjulien/NexusAGYmail) `setup` (a plugin) |
+
+NexusKeypad, for Logitech's MX Creative Keypad, is installed by [its own `get.ps1`](https://github.com/pironjulien/NexusKeypad)
+when Logi Options+ is there (also on the Logitech Marketplace, in review).
 
 It ends with a ✓ / ✗ summary per product and per AI app, then the steps only you can do: load the NexusBrowser
 extension in Chrome (the installer opens the page and tells you what to click), turn on USB debugging on your phone,
-and restart your AI apps. Run the same line again to update or repair: every installer only does what is missing.
+add the relay's project in Codex once, connect your own Google account to NexusAGYmail, place the keypad's keys, and
+restart your AI apps. A product that does not fit this PC (no Antigravity, no Logi Options+…) is shown, with why. Run the same line again to update or repair: every installer only does what is missing.
 
-Options: `-Only` and `-Skip` take product names (`windows`, `android`, `browser`) or AI app names (`claude-code`,
+Options: `-Only` and `-Skip` take product names (`windows`, `android`, `browser`, `relay`, `agymail`, `keypad`) or AI app names (`claude-code`,
 `claude-desktop`, `codex`, `antigravity`); `-DryRun` shows the plan and installs nothing. NexusAndroid and NexusBrowser
 have one installer for every AI app: when they run, they declare themselves to each app they find. For example:
 
@@ -35,9 +41,7 @@ have one installer for every AI app: when they run, they declare themselves to e
 & ([scriptblock]::Create((irm https://raw.githubusercontent.com/pironjulien/nexus-plugins/main/get-nexus.ps1))) -Only windows,browser
 ```
 
-Coming next: [NexusKeypad](https://github.com/pironjulien/NexusKeypad) (Logitech MX Creative Keypad) through the
-Logitech Marketplace, in review; NexusRelay and NexusGmail once public. Each product also installs alone: see its
-README.
+Each product also installs alone: see its README.
 
 ## The plugins, one by one
 

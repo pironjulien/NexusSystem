@@ -5,6 +5,15 @@ All notable changes to this marketplace are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-10-25
+
+### Added
+- Pack: NexusRelay (`get.ps1`, Claude Code, Codex and Antigravity; needs Claude Code), NexusAGYmail (`setup`, Antigravity
+  only) and NexusKeypad (`get.ps1`, when Logi Options+ is there), each with its steps left to a human (the relay's
+  project in Codex, the user's own Google sign-in, the keys). A product that does not fit the PC is listed with why;
+  cells of AI apps a product does not serve show `-`. `-Only`/`-Skip` names `relay`, `agymail`, `keypad`.
+- CI: NexusAGYmail's server started as Antigravity starts it.
+
 ## [1.5.0] - 2026-10-25
 
 ### Added
