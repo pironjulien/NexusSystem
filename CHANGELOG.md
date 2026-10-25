@@ -5,6 +5,16 @@ All notable changes to this marketplace are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.6.1] - 2026-10-25
+
+### Added
+- `get-nexus.ps1` attached to each release with its `SHA256SUMS.txt` and a provenance attestation (workflow
+  `release-assets`): the way without `irm | iex`, download it, then right click > Run with PowerShell.
+
+### Changed
+- Started from Explorer (Run with PowerShell), the pack waits for Enter before closing its window, so that the summary
+  and the steps left to the user stay on screen.
+
 ## [1.6.0] - 2026-10-25
 
 ### Added
