@@ -45,9 +45,10 @@ Per-plugin requirements:
 - **nexus-android**: Android Platform Tools (`winget install Google.PlatformTools`), USB debugging on the phone and
   the PC's key accepted.
 - **nexus-windows**: Windows 10 or 11.
-- **nexus-browser**: the **NexusBrowser Chrome extension and local bridge**, installed once from
-  [its repository](https://github.com/pironjulien/NexusBrowser#install) (Windows, Chrome 116+). Without them the
-  server starts but every call answers with an error pointing to that install.
+- **nexus-browser**: the **NexusBrowser Chrome extension and local bridge**, installed once with one PowerShell
+  command, `irm https://raw.githubusercontent.com/pironjulien/NexusBrowser/main/get.ps1 | iex`
+  ([details](https://github.com/pironjulien/NexusBrowser#install); Windows, Chrome 116+). Without them the server
+  starts but every call answers with an error giving that command.
 
 ## How it works
 
@@ -55,7 +56,7 @@ Per-plugin requirements:
 flowchart LR
     C["Claude Code"] -- "stdio (MCP)" --> A["uvx nexus-android==0.9.11"] -- ADB --> P["Android phone"]
     C -- "stdio (MCP)" --> W["uvx nexus-windows-claude==3.1.5"] -- "UI Automation, Win32" --> D["Windows apps"]
-    C -- "stdio (MCP)" --> B["uvx nexus-browser==2.23.0"] -- "local bridge" --> E["Chrome extension"] --> T["Chrome tabs"]
+    C -- "stdio (MCP)" --> B["uvx nexus-browser==2.24.1"] -- "local bridge" --> E["Chrome extension"] --> T["Chrome tabs"]
 ```
 
 Each plugin is a folder with a manifest, an icon, a `.mcp.json` launcher, a `pyproject.toml` with its `uv.lock`, and a

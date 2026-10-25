@@ -5,6 +5,14 @@ All notable changes to this marketplace are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.4.3] - 2026-10-25
+
+### Changed
+- `nexus-browser` pinned to 2.24.1: one-line install of the Chrome extension and local bridge
+  (`irm https://raw.githubusercontent.com/pironjulien/NexusBrowser/main/get.ps1 | iex`), given in the plugin's README,
+  the catalog README, the skill and every tool's error before the install; with this plugin enabled, the installer
+  adds no second server for Claude Code. Python 3.11+ and Pillow 13 (security advisories). `uv.lock` updated.
+
 ## [1.4.2] - 2026-10-25
 
 ### Changed
