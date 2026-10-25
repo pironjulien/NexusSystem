@@ -393,17 +393,19 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
                 }
             }
             if ($for['antigravity']) {
-                $results['windows|antigravity'] = Invoke-Native 'NexusWindows for Antigravity' {
-                    Invoke-Console (Get-Uvx) @('--python', '3.14', 'nexus-windows-antigravity@latest', 'install')
+                $results['windows|antigravity'] = if ($prereq['uv']) { 1 } else {
+                    Invoke-Native 'NexusWindows for Antigravity' {
+                        Invoke-Console (Get-Uvx) @('--python', '3.14', 'nexus-windows-antigravity@latest', 'install')
+                    }
                 }
             }
         }
         # 3. NexusAndroid: one setup for every AI app (adb, declarations), without waiting for the phone. Its newest
         #    release, never one older than its pack mode and Claude-Data fix (0.12.1), even while the index cache still serves it.
         if ($wants['android']) {
-            $code = Invoke-Native 'NexusAndroid' {
+            $code = if ($prereq['uv']) { 1 } else { Invoke-Native 'NexusAndroid' {
                 Invoke-Console (Get-Uvx) @('--python', '3.14', '--refresh-package', 'nexus-android', '--from', 'nexus-android>=0.12.1', 'nexus-android', 'setup')
-            }
+            } }
             foreach ($ai in $ais | Where-Object { $_ -ne 'claude-code' }) { $results["android|$ai"] = $code }
         }
         # 4. NexusBrowser: local bridge and native host for Chrome, declared to every AI app.
@@ -422,7 +424,7 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
     Say 'Summary' Cyan
     $failed = 0
     foreach ($name in 'uv', 'node') {
-        if ($prereq.ContainsKey($name) -and $prereq[$name]) { Say "  $No $name"; $failed++ }
+        if ($prereq.ContainsKey($name) -and $prereq[$name]) { Say "  $No $name (the steps that need it were not run)" Red; $failed++ }
     }
     $width = 16
     $header = '  ' + ''.PadRight(14) + (($ais | ForEach-Object { $AiNames[$_].PadRight($width) }) -join '')

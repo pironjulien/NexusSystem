@@ -30,7 +30,7 @@
       "name": "nexus-windows",
       "source": "./plugins/nexus-windows",
       "description": "Windows desktop apps in the background (look, click, type, menus, shortcuts, launch) without taking your mouse, keyboard or foreground. Windows 10/11, needs uv.",
-      "version": "3.2.1",
+      "version": "3.2.2",
       "category": "productivity",
       "keywords": [
         "windows",
