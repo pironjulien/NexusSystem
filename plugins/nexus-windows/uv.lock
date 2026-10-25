@@ -296,7 +296,7 @@ wheels = [
 
 [[package]]
 name = "nexus-windows-claude"
-version = "3.1.4"
+version = "3.1.5"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "comtypes", marker = "sys_platform == 'win32'" },
@@ -312,21 +312,21 @@ dependencies = [
     { name = "winrt-windows-media-ocr", marker = "sys_platform == 'win32'" },
     { name = "winrt-windows-storage-streams", marker = "sys_platform == 'win32'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/b8/43/00f51541644c7803f229b80c7b8c114117a9af22863ec5b286866fdbcd1f/nexus_windows_claude-3.1.4.tar.gz", hash = "sha256:e537b31ee404c270232d99c18078130d4325049c8494fc22da9fc176b081b659", size = 370434, upload-time = "2026-10-24T12:24:53.255Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/1a/1c/7f33b0641166dafd9373f4c7efdde154451ec1d4dbdf32d66913f43324c6/nexus_windows_claude-3.1.5.tar.gz", hash = "sha256:ea9467afd70f43b38201fc1fcf167f134404c848ddacd60465e03422e0ea1343", size = 370586, upload-time = "2026-10-25T16:58:06.098Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/bf/a9/8f02bac56bd2bc67d6b9f663adcffe8d9f7bb995c0ac54ce8ad375c62c3a/nexus_windows_claude-3.1.4-py3-none-any.whl", hash = "sha256:56d5b696bac72d0eef6ac47a4074135820dfb7afc0af1cc473f59a7ccd7f09bd", size = 376225, upload-time = "2026-10-24T12:24:50.581Z" },
+    { url = "https://files.pythonhosted.org/packages/8c/19/b1ae3e507d325c7bfbad0a2a3702aba13d1f30e08b985f6f21e6e59181b9/nexus_windows_claude-3.1.5-py3-none-any.whl", hash = "sha256:639012af3dc56b5d3f95f792a0a4e97c78ee2b14768a984769574ecdad73c34e", size = 376359, upload-time = "2026-10-25T16:58:03.753Z" },
 ]
 
 [[package]]
 name = "nexus-windows-plugin"
-version = "3.1.4"
+version = "3.1.5"
 source = { virtual = "." }
 dependencies = [
     { name = "nexus-windows-claude" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "nexus-windows-claude", specifier = "==3.1.4" }]
+requires-dist = [{ name = "nexus-windows-claude", specifier = "==3.1.5" }]
 
 [[package]]
 name = "numpy"

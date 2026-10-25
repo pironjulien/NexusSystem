@@ -5,6 +5,12 @@ All notable changes to this marketplace are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.4.2] - 2026-10-25
+
+### Changed
+- `nexus-windows` pinned to `nexus-windows-claude` 3.1.5: maintenance release (clearer auto-reload error message,
+  project-scoped hygiene test, bench reports redacted). `uv.lock` updated.
+
 ## [1.4.1] - 2026-10-25
 
 ### Changed
