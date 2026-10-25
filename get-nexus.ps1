@@ -580,4 +580,12 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
 
 $code = Invoke-NexusPack -Only $Only -Skip $Skip -DryRun $DryRun.IsPresent -NoGuide $NoGuide.IsPresent -Catalog $Catalog
 Send-Event @{ type = 'done'; code = $code }
-if ($PSCommandPath) { exit $code }  # run as a file (CI, tests); never close the window of an `irm | iex` run
+if ($PSCommandPath) {
+    # Started from Explorer (right click > Run with PowerShell): the window would close at once, before the summary
+    # and the steps left to the user could be read.
+    $parent = (Get-CimInstance Win32_Process -Filter "ProcessId = $PID" -ErrorAction SilentlyContinue).ParentProcessId
+    if ($parent -and (Get-Process -Id $parent -ErrorAction SilentlyContinue).ProcessName -eq 'explorer') {
+        Read-Host 'Press Enter to close this window' | Out-Null
+    }
+    exit $code  # run as a file (release download, CI, tests); never close the window of an `irm | iex` run
+}

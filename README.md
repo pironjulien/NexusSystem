@@ -14,6 +14,13 @@ line. Windows 10 or 11, no administrator rights, nothing to install first. Open 
 irm https://raw.githubusercontent.com/pironjulien/nexus-plugins/main/get-nexus.ps1 | iex
 ```
 
+Rather not paste a command? Download
+[`get-nexus.ps1`](https://github.com/pironjulien/nexus-plugins/releases/latest/download/get-nexus.ps1) from the latest
+release (its SHA-256 is in `SHA256SUMS.txt`, its origin can be checked with
+`gh attestation verify get-nexus.ps1 --repo pironjulien/nexus-plugins`), then right click it > **Run with PowerShell**
+(on Windows 11: **Show more options** first). Windows asks whether to run a script from the internet: answer **R**
+(Run once). The window stays open at the end until you press Enter.
+
 It shows which AI apps it found and what it will install for each, installs [uv](https://docs.astral.sh/uv/) (and
 Node.js LTS when Codex is there; Windows asks once), then runs each product's own official installer:
 
