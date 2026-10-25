@@ -54,7 +54,7 @@ foreach ($name in $cases.Keys) {
     if ($case.File) {
         $file = Join-Path $work 'get-nexus.ps1'
         Invoke-WebRequest -UseBasicParsing $pack -OutFile $file
-        $start.Arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$file`" -DryRun"
+        $start.Arguments = "-NoProfile -ExecutionPolicy RemoteSigned -File `"$file`" -DryRun"
     } else {
         $start.Arguments = $case.Args
     }

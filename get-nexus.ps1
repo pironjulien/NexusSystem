@@ -202,7 +202,7 @@ function Invoke-Installer([string]$What, [string]$Url, [string]$Work) {
         return 1
     }
     $shell = (Get-Process -Id $PID).Path  # the same PowerShell that runs the pack
-    return Invoke-Native $What { Invoke-Console $shell @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $file) }
+    return Invoke-Native $What { Invoke-Console $shell @('-NoProfile', '-ExecutionPolicy', 'RemoteSigned', '-File', $file) }
 }
 
 function Sync-SessionPath([switch]$Registry) {
@@ -412,7 +412,7 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
             $prereq['uv'] = Invoke-Native 'uv (Astral official installer)' {
                 $installer = Join-Path $work 'uv-install.ps1'
                 Invoke-WebRequest -UseBasicParsing 'https://astral.sh/uv/install.ps1' -OutFile $installer
-                Invoke-Console 'powershell.exe' @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $installer)
+                Invoke-Console 'powershell.exe' @('-NoProfile', '-ExecutionPolicy', 'RemoteSigned', '-File', $installer)
             }
             Sync-SessionPath
             if (-not $prereq['uv'] -and -not (Get-Uvx)) { $prereq['uv'] = 1 }
@@ -532,7 +532,7 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
         $guide = Join-Path $env:LOCALAPPDATA 'NexusBrowser\app\scripts\guide-extension.ps1'
         if (-not $NoGuide -and (Test-Path -LiteralPath $guide)) {
             $shell = (Get-Process -Id $PID).Path
-            Invoke-Console $shell @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $guide, '-WaitSeconds', '0')
+            Invoke-Console $shell @('-NoProfile', '-ExecutionPolicy', 'RemoteSigned', '-File', $guide, '-WaitSeconds', '0')
         }
     }
     if ($wants['android']) {
