@@ -1,4 +1,4 @@
-"""Start each plugin's MCP server exactly as its .mcp.json says (uvx from PyPI) and list its tools."""
+"""Start each plugin's MCP server (Claude and Codex) exactly as its .mcp.json says (uvx from PyPI) and list its tools."""
 
 import json
 import os
@@ -71,9 +71,11 @@ def smoke(name: str, server: dict, root: Path, data: Path) -> int:
         proc.kill()
 
 
-failures = 0
-with tempfile.TemporaryDirectory(prefix="nexus-plugins-data-") as tmp:
-    for mcp in sorted((ROOT / "plugins").glob("*/.mcp.json")):
-        for name, server in json.loads(mcp.read_text(encoding="utf-8"))["mcpServers"].items():
-            failures += smoke(name, server, mcp.parent, Path(tmp) / name)
-sys.exit(1 if failures else 0)
+if __name__ == "__main__":
+    failures = 0
+    with tempfile.TemporaryDirectory(prefix="nexus-plugins-data-") as tmp:
+        for mcp in sorted([*(ROOT / "plugins").glob("*/.mcp.json"), *(ROOT / "codex").glob("*/.mcp.json")]):
+            for name, server in json.loads(mcp.read_text(encoding="utf-8"))["mcpServers"].items():
+                label = f"{mcp.parent.parent.name}/{name}"
+                failures += smoke(label, server, mcp.parent, Path(tmp) / label)
+    sys.exit(1 if failures else 0)

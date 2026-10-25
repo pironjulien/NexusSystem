@@ -1,0 +1,44 @@
+{
+  "name": "nexus-plugins",
+  "interface": {
+    "displayName": "Nexus plugins"
+  },
+  "plugins": [
+    {
+      "name": "nexus-android",
+      "source": {
+        "source": "local",
+        "path": "./codex/nexus-android"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "nexus-windows",
+      "source": {
+        "source": "url",
+        "url": "https://github.com/pironjulien/NexusWindows-Codex.git"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "nexus-browser",
+      "source": {
+        "source": "local",
+        "path": "./codex/nexus-browser"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

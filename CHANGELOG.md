@@ -5,6 +5,26 @@ All notable changes to this marketplace are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- Nexus pack, `get-nexus.ps1`: the whole Nexus ecosystem in one line
+  (`irm https://raw.githubusercontent.com/pironjulien/nexus-plugins/main/get-nexus.ps1 | iex`), Windows PowerShell
+  5.1 or 7, no administrator rights, idempotent. Finds Claude Code, Claude Desktop, Codex and Antigravity, shows the
+  plan, installs uv (and Node.js LTS through winget when Codex is there) once, gives Claude Code this catalog's
+  plugins, then runs each product's official installer in its non-interactive mode (`NEXUS_PACK=1`); ends with a
+  ✓ / ✗ summary per product and AI app, checked in each app's own configuration, and the steps left to a human.
+  `-Only`, `-Skip`, `-DryRun`, `-NoGuide`, `-Catalog`. Places kept for NexusRelay and NexusGmail; NexusKeypad shown as
+  coming through the Logitech Marketplace.
+- Codex marketplace in the same repository (`.agents/plugins/marketplace.json`): `nexus-windows` from
+  NexusWindows-Codex, `nexus-android` and `nexus-browser` from `codex/`, pinned like their Claude twins, same skills.
+- Tests: PowerShell lint (PSScriptAnalyzer), `tests/test_pack.ps1` (detection, plan, options, `irm | iex` keeps the
+  window open, under Windows PowerShell 5.1), Codex manifests and pins in `check_catalog.py`, Codex servers started
+  by `smoke_mcp.py`, `tests/check_install.py` (starts every server each AI app declares after a real run).
+- CI job `pack`: the one-liner on a fresh `windows-latest` runner with the official Claude Code installer, every
+  declared server started, then a second run.
+
+### Changed
+- README: "Install everything" first, Codex section, the uv command in the Claude Code quick start.
+
 ## [1.4.4] - 2026-10-25
 
 ### Changed

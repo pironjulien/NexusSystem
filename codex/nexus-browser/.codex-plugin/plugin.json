@@ -1,0 +1,19 @@
+{
+  "name": "nexus-browser",
+  "version": "2.24.1",
+  "description": "Your real Chrome (your sessions) driven in background tabs. Requires the one-time NexusBrowser install: Chrome extension and local bridge (Windows).",
+  "author": { "name": "Julien Piron", "url": "https://github.com/pironjulien" },
+  "homepage": "https://julienpiron.fr/nexusbrowser/",
+  "repository": "https://github.com/pironjulien/NexusBrowser",
+  "license": "MIT",
+  "keywords": ["chrome", "browser", "cdp", "automation", "mcp"],
+  "mcpServers": "./.mcp.json",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Nexus Browser",
+    "shortDescription": "Your real Chrome in background tabs (extension required)",
+    "developerName": "Julien Piron",
+    "category": "Productivity",
+    "websiteURL": "https://julienpiron.fr/nexusbrowser/"
+  }
+}

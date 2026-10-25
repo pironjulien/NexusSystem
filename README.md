@@ -1,10 +1,46 @@
-# Nexus plugins for Claude Code
+# Nexus plugins for Claude Code and Codex
 
 [![test](https://github.com/pironjulien/nexus-plugins/actions/workflows/test.yml/badge.svg)](https://github.com/pironjulien/nexus-plugins/actions/workflows/test.yml)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/pironjulien/nexus-plugins/badge)](https://scorecard.dev/viewer/?uri=github.com/pironjulien/nexus-plugins)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/pironjulien/nexus-plugins/blob/main/LICENSE)
 
-**Computer use in the background for Claude Code.** A plugin marketplace with three plugins that give Claude your
+## Install everything
+
+The whole Nexus ecosystem, for every AI app on your PC (Claude Code, Claude Desktop, Codex, Antigravity), in one
+line. Windows 10 or 11, no administrator rights, nothing to install first. Open **PowerShell** (Start menu, type
+`PowerShell`) and paste:
+
+```powershell
+irm https://raw.githubusercontent.com/pironjulien/nexus-plugins/main/get-nexus.ps1 | iex
+```
+
+It shows which AI apps it found and what it will install for each, installs [uv](https://docs.astral.sh/uv/) (and
+Node.js LTS when Codex is there; Windows asks once), then runs each product's own official installer:
+
+| Product | Claude Code | Claude Desktop | Codex | Antigravity |
+| --- | --- | --- | --- | --- |
+| NexusWindows | plugin `nexus-windows` (this catalog) | [NexusWindows-Claude](https://github.com/pironjulien/NexusWindows-Claude) `setup.ps1` | [NexusWindows-Codex](https://github.com/pironjulien/NexusWindows-Codex) `setup.ps1` | [NexusWindows-Antigravity](https://github.com/pironjulien/NexusWindows-Antigravity) plugin |
+| NexusAndroid | plugin `nexus-android` | [NexusAndroid](https://github.com/pironjulien/NexusAndroid) `setup` | same | same (a plugin) |
+| NexusBrowser | plugin `nexus-browser` + bridge | [NexusBrowser](https://github.com/pironjulien/NexusBrowser) `get.ps1` | same | same (a plugin) |
+
+It ends with a ✓ / ✗ summary per product and per AI app, then the steps only you can do: load the NexusBrowser
+extension in Chrome (the installer opens the page and tells you what to click), turn on USB debugging on your phone,
+and restart your AI apps. Run the same line again to update or repair: every installer only does what is missing.
+
+Options: `-Only` and `-Skip` take product names (`windows`, `android`, `browser`) or AI app names (`claude-code`,
+`claude-desktop`, `codex`, `antigravity`); `-DryRun` shows the plan and installs nothing:
+
+```powershell
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/pironjulien/nexus-plugins/main/get-nexus.ps1))) -Only windows,browser
+```
+
+Coming next: [NexusKeypad](https://github.com/pironjulien/NexusKeypad) (Logitech MX Creative Keypad) through the
+Logitech Marketplace, in review; NexusRelay and NexusGmail once public. Each product also installs alone: see its
+README.
+
+## The plugins, one by one
+
+**Computer use in the background for Claude Code and Codex.** A plugin marketplace with three plugins that give Claude your
 Android phone, your Windows desktop apps and your real Chrome, while you keep working. Each plugin starts an
 open-source MCP server from PyPI with `uvx`, pinned to an exact version (versions and hashes in a `uv.lock`), and adds a skill that teaches Claude how to
 use it.
@@ -17,7 +53,8 @@ use it.
 
 ## Quick start
 
-1. Install [uv](https://docs.astral.sh/uv/) (it fetches Python 3.14 and the servers on first use).
+1. Install [uv](https://docs.astral.sh/uv/) (it fetches Python 3.14 and the servers on first use): in PowerShell,
+   `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"`, then restart Claude Code.
 2. In Claude Code, add the marketplace and install the plugins you want:
 
    ```text
@@ -34,6 +71,23 @@ Enabling the plugins by editing `settings.json` instead (`extraKnownMarketplaces
 Claude installs an enabled plugin when a conversation starts, and only from a marketplace already downloaded at that
 moment. The first conversation after declaring the marketplace downloads it, the next one installs the plugins, and
 their tools appear in the conversation after that. Enabling them for one project only does not install them.
+
+### Codex
+
+The same repository is a Codex plugin marketplace (`.agents/plugins/marketplace.json`): `nexus-windows` (from
+[NexusWindows-Codex](https://github.com/pironjulien/NexusWindows-Codex), needs Node.js 22+), `nexus-android` and
+`nexus-browser` (pinned like their Claude twins, uv needed). In the Codex app: **Settings > Plugins > Add > Add a
+marketplace**, source `pironjulien/nexus-plugins`, then install the plugins; or from a terminal:
+
+```text
+codex plugin marketplace add pironjulien/nexus-plugins
+codex plugin add nexus-windows@nexus-plugins
+codex plugin add nexus-android@nexus-plugins
+codex plugin add nexus-browser@nexus-plugins
+```
+
+Use either these plugins or the one-line install for Codex, not both: a server already declared in
+`~/.codex/config.toml` (what the product installers write) hides the plugin's server of the same name.
 
 More examples, and how to test each plugin without your own phone or data, are in each plugin's README
 ([nexus-android](https://github.com/pironjulien/nexus-plugins/tree/main/plugins/nexus-android#try-it),
@@ -86,8 +140,9 @@ tools for two minutes. Details in each server's README.
 ## Development
 
 ```powershell
-pwsh -NoProfile -File test.ps1         # offline: manifests, pins, skills, nothing local or private
+pwsh -NoProfile -File test.ps1         # offline: manifests (Claude, Codex), pins, skills, lint, pack dry runs
 pwsh -NoProfile -File test.ps1 -Full   # plus: every server started from PyPI in a throwaway uv cache
+uv run --no-project --python 3.14 python -B tests/check_install.py --ais claude-code,codex   # after a real pack run
 ```
 
 ## License
