@@ -407,8 +407,12 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
     try {
         Sync-SessionPath
         if (-not (Get-Uvx)) {
+            # The official installer saved to a file and run from it: a PowerShell started with "-Command irm ... | iex"
+            # is what antivirus heuristics take for a malware loader (Microsoft Defender: Trojan:Win32/Commando.A!ml).
             $prereq['uv'] = Invoke-Native 'uv (Astral official installer)' {
-                Invoke-Console 'powershell.exe' @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', 'irm https://astral.sh/uv/install.ps1 | iex')
+                $installer = Join-Path $work 'uv-install.ps1'
+                Invoke-WebRequest -UseBasicParsing 'https://astral.sh/uv/install.ps1' -OutFile $installer
+                Invoke-Console 'powershell.exe' @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $installer)
             }
             Sync-SessionPath
             if (-not $prereq['uv'] -and -not (Get-Uvx)) { $prereq['uv'] = 1 }
@@ -470,7 +474,8 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
         # 5. NexusRelay: local relay daemon, declared to Claude Code, Codex and Antigravity.
         if ($wants['relay']) {
             $code = Invoke-Installer 'NexusRelay' "$Raw/NexusRelay/main/get.ps1" $work
-            foreach ($ai in Get-Cell (Get-Product 'relay') $ais) { $results["relay|$ai"] = $code }
+            $relayCells = Get-Cell (Get-Product 'relay') $ais  # assigned first: a list returned with "," stays one item in foreach
+            foreach ($ai in $relayCells) { $results["relay|$ai"] = $code }
         }
         # 6. NexusAGYmail: its Antigravity plugin (the Google sign-in is the user's own step, below).
         if ($wants['agymail']) {

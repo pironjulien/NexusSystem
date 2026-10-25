@@ -14,6 +14,10 @@ All notable changes to this marketplace are documented here. The format follows
   cells of AI apps a product does not serve show `-`. `-Only`/`-Skip` names `relay`, `agymail`, `keypad`.
 - CI: NexusAGYmail's server started as Antigravity starts it.
 
+### Fixed
+- Pack: uv's official installer is saved to a file and run from it, never through a PowerShell started with
+  `-Command "irm ... | iex"`, the command line Microsoft Defender's heuristics report as `Trojan:Win32/Commando.A!ml`.
+
 ## [1.5.0] - 2026-10-25
 
 ### Added
