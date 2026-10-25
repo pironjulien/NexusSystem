@@ -5,6 +5,14 @@ All notable changes to this marketplace are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.4.4] - 2026-10-25
+
+### Changed
+- `nexus-windows` pinned to `nexus-windows-claude` 3.2.1: dialogs (file pickers "Open", "Save as") listed by
+  `windows` and attached to their owner; a click on a Chromium file picker trigger succeeds only when the dialog
+  opens (awaited up to 4 s), otherwise `foreground=true` is suggested; no false confirmation for a line break next to a help button.
+  Skill updated. `uv.lock` updated.
+
 ## [1.4.3] - 2026-10-25
 
 ### Changed

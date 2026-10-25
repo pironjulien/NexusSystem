@@ -5,7 +5,7 @@
       "args": [
         "--python",
         "3.14",
-        "nexus-windows-claude==3.1.5"
+        "nexus-windows-claude==3.2.1"
       ],
       "env": {
         "PYTHONUTF8": "1"
