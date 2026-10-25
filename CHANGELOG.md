@@ -5,6 +5,8 @@ All notable changes to this marketplace are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-10-25
+
 ### Added
 - Nexus pack, `get-nexus.ps1`: the whole Nexus ecosystem in one line
   (`irm https://raw.githubusercontent.com/pironjulien/nexus-plugins/main/get-nexus.ps1 | iex`), Windows PowerShell
@@ -24,6 +26,9 @@ All notable changes to this marketplace are documented here. The format follows
 
 ### Changed
 - README: "Install everything" first, Codex section, the uv command in the Claude Code quick start.
+- Product installers called by the pack: NexusWindows-Claude and NexusWindows-Codex `setup.ps1` (main), NexusAndroid
+  0.11.0 (`setup` declares the server to every AI app, Antigravity as a plugin), NexusBrowser 2.24.4 (`get.ps1`,
+  Antigravity as a plugin). The plugin pins of this catalog are unchanged.
 
 ## [1.4.4] - 2026-10-25
 

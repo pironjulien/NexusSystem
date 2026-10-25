@@ -232,6 +232,7 @@ function Install-ClaudePlugin([string[]]$Plugins) {
     return Invoke-Native 'Claude Code: Nexus plugins (settings.json)' {
         $path = Join-Path $env:USERPROFILE '.claude\settings.json'
         $settings = Read-Json $path
+        $before = if ($settings) { $settings | ConvertTo-Json -Depth 100 } else { '' }
         if (-not $settings) { $settings = New-Object PSObject }
         if (-not $settings.PSObject.Properties['extraKnownMarketplaces']) { Write-Property $settings 'extraKnownMarketplaces' (New-Object PSObject) }
         if (-not $settings.extraKnownMarketplaces.PSObject.Properties[$Marketplace]) {
@@ -241,6 +242,7 @@ function Install-ClaudePlugin([string[]]$Plugins) {
         }
         if (-not $settings.PSObject.Properties['enabledPlugins']) { Write-Property $settings 'enabledPlugins' (New-Object PSObject) }
         foreach ($plugin in $Plugins) { Write-Property $settings.enabledPlugins "$plugin@$Marketplace" $true }
+        if (($settings | ConvertTo-Json -Depth 100) -eq $before) { Say "Already declared in $path."; return }
         Write-JsonWithBackup $path $settings
         Say "Declared in $path (installed by Claude when the next conversations start)."
     }

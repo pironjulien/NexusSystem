@@ -28,7 +28,8 @@ extension in Chrome (the installer opens the page and tells you what to click), 
 and restart your AI apps. Run the same line again to update or repair: every installer only does what is missing.
 
 Options: `-Only` and `-Skip` take product names (`windows`, `android`, `browser`) or AI app names (`claude-code`,
-`claude-desktop`, `codex`, `antigravity`); `-DryRun` shows the plan and installs nothing:
+`claude-desktop`, `codex`, `antigravity`); `-DryRun` shows the plan and installs nothing. NexusAndroid and NexusBrowser
+have one installer for every AI app: when they run, they declare themselves to each app they find. For example:
 
 ```powershell
 & ([scriptblock]::Create((irm https://raw.githubusercontent.com/pironjulien/nexus-plugins/main/get-nexus.ps1))) -Only windows,browser
