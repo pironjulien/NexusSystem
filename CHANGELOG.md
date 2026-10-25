@@ -30,8 +30,9 @@ All notable changes to this marketplace are documented here. The format follows
 ### Changed
 - README: "Install everything" first, Codex section, the uv command in the Claude Code quick start.
 - Product installers called by the pack: NexusWindows-Claude and NexusWindows-Codex `setup.ps1` (main), NexusAndroid
-  0.12.1 or newer (`setup` declares the server to every AI app, Antigravity as a plugin, Claude Desktop in Claude-Data), NexusBrowser 2.24.4 (`get.ps1`,
-  Antigravity as a plugin).
+  0.12.1 or newer (`setup` declares the server to every AI app, Antigravity as a plugin, Claude Desktop in Claude-Data), NexusBrowser 2.24.5 or newer
+  (`get.ps1`: Antigravity as a plugin, Claude Desktop in Claude-Data, latest release read without the GitHub API, so
+  no rate limit).
 - `nexus-windows` pinned to `nexus-windows-claude` 3.2.2: one UI Automation step per wheel notch in WPF (three used to
   reach the app as three scrolls), no false success when a Chromium area is already at its end. `uv.lock` updated.
 
