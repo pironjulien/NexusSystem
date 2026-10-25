@@ -5,11 +5,12 @@
       "args": [
         "--python",
         "3.14",
-        "nexus-android==0.9.11"
+        "nexus-android==0.13.1"
       ],
       "env": {
         "NEXUS_ANDROID_ADB": "${NEXUS_ANDROID_ADB:-}",
-        "NEXUS_ANDROID_SERIAL": "${NEXUS_ANDROID_SERIAL:-}"
+        "NEXUS_ANDROID_SERIAL": "${NEXUS_ANDROID_SERIAL:-}",
+        "NEXUS_ANDROID_MANAGED": "nexus-plugins catalog"
       }
     }
   }

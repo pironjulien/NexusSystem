@@ -5,6 +5,13 @@ All notable changes to this marketplace are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.6.4] - 2026-10-26
+
+### Changed
+- `nexus-android` 0.13.1 (Claude Code and Codex): `adb` downloaded when missing, guided first connection
+  (`nexus-android setup`), step-by-step messages, update state in `~/.nexus/status/android.json`. The plugins set
+  `NEXUS_ANDROID_MANAGED`, so the server leaves updates to this catalog. Skill and requirements updated.
+
 ## [1.6.3] - 2026-10-26
 
 ### Fixed

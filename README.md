@@ -109,8 +109,8 @@ More examples, and how to test each plugin without your own phone or data, are i
 
 Per-plugin requirements:
 
-- **nexus-android**: Android Platform Tools (`winget install Google.PlatformTools`), USB debugging on the phone and
-  the PC's key accepted.
+- **nexus-android**: USB debugging on the phone and the PC's key accepted (`adb` is downloaded if missing;
+  `uvx --python 3.14 nexus-android setup` guides the first connection).
 - **nexus-windows**: Windows 10 or 11.
 - **nexus-browser**: the **NexusBrowser Chrome extension and local bridge**, installed once with one PowerShell
   command, `irm https://raw.githubusercontent.com/pironjulien/NexusBrowser/main/get.ps1 | iex`
@@ -121,7 +121,7 @@ Per-plugin requirements:
 
 ```mermaid
 flowchart LR
-    C["Claude Code"] -- "stdio (MCP)" --> A["uvx nexus-android==0.9.11"] -- ADB --> P["Android phone"]
+    C["Claude Code"] -- "stdio (MCP)" --> A["uvx nexus-android==0.13.1"] -- ADB --> P["Android phone"]
     C -- "stdio (MCP)" --> W["uvx nexus-windows-claude==3.2.2"] -- "UI Automation, Win32" --> D["Windows apps"]
     C -- "stdio (MCP)" --> B["uvx nexus-browser==2.24.1"] -- "local bridge" --> E["Chrome extension"] --> T["Chrome tabs"]
 ```
