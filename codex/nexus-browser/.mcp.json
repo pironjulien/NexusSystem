@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "nexus-browser": {
+      "command": "uvx",
+      "args": ["--python", "3.14", "nexus-browser==2.24.1"],
+      "env": { "NEXUS_BROWSER_AGENT": "Codex" },
+      "startup_timeout_sec": 120
+    }
+  }
+}

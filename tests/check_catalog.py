@@ -109,6 +109,53 @@ for entry in entries:
         if meta.get("name") != skill.parent.name or len(meta.get("description", "")) < 40:
             fail(f"{skill.relative_to(ROOT)}: frontmatter needs name = folder and a real description")
 
+# Codex marketplace (.agents/plugins/marketplace.json): the same plugins for Codex. NexusWindows comes from its own
+# repository (its Codex edition); the others are folders of this catalog, pinned like their Claude twin.
+CODEX_URLS = {"nexus-windows": "https://github.com/pironjulien/NexusWindows-Codex.git"}
+CODEX_AGENT = {"nexus-browser": "Codex"}  # NEXUS_BROWSER_AGENT names the client in the tab group
+codex = load(ROOT / ".agents" / "plugins" / "marketplace.json")
+if codex.get("name") != market.get("name"):
+    fail("codex marketplace: name must be the Claude marketplace's")
+codex_entries = codex.get("plugins", [])
+if [e.get("name") for e in codex_entries] != [e.get("name") for e in entries]:
+    fail("codex marketplace: must list the same plugins, in the same order")
+codex_folders = sorted(p.name for p in (ROOT / "codex").iterdir() if p.is_dir())
+if codex_folders != sorted(set(folders) - set(CODEX_URLS)):
+    fail(f"codex/: folders {codex_folders} differ from the local Codex plugins")
+claude_versions = {e.get("name"): e.get("version") for e in entries}
+for entry in codex_entries:
+    name = entry.get("name", "")
+    where = f"codex plugin {name}"
+    if entry.get("policy") != {"installation": "AVAILABLE", "authentication": "ON_INSTALL"} or not entry.get("category"):
+        fail(f"{where}: policy AVAILABLE/ON_INSTALL and a category are required")
+    source = entry.get("source", {})
+    if name in CODEX_URLS:
+        if source != {"source": "url", "url": CODEX_URLS[name]}:
+            fail(f"{where}: source must be the url {CODEX_URLS[name]}")
+        continue
+    if source != {"source": "local", "path": f"./codex/{name}"}:
+        fail(f"{where}: source must be the local path ./codex/{name}")
+    folder = ROOT / "codex" / name
+    manifest = load(folder / ".codex-plugin" / "plugin.json")
+    version = claude_versions.get(name)
+    if manifest.get("name") != name or manifest.get("version") != version:
+        fail(f"{where}: plugin.json name and version must match the Claude plugin ({version})")
+    if manifest.get("mcpServers") != "./.mcp.json" or manifest.get("skills") != "./skills/":
+        fail(f"{where}: plugin.json must point to ./.mcp.json and ./skills/")
+    if not manifest.get("interface", {}).get("displayName"):
+        fail(f"{where}: interface.displayName missing")
+    server = load(folder / ".mcp.json").get("mcpServers", {})
+    package = PACKAGES.get(name, name)
+    if list(server) != [name] or server[name].get("command") != "uvx" or \
+            server[name].get("args") != ["--python", "3.14", f"{package}=={version}"]:
+        fail(f"{where}: .mcp.json must start only uvx --python 3.14 {package}=={version}")
+    elif server[name].get("env", {}).get("NEXUS_BROWSER_AGENT") != CODEX_AGENT.get(name):
+        fail(f"{where}: NEXUS_BROWSER_AGENT must be {CODEX_AGENT.get(name)}")
+    twin = ROOT / "plugins" / name / "skills" / name / "SKILL.md"
+    copy = folder / "skills" / name / "SKILL.md"
+    if not copy.is_file() or copy.read_bytes() != twin.read_bytes():
+        fail(f"{where}: skills/{name}/SKILL.md must be a copy of the Claude plugin's skill")
+
 for path in ROOT.rglob("*"):
     if not path.is_file() or ".git" in path.parts or path.suffix not in {".json", ".md", ".toml"}:
         continue

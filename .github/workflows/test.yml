@@ -3,6 +3,7 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:
@@ -13,6 +14,45 @@ jobs:
         with:
           persist-credentials: false
       - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
-      - name: Catalog checks and real server start from PyPI
+      - name: PSScriptAnalyzer
+        shell: pwsh
+        run: if (-not (Get-Module -ListAvailable PSScriptAnalyzer)) { Install-Module PSScriptAnalyzer -Scope CurrentUser -Force }
+      - name: Catalog checks, lint, pack dry runs and real server start from PyPI
         shell: pwsh
         run: ./test.ps1 -Full
+
+  # The one-liner on a machine with none of its prerequisites set up by the workflow: no uv, the runner's own Node.js,
+  # the official Claude Code installer, and the folders by which Claude Desktop, Codex and Antigravity are found.
+  # Then every server that each AI app declares is started as that app would start it.
+  pack:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: AI apps present (Claude Code installed, the others found by their folders)
+        shell: powershell
+        run: |
+          irm https://claude.ai/install.ps1 | iex
+          New-Item -ItemType Directory -Force "$env:APPDATA\Claude", "$env:USERPROFILE\.codex", "$env:USERPROFILE\.gemini\antigravity" | Out-Null
+          if (Get-Command uv -ErrorAction SilentlyContinue) { Write-Host "uv already here: $((Get-Command uv).Source)" }
+      - name: get-nexus.ps1 (Windows PowerShell 5.1), this commit's catalog
+        shell: powershell
+        run: |
+          $env:PATH = "$env:USERPROFILE\.local\bin;$env:PATH"
+          ./get-nexus.ps1 -Catalog $PWD -NoGuide
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+      - name: Every declared server starts
+        shell: powershell
+        run: |
+          $env:PATH = "$env:USERPROFILE\.local\bin;" + [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + [Environment]::GetEnvironmentVariable('Path', 'User')
+          uv run --no-project --python 3.14 python -B tests/check_install.py --ais claude-code,claude-desktop,codex,antigravity
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          claude mcp list
+      - name: Second run changes nothing and stays green
+        shell: powershell
+        run: |
+          $env:PATH = "$env:USERPROFILE\.local\bin;$env:PATH"
+          ./get-nexus.ps1 -Catalog $PWD -NoGuide
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
