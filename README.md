@@ -55,7 +55,7 @@ Per-plugin requirements:
 flowchart LR
     C["Claude Code"] -- "stdio (MCP)" --> A["uvx nexus-android==0.9.11"] -- ADB --> P["Android phone"]
     C -- "stdio (MCP)" --> W["uvx nexus-windows-claude==3.1.4"] -- "UI Automation, Win32" --> D["Windows apps"]
-    C -- "stdio (MCP)" --> B["uvx nexus-browser==2.22.0"] -- "local bridge" --> E["Chrome extension"] --> T["Chrome tabs"]
+    C -- "stdio (MCP)" --> B["uvx nexus-browser==2.23.0"] -- "local bridge" --> E["Chrome extension"] --> T["Chrome tabs"]
 ```
 
 Each plugin is a folder with a manifest, an icon, a `.mcp.json` launcher, a `pyproject.toml` with its `uv.lock`, and a

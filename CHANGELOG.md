@@ -5,6 +5,15 @@ All notable changes to this marketplace are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.4.1] - 2026-10-25
+
+### Changed
+- `nexus-browser` pinned to 2.23.0: the user's and other agents' tabs show their origin only in `browser_list_tabs`
+  and `browser_active_tab` (full title and URL for the agent's own tabs); submitting a form or a WebMCP submission
+  that carries entered data needs the user's accord; extension reload reserved to the installer, downloads erased
+  only by the client whose tab started them; fields with an unknown input type can be filled; optional Gmail unread
+  counter (off by default). Skill updated. `uv.lock` updated.
+
 ## [1.4.0] - 2026-10-25
 
 ### Changed
