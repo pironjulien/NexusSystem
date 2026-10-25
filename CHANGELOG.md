@@ -5,6 +5,13 @@ All notable changes to this marketplace are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.6.5] - 2026-10-26
+
+### Changed
+- `nexus-windows` pinned to `nexus-windows-claude` 3.3.0: update state in `~/.nexus/status/windows-claude.json`
+  (latest version read from PyPI at most once a day; `NEXUS_UPDATE_CHECK=off` turns it off), WPF wheel one step per
+  notch, no false success at the end of a Chromium area. `uv.lock` updated.
+
 ## [1.6.4] - 2026-10-26
 
 ### Changed

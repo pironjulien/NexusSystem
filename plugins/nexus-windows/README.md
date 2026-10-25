@@ -5,10 +5,12 @@ uses menus and shortcuts and launches apps without taking your mouse, keyboard o
 action. Irreversible gestures need your explicit "yes"; Ctrl+Alt+Shift+Esc stops everything for two minutes.
 
 ## What it runs
-The plugin starts the open-source MCP server [`nexus-windows-claude`](https://pypi.org/project/nexus-windows-claude/) 3.2.2 from
+The plugin starts the open-source MCP server [`nexus-windows-claude`](https://pypi.org/project/nexus-windows-claude/) 3.3.0 from
 PyPI with `uvx --python 3.14`, over stdio (uv downloads Python 3.14 if needed). The exact version of the server and
 of every dependency is recorded with its hash in `uv.lock`. The plugin itself contains only this launcher, the lock
-file and a skill; it sends nothing anywhere.
+file and a skill; it sends nothing anywhere. The server's only request of its own is its update check: at most once a
+day it reads the latest version number from PyPI and writes `~/.nexus/status/windows-claude.json`
+(`NEXUS_UPDATE_CHECK=off` turns it off; details in its [Privacy section](https://github.com/pironjulien/NexusWindows-Claude#privacy)).
 
 ## Requirements
 - Windows 10 or 11.
