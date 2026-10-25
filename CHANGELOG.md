@@ -5,6 +5,13 @@ All notable changes to this marketplace are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.6.2] - 2026-10-25
+
+### Changed
+- The scripts the pack starts (product installers, uv's official installer, NexusBrowser's extension guide) run with
+  `-ExecutionPolicy RemoteSigned -File` instead of `Bypass`: local files, so the same effect, with the narrowest
+  setting. No PowerShell is ever started with `-Command`.
+
 ## [1.6.1] - 2026-10-25
 
 ### Added
