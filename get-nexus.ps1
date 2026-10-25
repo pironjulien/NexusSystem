@@ -386,10 +386,11 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
                 }
             }
         }
-        # 3. NexusAndroid: one setup for every AI app (adb, declarations), without waiting for the phone.
+        # 3. NexusAndroid: one setup for every AI app (adb, declarations), without waiting for the phone. Its newest
+        #    release, never one older than its pack mode (0.11.0), even while the index cache still serves it.
         if ($wants['android']) {
             $code = Invoke-Native 'NexusAndroid' {
-                Invoke-Console (Get-Uvx) @('--python', '3.14', 'nexus-android@latest', 'setup')
+                Invoke-Console (Get-Uvx) @('--python', '3.14', '--refresh-package', 'nexus-android', '--from', 'nexus-android>=0.11.0', 'nexus-android', 'setup')
             }
             foreach ($ai in $ais | Where-Object { $_ -ne 'claude-code' }) { $results["android|$ai"] = $code }
         }
