@@ -318,8 +318,12 @@ function Test-Antigravity($Product) {
 }
 
 function Test-Device($Product) {
-    # NexusKeypad: the full plugin in the folder the Logitech plugin service loads.
-    return Test-Path -LiteralPath (Join-Path $env:LOCALAPPDATA 'Logi\LogiPluginService\Plugins\NexusKeypad')
+    # NexusKeypad: the state its plugin writes when loaded, else one of its editions in the folder the Logitech plugin
+    # service loads: NexusKeypad (complete edition), TrinitePad (Marketplace "AI Coding Agents", or a build from the
+    # sources), AiAgentsPc ("AI Coding Agents + PC"), PcDashboard ("PC Dashboard").
+    if (Test-Path -LiteralPath (Join-Path $env:USERPROFILE '.nexus\status\keypad.json')) { return $true }
+    $plugins = Join-Path $env:LOCALAPPDATA 'Logi\LogiPluginService\Plugins'
+    return [bool]@('NexusKeypad', 'TrinitePad', 'AiAgentsPc', 'PcDashboard' | Where-Object { Test-Path -LiteralPath (Join-Path $plugins $_) }).Count
 }
 
 $Checks = @{

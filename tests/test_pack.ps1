@@ -110,6 +110,19 @@ try {
 
     $result = Invoke-Pack $all "& ([scriptblock]::Create((Get-Content -Raw -LiteralPath '$pack'))) -DryRun -Only android; 'session still open'"
     Test-Case 'scriptblock form with options' $result 0 @('NexusAndroid  for Claude Code', 'session still open') @('NexusWindows  for')
+
+    # NexusKeypad counts as installed from its state file or any of its editions (Test-Device, taken from the script).
+    $device = ([System.Management.Automation.Language.Parser]::ParseFile($pack, [ref]$null, [ref]$null)).FindAll({
+            param($ast) $ast -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $ast.Name -eq 'Test-Device' }, $true) | Select-Object -First 1
+    foreach ($case in @(@('none', $null), @('NexusKeypad', 'AppData\Local\Logi\LogiPluginService\Plugins\NexusKeypad'),
+            @('TrinitePad', 'AppData\Local\Logi\LogiPluginService\Plugins\TrinitePad'), @('AiAgentsPc', 'AppData\Local\Logi\LogiPluginService\Plugins\AiAgentsPc'),
+            @('PcDashboard', 'AppData\Local\Logi\LogiPluginService\Plugins\PcDashboard'), @('keypad.json', '.nexus\status'))) {
+        $root = Initialize-Profile "keypad-$($case[0])" @($(if ($case[1]) { $case[1] }))
+        if ($case[0] -eq 'keypad.json') { Set-Content (Join-Path $root '.nexus\status\keypad.json') '{"product":"keypad"}' }
+        $result = Invoke-Pack $root "$($device.Extent.Text); 'installed=' + (Test-Device `$null)"
+        $expected = if ($case[0] -eq 'none') { 'installed=False' } else { 'installed=True' }
+        Test-Case "NexusKeypad detected: $($case[0])" $result 0 @($expected)
+    }
 } finally {
     Remove-Item -LiteralPath $work -Recurse -Force -ErrorAction SilentlyContinue
 }

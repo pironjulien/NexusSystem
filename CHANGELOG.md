@@ -5,6 +5,13 @@ All notable changes to this marketplace are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.6.3] - 2026-10-26
+
+### Fixed
+- NexusKeypad counts as installed from the state its plugin writes (`~\.nexus\status\keypad.json`), else from any of
+  its editions in Logi's plugin folder: NexusKeypad (complete edition), TrinitePad (Marketplace "AI Coding Agents",
+  or a build from the sources), AiAgentsPc and PcDashboard. Only the complete edition was recognized before.
+
 ## [1.6.2] - 2026-10-25
 
 ### Changed
