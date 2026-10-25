@@ -56,10 +56,11 @@ def claude_code(product: str) -> list[tuple[dict, Path]]:
 
 
 def claude_desktop(product: str) -> list[tuple[dict, Path]]:
-    folders = [APPDATA / "Claude", *sorted((LOCALAPPDATA / "Packages").glob("Claude_*/LocalCache/Roaming/Claude"))]
+    folders = [APPDATA / "Claude", *sorted((LOCALAPPDATA / "Packages").glob("*Claude_*/LocalCache/Roaming/Claude")),
+               *sorted((LOCALAPPDATA / "Claude-Data").glob("*/"))]
     found = []
     for folder in folders:
-        if folder.is_dir():
+        if folder.is_dir() and not any(folder.glob(".user-data-left.*")):  # data moved: Claude no longer reads it
             server = read_json(folder / "claude_desktop_config.json").get("mcpServers", {}).get(SERVERS[product])
             if server:
                 found.append((server, folder))

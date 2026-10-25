@@ -21,6 +21,8 @@ All notable changes to this marketplace are documented here. The format follows
 - Tests: PowerShell lint (PSScriptAnalyzer), `tests/test_pack.ps1` (detection, plan, options, `irm | iex` keeps the
   window open, under Windows PowerShell 5.1), Codex manifests and pins in `check_catalog.py`, Codex servers started
   by `smoke_mcp.py`, `tests/check_install.py` (starts every server each AI app declares after a real run).
+- Claude Desktop from the Microsoft Store found where it reads its configuration (`%LOCALAPPDATA%\Claude-Data\<package>`,
+  packages named `*Claude_*`), and a folder it left (`.user-data-left.*`) ignored.
 - CI job `pack`: the one-liner on a fresh `windows-latest` runner with the official Claude Code installer, every
   declared server started, then a second run.
 

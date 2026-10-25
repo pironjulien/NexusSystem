@@ -64,16 +64,25 @@ function Get-ClaudeCli {
 }
 
 function Get-DesktopFolder {
-    # Classic install, then the Store (MSIX) one, whose AppData is redirected into its package.
+    # Where Claude Desktop reads claude_desktop_config.json: the classic install (%APPDATA%\Claude), the Store (MSIX)
+    # one redirected into its package, and the newer Store versions' %LOCALAPPDATA%\Claude-Data\<package>. A folder
+    # whose data moved away holds only a ".user-data-left.*" marker: Claude no longer reads it.
     $folders = @()
-    $roaming = Join-Path $env:APPDATA 'Claude'
-    if (Test-Path -LiteralPath $roaming -PathType Container) { $folders += $roaming }
+    $candidates = @(Join-Path $env:APPDATA 'Claude')
     $packages = Join-Path $env:LOCALAPPDATA 'Packages'
     if (Test-Path -LiteralPath $packages) {
-        foreach ($package in Get-ChildItem -LiteralPath $packages -Directory -Filter 'Claude_*' -ErrorAction SilentlyContinue) {
-            $folder = Join-Path $package.FullName 'LocalCache\Roaming\Claude'
-            if (Test-Path -LiteralPath $folder -PathType Container) { $folders += $folder }
+        foreach ($package in Get-ChildItem -LiteralPath $packages -Directory -Filter '*Claude_*' -ErrorAction SilentlyContinue) {
+            $candidates += Join-Path $package.FullName 'LocalCache\Roaming\Claude'
         }
+    }
+    $data = Join-Path $env:LOCALAPPDATA 'Claude-Data'
+    if (Test-Path -LiteralPath $data) {
+        $candidates += @(Get-ChildItem -LiteralPath $data -Directory -ErrorAction SilentlyContinue | ForEach-Object { $_.FullName })
+    }
+    foreach ($folder in $candidates) {
+        if (-not (Test-Path -LiteralPath $folder -PathType Container)) { continue }
+        if (Get-ChildItem -LiteralPath $folder -Force -Filter '.user-data-left.*' -ErrorAction SilentlyContinue) { continue }
+        $folders += $folder
     }
     return , $folders
 }

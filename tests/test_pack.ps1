@@ -73,6 +73,17 @@ try {
     $result = Invoke-Pack $store "& '$pack' -DryRun"
     Test-Case 'Claude Desktop from the Microsoft Store' $result 0 @('AI apps found: Claude Code, Claude Desktop')
 
+    $moved = Initialize-Profile 'moved' @('AppData\Local\Packages\AnthropicPBC.Claude_fnn82j28hfe8t\LocalCache\Roaming\Claude',
+        'AppData\Local\Claude-Data\anthropicpbc.claude_fnn82j28hfe8t')
+    New-Item -ItemType File (Join-Path $moved 'AppData\Local\Packages\AnthropicPBC.Claude_fnn82j28hfe8t\LocalCache\Roaming\Claude\.user-data-left.anthropicpbc.claude_fnn82j28hfe8t') | Out-Null
+    $result = Invoke-Pack $moved "& '$pack' -DryRun"
+    Test-Case 'Claude Desktop from the Store, data in Claude-Data' $result 0 @('AI apps found: Claude Code, Claude Desktop')
+
+    $left = Initialize-Profile 'left' @('AppData\Roaming\Claude')
+    New-Item -ItemType File (Join-Path $left 'AppData\Roaming\Claude\.user-data-left.anthropicpbc.claude_fnn82j28hfe8t') | Out-Null
+    $result = Invoke-Pack $left "& '$pack' -DryRun"
+    Test-Case 'a folder Claude left is not Claude Desktop' $result 1 @('No AI app found') @('AI apps found')
+
     $agy = Initialize-Profile 'agy' @('AppData\Local\Programs\Antigravity')
     $result = Invoke-Pack $agy "& '$pack' -DryRun"
     Test-Case 'Antigravity installed, never opened' $result 0 @('AI apps found: Antigravity', 'Prerequisites, once: uv') @('Node.js')

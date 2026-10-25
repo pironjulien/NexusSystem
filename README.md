@@ -87,8 +87,9 @@ codex plugin add nexus-android@nexus-plugins
 codex plugin add nexus-browser@nexus-plugins
 ```
 
-Use either these plugins or the one-line install for Codex, not both: a server already declared in
-`~/.codex/config.toml` (what the product installers write) hides the plugin's server of the same name.
+Use either these plugins or the one-line install for Codex. Plugin first, then the one-line install: NexusWindows
+for Codex sees its plugin and adds nothing. The other way round, a server already declared in `~/.codex/config.toml`
+hides the plugin's server of the same name (the same server runs, nothing to remove).
 
 More examples, and how to test each plugin without your own phone or data, are in each plugin's README
 ([nexus-android](https://github.com/pironjulien/nexus-plugins/tree/main/plugins/nexus-android#try-it),
