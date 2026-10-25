@@ -13,15 +13,19 @@
 #   -DryRun        show the plan and do nothing
 #   -NoGuide       do not open Chrome on its extensions page at the end (the guide is printed instead)
 #   -Catalog       marketplace given to Claude Code (default pironjulien/nexus-plugins; a local folder for tests)
+#   -Json          also print one "NEXUS_PACK_EVENT {json}" line per event (found, plan, step, cell, done), for the
+#                  Nexus apps that run this same script and show its progress
 param(
     [string[]]$Only = @(),
     [string[]]$Skip = @(),
     [switch]$DryRun,
     [switch]$NoGuide,
-    [string]$Catalog = 'pironjulien/nexus-plugins'
+    [string]$Catalog = 'pironjulien/nexus-plugins',
+    [switch]$Json
 )
 
 $ErrorActionPreference = 'Stop'
+$EmitEvents = $Json.IsPresent
 $ProgressPreference = 'SilentlyContinue'  # Invoke-WebRequest is many times slower with its progress bar
 [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
 
@@ -54,6 +58,10 @@ $Products = @(
 )
 
 function Say([string]$Text, [string]$Color = 'Gray') { Write-Host $Text -ForegroundColor $Color }
+
+function Send-Event([hashtable]$Data) {
+    if ($EmitEvents) { Write-Host ('NEXUS_PACK_EVENT ' + (New-Object PSObject -Property $Data | ConvertTo-Json -Compress -Depth 5)) }
+}
 
 function Get-ClaudeCli {
     $cli = Get-Command claude -ErrorAction SilentlyContinue
@@ -155,6 +163,7 @@ function Invoke-Native([string]$What, [scriptblock]$Command) {
     # stderr into errors under 'Stop', so 'Continue' while it runs.
     Say ''
     Say "== $What" Cyan
+    Send-Event @{ type = 'step'; name = $What; state = 'start' }
     $saved = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
     try {
@@ -168,6 +177,7 @@ function Invoke-Native([string]$What, [scriptblock]$Command) {
         $ErrorActionPreference = $saved
     }
     if ($code) { Say "$What failed (exit code $code)." Red }
+    Send-Event @{ type = 'step'; name = $What; state = 'end'; code = [int]$code }
     return [int]$code
 }
 
@@ -321,6 +331,7 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
     }
     Say ''
     Say "AI apps found: $(($found | ForEach-Object { $AiNames[$_] }) -join ', ')"
+    Send-Event @{ type = 'found'; ais = @($found) }
     if (-not $ais.Count -or -not $selected.Count) { Say 'Nothing to install with these options.' Yellow; return 0 }
     Say 'It will install:'
     foreach ($product in $selected) { Say ("  {0,-13} for {1}" -f $product.Name, (($ais | ForEach-Object { $AiNames[$_] }) -join ', ')) }
@@ -333,6 +344,7 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
     $needsNode = $wants['windows'] -and $for['codex'] -and (Get-NodeMajor) -lt 22
     Say ''
     Say "Prerequisites, once: uv$(if ($needsNode) { ', Node.js LTS (for Codex)' })"
+    Send-Event @{ type = 'plan'; ais = @($ais); products = @($selected | ForEach-Object { $_.Key }); node = [bool]$needsNode }
     if ($DryRun) { Say 'Dry run: nothing installed.' Yellow; return 0 }
 
     $work = Join-Path ([IO.Path]::GetTempPath()) "nexus-pack-$PID"
@@ -387,10 +399,10 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
             }
         }
         # 3. NexusAndroid: one setup for every AI app (adb, declarations), without waiting for the phone. Its newest
-        #    release, never one older than its pack mode (0.11.0), even while the index cache still serves it.
+        #    release, never one older than its pack mode and Claude-Data fix (0.12.1), even while the index cache still serves it.
         if ($wants['android']) {
             $code = Invoke-Native 'NexusAndroid' {
-                Invoke-Console (Get-Uvx) @('--python', '3.14', '--refresh-package', 'nexus-android', '--from', 'nexus-android>=0.11.0', 'nexus-android', 'setup')
+                Invoke-Console (Get-Uvx) @('--python', '3.14', '--refresh-package', 'nexus-android', '--from', 'nexus-android>=0.12.1', 'nexus-android', 'setup')
             }
             foreach ($ai in $ais | Where-Object { $_ -ne 'claude-code' }) { $results["android|$ai"] = $code }
         }
@@ -421,6 +433,7 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
             $code = $results["$($product.Key)|$ai"]
             $good = ($null -ne $code) -and ($code -eq 0) -and (& $Checks[$ai] $product)
             if (-not $good) { $failed++ }
+            Send-Event @{ type = 'cell'; product = $product.Key; ai = $ai; ok = [bool]$good }
             if ($good) { Write-Host "$Ok ok".PadRight($width) -ForegroundColor Green -NoNewline }
             else { Write-Host "$No failed".PadRight($width) -ForegroundColor Red -NoNewline }
         }
@@ -459,4 +472,5 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
 }
 
 $code = Invoke-NexusPack -Only $Only -Skip $Skip -DryRun $DryRun.IsPresent -NoGuide $NoGuide.IsPresent -Catalog $Catalog
+Send-Event @{ type = 'done'; code = $code }
 if ($PSCommandPath) { exit $code }  # run as a file (CI, tests); never close the window of an `irm | iex` run

@@ -14,7 +14,8 @@ All notable changes to this marketplace are documented here. The format follows
   plan, installs uv (and Node.js LTS through winget when Codex is there) once, gives Claude Code this catalog's
   plugins, then runs each product's official installer in its non-interactive mode (`NEXUS_PACK=1`); ends with a
   ✓ / ✗ summary per product and AI app, checked in each app's own configuration, and the steps left to a human.
-  `-Only`, `-Skip`, `-DryRun`, `-NoGuide`, `-Catalog`. Places kept for NexusRelay and NexusGmail; NexusKeypad shown as
+  `-Only`, `-Skip`, `-DryRun`, `-NoGuide`, `-Catalog`, `-Json` (one `NEXUS_PACK_EVENT` line per event, for the Nexus
+  apps that run the same script). Places kept for NexusRelay and NexusGmail; NexusKeypad shown as
   coming through the Logitech Marketplace.
 - Codex marketplace in the same repository (`.agents/plugins/marketplace.json`): `nexus-windows` from
   NexusWindows-Codex, `nexus-android` and `nexus-browser` from `codex/`, pinned like their Claude twins, same skills.
@@ -29,7 +30,7 @@ All notable changes to this marketplace are documented here. The format follows
 ### Changed
 - README: "Install everything" first, Codex section, the uv command in the Claude Code quick start.
 - Product installers called by the pack: NexusWindows-Claude and NexusWindows-Codex `setup.ps1` (main), NexusAndroid
-  0.11.0 (`setup` declares the server to every AI app, Antigravity as a plugin), NexusBrowser 2.24.4 (`get.ps1`,
+  0.12.1 or newer (`setup` declares the server to every AI app, Antigravity as a plugin, Claude Desktop in Claude-Data), NexusBrowser 2.24.4 (`get.ps1`,
   Antigravity as a plugin). The plugin pins of this catalog are unchanged.
 
 ## [1.4.4] - 2026-10-25

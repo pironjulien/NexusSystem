@@ -88,6 +88,11 @@ try {
     $result = Invoke-Pack $agy "& '$pack' -DryRun"
     Test-Case 'Antigravity installed, never opened' $result 0 @('AI apps found: Antigravity', 'Prerequisites, once: uv') @('Node.js')
 
+    $result = Invoke-Pack $all "& '$pack' -DryRun -Json -Only windows,codex"
+    Test-Case '-Json events for the Nexus apps' $result 0 @(
+        '"type":"found"', '"ais":["claude-code","claude-desktop","codex","antigravity"]', '"type":"plan"',
+        '"products":["windows"]', '"ais":["codex"]', '"type":"done"', '"code":0')
+
     # `irm | iex`: the script text run in the user's own session, which must stay open whatever happens.
     $empty = Initialize-Profile 'empty' @()
     $result = Invoke-Pack $empty "Get-Content -Raw -LiteralPath '$pack' | Invoke-Expression; 'session still open'"
