@@ -5,6 +5,21 @@ All notable changes to this marketplace are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.6.7] - 2026-10-26
+
+### Changed
+- The pack stays within the selection. A product whose installer configures every AI app found in one run
+  (NexusAndroid, NexusBrowser, NexusRelay) gets the AI apps to configure in `NEXUS_PACK_TARGETS` (pack names, comma
+  separated); until it honors that list, the pack does not run it when it would go beyond `-Only`/`-Skip` or an AI app
+  where the user turned the product off, and says so.
+- What an AI app declares is read for real: a declaration is ok, missing, turned off by the user (`enabled = false`
+  in Codex, a plugin set to `false` in Claude Code, `"disabled": true`) or invalid (its command cannot be found). A
+  product turned off by the user is left as it is, never turned on again; the summary shows "off, kept", "not run"
+  or "invalid" instead of a green cell for a broken or disabled entry. `-Json` cell events carry this `state`.
+
+### Fixed
+- uv's folder (`~\.local\bin`) is put on the session's PATH again: a control character had replaced `\b` in its path.
+
 ## [1.6.6] - 2026-10-26
 
 ### Changed

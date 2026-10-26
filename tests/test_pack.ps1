@@ -57,6 +57,40 @@ try {
     $result = Invoke-Pack $all "& '$pack' -DryRun -Only windows,codex"
     Test-Case '-Only a product and an AI app' $result 0 @('NexusWindows  for Codex', 'Node.js LTS (for Codex)') @('NexusAndroid  for', 'NexusBrowser  for')
 
+    # A product whose installer configures every AI app found is not run beyond the selection.
+    $result = Invoke-Pack $all "& '$pack' -DryRun -Only android,codex -Json"
+    Test-Case 'one-run installer refused beyond -Only' $result 0 @(
+        'NexusAndroid  not run: its installer would also configure Claude Desktop, Antigravity', '"products":[]')
+    $result = Invoke-Pack $all "& '$pack' -DryRun -Only android"
+    Test-Case 'one-run installer for every AI app' $result 0 @('NexusAndroid  for') @('not run')
+
+    # A product turned off by the user in an AI app stays off there (and its one-run installer is not run).
+    $off = Initialize-Profile 'off' @('.claude', '.codex')
+    [IO.File]::WriteAllText((Join-Path $off '.codex\config.toml'), "[mcp_servers.nexus-windows]`ncommand = `"npx`"`nenabled = false`n`n[mcp_servers.nexus-android]`ncommand = `"uvx`"`nenabled = false`n")
+    $result = Invoke-Pack $off "& '$pack' -DryRun -Only windows,android"
+    Test-Case 'turned off by the user: kept' $result 0 @(
+        'NexusWindows  Codex: turned off by you, left as it is', 'NexusAndroid  Codex: turned off by you, left as it is',
+        'NexusAndroid  not run: its installer would also configure Codex')
+
+    # The real state of a declaration (the functions taken from the script).
+    $ast = [System.Management.Automation.Language.Parser]::ParseFile($pack, [ref]$null, [ref]$null)
+    $functions = ($ast.FindAll({ param($a) $a -is [System.Management.Automation.Language.FunctionDefinitionAst] -and
+                @('Read-Json', 'Get-Uvx', 'Test-CommandName', 'Get-JsonServerState', 'Get-TomlTable', 'Get-CodexState', 'Get-ClaudeCodeState') -contains $a.Name }, $true) |
+            ForEach-Object { $_.Extent.Text }) -join "`n"
+    $states = Initialize-Profile 'states' @('.codex', '.claude')
+    [IO.File]::WriteAllText((Join-Path $states '.codex\config.toml'), (@(
+                '[mcp_servers.nexus-windows]', 'command = "C:\\nowhere\\node.exe"', '',
+                '[mcp_servers.nexus-android]', 'command = "powershell.exe"', '[mcp_servers.nexus-android.env]', 'X = "1"', '',
+                '[mcp_servers.nexus-relay]', 'url = "http://127.0.0.1:16181/mcp"', '',
+                '[plugins."nexus-browser@nexus-plugins"]', 'enabled = false') -join "`n"))
+    [IO.File]::WriteAllText((Join-Path $states '.claude\settings.json'), '{"enabledPlugins": {"nexus-windows@nexus-plugins": false, "nexus-android@nexus-plugins": true}}')
+    $probe = "`$Marketplace = 'nexus-plugins'`n$functions`n" +
+        "'codex=' + ((@('nexus-windows', 'nexus-android', 'nexus-relay', 'nexus-browser', 'nexus-agymail') | ForEach-Object { Get-CodexState @{ Server = `$_ } }) -join ',')`n" +
+        "'claude=' + ((@('nexus-windows', 'nexus-android', 'nexus-browser') | ForEach-Object { Get-ClaudeCodeState @{ Plugin = `$_; Server = `$_ } }) -join ',')"
+    $result = Invoke-Pack $states $probe
+    Test-Case 'declarations: ok, disabled, invalid, missing' $result 0 @(
+        'codex=invalid,ok,ok,disabled,missing', 'claude=disabled,ok,missing')
+
     $result = Invoke-Pack $all "& '$pack' -DryRun -Skip 'codex, browser'"
     Test-Case '-Skip as one comma separated string' $result 0 @('NexusWindows  for Claude Code, Claude Desktop, Antigravity') @('NexusBrowser  for', 'Node.js')
 

@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Computer use in the background for Claude Code: your Android phone over ADB, your Windows desktop apps, your real Chrome. Each plugin starts its open-source MCP server from PyPI with uvx, pinned and locked with hashes.",
-    "version": "1.6.6"
+    "version": "1.6.7"
   },
   "plugins": [
     {

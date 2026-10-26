@@ -216,7 +216,7 @@ function Sync-SessionPath([switch]$Registry) {
             }
         }
     }
-    $uvBin = Join-Path $env:USERPROFILE '.localin'
+    $uvBin = Join-Path $env:USERPROFILE '.local\bin'
     if ($known -notcontains $uvBin) { $env:PATH = "$uvBin;$env:PATH" }
 }
 
@@ -277,44 +277,100 @@ function Install-ClaudePlugin([string[]]$Plugins) {
     }
 }
 
-# --- Checks: what each AI app declares once the installers are done ---------------------------------------------
+# --- Checks: what each AI app really declares --------------------------------------------------------------------
+# Read before the installers (an AI app where the user turned a product off is left out for that product, never
+# turned on again) and after them (the summary). A declaration is 'ok', 'missing', 'disabled' (turned off by the
+# user) or 'invalid' (declared, but its command cannot be found).
 
-function Test-ClaudeCode($Product) {
+function Test-CommandName([string]$Command) {
+    if (-not $Command) { return $false }
+    $expanded = [Environment]::ExpandEnvironmentVariables($Command)
+    if ([IO.Path]::IsPathRooted($expanded)) { return Test-Path -LiteralPath $expanded }
+    if ($expanded -eq 'uvx' -and (Get-Uvx)) { return $true }
+    return [bool](Get-Command $expanded -ErrorAction SilentlyContinue)
+}
+
+function Get-JsonServerState($Server) {
+    if ($Server.PSObject.Properties['disabled'] -and $Server.disabled -eq $true) { return 'disabled' }
+    if ($Server.PSObject.Properties['url'] -and $Server.url) { return 'ok' }
+    if (Test-CommandName ([string]$Server.command)) { return 'ok' }
+    return 'invalid'
+}
+
+function Get-ClaudeCodeState($Product) {
+    $settings = Read-Json (Join-Path $env:USERPROFILE '.claude\settings.json')
+    $plugins = if ($settings -and $settings.enabledPlugins) { @($settings.enabledPlugins.PSObject.Properties) } else { @() }
     if ($Product.Plugin) {
-        $settings = Read-Json (Join-Path $env:USERPROFILE '.claude\settings.json')
-        $key = "$($Product.Plugin)@$Marketplace"
-        return [bool]($settings -and $settings.enabledPlugins -and $settings.enabledPlugins.PSObject.Properties[$key] -and
-            $settings.enabledPlugins.$key -eq $true)
+        # This catalog's plugin: true installed and on, false turned off by the user.
+        $mine = @($plugins | Where-Object { $_.Name -eq "$($Product.Plugin)@$Marketplace" })
+        if (-not $mine.Count) { return 'missing' }
+        if ($mine[0].Value -eq $true) { return 'ok' }
+        return 'disabled'
     }
     # Declared by the product's own installer, user scope (~\.claude.json), or a plugin of the same name the user has.
     $config = Read-Json (Join-Path $env:USERPROFILE '.claude.json')
-    if ($config -and $config.mcpServers -and $config.mcpServers.PSObject.Properties[$Product.Server]) { return $true }
-    $settings = Read-Json (Join-Path $env:USERPROFILE '.claude\settings.json')
-    if (-not ($settings -and $settings.enabledPlugins)) { return $false }
-    return [bool]@($settings.enabledPlugins.PSObject.Properties | Where-Object { $_.Name -like "$($Product.Server)@*" -and $_.Value -eq $true }).Count
+    if ($config -and $config.mcpServers -and $config.mcpServers.PSObject.Properties[$Product.Server]) {
+        return Get-JsonServerState $config.mcpServers.($Product.Server)
+    }
+    $named = @($plugins | Where-Object { $_.Name -like "$($Product.Server)@*" })
+    if (@($named | Where-Object { $_.Value -eq $true }).Count) { return 'ok' }
+    if ($named.Count) { return 'disabled' }
+    return 'missing'
 }
 
-function Test-ClaudeDesktop($Product) {
+function Get-ClaudeDesktopState($Product) {
     $folders = Get-DesktopFolder
-    if (-not $folders.Count) { return $false }
+    if (-not $folders.Count) { return 'missing' }
+    $states = @()
     foreach ($folder in $folders) {
         $config = Read-Json (Join-Path $folder 'claude_desktop_config.json')
-        if (-not ($config -and $config.mcpServers -and $config.mcpServers.PSObject.Properties[$Product.Server])) { return $false }
+        if (-not ($config -and $config.mcpServers -and $config.mcpServers.PSObject.Properties[$Product.Server])) { return 'missing' }
+        $states += Get-JsonServerState $config.mcpServers.($Product.Server)
     }
-    return $true
+    foreach ($state in 'disabled', 'invalid') { if ($states -contains $state) { return $state } }
+    return 'ok'
 }
 
-function Test-Codex($Product) {
+function Get-TomlTable([string]$Text, [string]$Header) {
+    # The lines of one TOML table, up to the next table header (its keys come before any sub-table); $null if absent.
+    $body = $null
+    foreach ($line in ($Text -split "`r?`n")) {
+        if ($line -match '^\s*\[') {
+            if ($null -ne $body) { break }
+            if ($line -match $Header) { $body = New-Object System.Collections.ArrayList }
+            continue
+        }
+        if ($null -ne $body) { [void]$body.Add($line) }
+    }
+    return , $body
+}
+
+function Get-CodexState($Product) {
     $home_ = if ($env:CODEX_HOME) { $env:CODEX_HOME } else { Join-Path $env:USERPROFILE '.codex' }
     $path = Join-Path $home_ 'config.toml'
-    if (-not (Test-Path -LiteralPath $path)) { return $false }
+    if (-not (Test-Path -LiteralPath $path)) { return 'missing' }
     $text = [IO.File]::ReadAllText($path)
     $name = [regex]::Escape($Product.Server)
-    return ($text -match "(?m)^\s*\[mcp_servers\.(`"?)$name\1\]") -or ($text -match "(?m)^\s*\[plugins\.`"$name@[^`"]+`"\]")
+    $server = Get-TomlTable $text "^\s*\[mcp_servers\.(`"?)$name\1\]\s*(#.*)?$"
+    if ($null -ne $server) {
+        if (@($server | Where-Object { $_ -match '^\s*enabled\s*=\s*false\b' }).Count) { return 'disabled' }
+        if (@($server | Where-Object { $_ -match '^\s*url\s*=' }).Count) { return 'ok' }
+        foreach ($line in $server) {
+            if ($line -match '^\s*command\s*=\s*["''](.+?)["'']') { if (Test-CommandName ($Matches[1] -replace '\\\\', '\')) { return 'ok' } }
+        }
+        return 'invalid'
+    }
+    $plugin = Get-TomlTable $text "^\s*\[plugins\.`"$name@[^`"]+`"\]\s*(#.*)?$"
+    if ($null -ne $plugin) {
+        if (@($plugin | Where-Object { $_ -match '^\s*enabled\s*=\s*false\b' }).Count) { return 'disabled' }
+        return 'ok'
+    }
+    return 'missing'
 }
 
-function Test-Antigravity($Product) {
-    return Test-Path -LiteralPath (Join-Path $env:USERPROFILE ".gemini\config\plugins\$($Product.Agy)\plugin.json")
+function Get-AntigravityState($Product) {
+    if (Test-Path -LiteralPath (Join-Path $env:USERPROFILE ".gemini\config\plugins\$($Product.Agy)\plugin.json")) { return 'ok' }
+    return 'missing'
 }
 
 function Test-Device($Product) {
@@ -326,13 +382,21 @@ function Test-Device($Product) {
     return [bool]@('NexusKeypad', 'TrinitePad', 'AiAgentsPc', 'PcDashboard' | Where-Object { Test-Path -LiteralPath (Join-Path $plugins $_) }).Count
 }
 
+function Get-DeviceState($Product) { if (Test-Device $Product) { return 'ok' }; return 'missing' }
+
 $Checks = @{
-    'claude-code'    = ${function:Test-ClaudeCode}
-    'claude-desktop' = ${function:Test-ClaudeDesktop}
-    'codex'          = ${function:Test-Codex}
-    'antigravity'    = ${function:Test-Antigravity}
-    'pc'             = ${function:Test-Device}
+    'claude-code'    = ${function:Get-ClaudeCodeState}
+    'claude-desktop' = ${function:Get-ClaudeDesktopState}
+    'codex'          = ${function:Get-CodexState}
+    'antigravity'    = ${function:Get-AntigravityState}
+    'pc'             = ${function:Get-DeviceState}
 }
+
+# Products whose installer configures every AI app found in one run. It gets the AI apps to configure in
+# NEXUS_PACK_TARGETS (pack names, comma separated). Until a product honors it (listed here), the pack does not run it
+# when that would go beyond the selection: -Only/-Skip, or an AI app where the user turned the product off.
+$OneRunForAll = @('android', 'browser', 'relay')
+$HonorsTargets = @()
 
 # Why a product does not apply on this PC, or $null when it does.
 function Get-Unfit($Product, [string[]]$Ais) {
@@ -392,14 +456,40 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
     }
     foreach ($product in $wanted | Where-Object { Get-Unfit $_ $ais }) { Say ("  {0,-13} {1}" -f $product.Name, (Get-Unfit $product $ais)) DarkGray }
 
+    # The user's own choices: an AI app where a product is turned off stays as it is for that product.
+    $kept = @{}
+    foreach ($product in $selected) {
+        $cells = Get-Cell $product $ais  # assigned first: a list returned with "," stays one item in foreach
+        foreach ($ai in $cells) {
+            if ($ai -ne 'pc' -and (& $Checks[$ai] $product) -eq 'disabled') { $kept["$($product.Key)|$ai"] = $true }
+        }
+    }
+    $targets = @{}
+    $refused = @{}
+    foreach ($product in $selected) {
+        if ($OneRunForAll -notcontains $product.Key) { continue }
+        $touched = @($found | Where-Object { $product.Targets -contains $_ -and -not ($product.Plugin -and $_ -eq 'claude-code') })
+        $chosen = @($touched | Where-Object { $ais -contains $_ -and -not $kept["$($product.Key)|$_"] })
+        $targets[$product.Key] = $chosen
+        $beyond = @($touched | Where-Object { $chosen -notcontains $_ })
+        if ($beyond.Count -and $HonorsTargets -notcontains $product.Key) { $refused[$product.Key] = $beyond }
+    }
+    foreach ($key in @($kept.Keys)) {
+        $product, $ai = $key -split '\|'
+        Say ("  {0,-13} {1}: turned off by you, left as it is" -f (Get-Product $product).Name, $AiNames[$ai]) Yellow
+    }
+    foreach ($key in @($refused.Keys)) {
+        Say ("  {0,-13} not run: its installer would also configure {1}. Run it for every AI app, or wait for a {0} that takes a selection." -f (Get-Product $key).Name, (($refused[$key] | ForEach-Object { $AiNames[$_] }) -join ', ')) Yellow
+    }
+
     $wants = @{}
-    foreach ($product in $selected) { $wants[$product.Key] = $true }
+    foreach ($product in $selected) { if (-not $refused[$product.Key]) { $wants[$product.Key] = $true } }
     $for = @{}
     foreach ($ai in $ais) { $for[$ai] = $true }
     $needsNode = $wants['windows'] -and $for['codex'] -and (Get-NodeMajor) -lt 22
     Say ''
     Say "Prerequisites, once: uv$(if ($needsNode) { ', Node.js LTS (for Codex)' })"
-    Send-Event @{ type = 'plan'; ais = @($ais); products = @($selected | ForEach-Object { $_.Key }); node = [bool]$needsNode }
+    Send-Event @{ type = 'plan'; ais = @($ais); products = @($selected | Where-Object { $wants[$_.Key] } | ForEach-Object { $_.Key }); node = [bool]$needsNode }
     if ($DryRun) { Say 'Dry run: nothing installed.' Yellow; return 0 }
 
     $work = Join-Path ([IO.Path]::GetTempPath()) "nexus-pack-$PID"
@@ -437,7 +527,7 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
 
         # 1. Claude Code first: the product installers see its plugins and add no second server.
         if ($for['claude-code']) {
-            $withPlugin = @($selected | Where-Object { $_.Plugin })
+            $withPlugin = @($selected | Where-Object { $_.Plugin -and -not $kept["$($_.Key)|claude-code"] })
             if ($withPlugin.Count) {
                 $code = if ($prereq['uv']) { 1 } else { Install-ClaudePlugin @($withPlugin | ForEach-Object { $_.Plugin }) }
                 foreach ($product in $withPlugin) { $results["$($product.Key)|claude-code"] = $code }
@@ -445,15 +535,15 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
         }
         # 2. NexusWindows: one edition per AI app.
         if ($wants['windows']) {
-            if ($for['claude-desktop']) {
+            if ($for['claude-desktop'] -and -not $kept['windows|claude-desktop']) {
                 $results['windows|claude-desktop'] = Invoke-Installer 'NexusWindows for Claude (Claude Desktop)' "$Raw/NexusWindows-Claude/main/setup.ps1" $work
             }
-            if ($for['codex']) {
+            if ($for['codex'] -and -not $kept['windows|codex']) {
                 $results['windows|codex'] = if ($prereq['node']) { 1 } else {
                     Invoke-Installer 'NexusWindows for Codex' "$Raw/NexusWindows-Codex/main/setup.ps1" $work
                 }
             }
-            if ($for['antigravity']) {
+            if ($for['antigravity'] -and -not $kept['windows|antigravity']) {
                 $results['windows|antigravity'] = if ($prereq['uv']) { 1 } else {
                     Invoke-Native 'NexusWindows for Antigravity' {
                         Invoke-Console (Get-Uvx) @('--python', '3.14', 'nexus-windows-antigravity@latest', 'install')
@@ -464,25 +554,27 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
         # 3. NexusAndroid: one setup for every AI app (adb, declarations), without waiting for the phone. Its newest
         #    release, never one older than its pack mode and Claude-Data fix (0.12.1), even while the index cache still serves it.
         if ($wants['android']) {
+            $env:NEXUS_PACK_TARGETS = $targets['android'] -join ','
             $code = if ($prereq['uv']) { 1 } else { Invoke-Native 'NexusAndroid' {
                 Invoke-Console (Get-Uvx) @('--python', '3.14', '--refresh-package', 'nexus-android', '--from', 'nexus-android>=0.12.1', 'nexus-android', 'setup')
             } }
-            foreach ($ai in $ais | Where-Object { $_ -ne 'claude-code' }) { $results["android|$ai"] = $code }
+            foreach ($ai in $targets['android']) { $results["android|$ai"] = $code }
         }
         # 4. NexusBrowser: local bridge and native host for Chrome, declared to every AI app.
         if ($wants['browser']) {
+            $env:NEXUS_PACK_TARGETS = $targets['browser'] -join ','
             $code = Invoke-Installer 'NexusBrowser' "$Raw/NexusBrowser/main/get.ps1" $work
-            foreach ($ai in $ais | Where-Object { $_ -ne 'claude-code' }) { $results["browser|$ai"] = $code }
+            foreach ($ai in $targets['browser']) { $results["browser|$ai"] = $code }
             if ($code -and $for['claude-code']) { $results['browser|claude-code'] = $code }  # bridge missing: plugin useless
         }
         # 5. NexusRelay: local relay daemon, declared to Claude Code, Codex and Antigravity.
         if ($wants['relay']) {
+            $env:NEXUS_PACK_TARGETS = $targets['relay'] -join ','
             $code = Invoke-Installer 'NexusRelay' "$Raw/NexusRelay/main/get.ps1" $work
-            $relayCells = Get-Cell (Get-Product 'relay') $ais  # assigned first: a list returned with "," stays one item in foreach
-            foreach ($ai in $relayCells) { $results["relay|$ai"] = $code }
+            foreach ($ai in $targets['relay']) { $results["relay|$ai"] = $code }
         }
         # 6. NexusAGYmail: its Antigravity plugin (the Google sign-in is the user's own step, below).
-        if ($wants['agymail']) {
+        if ($wants['agymail'] -and -not $kept['agymail|antigravity']) {
             $results['agymail|antigravity'] = if ($prereq['uv']) { 1 } else {
                 Invoke-Native 'NexusAGYmail' {
                     Invoke-Console (Get-Uvx) @('--python', '3.14', '--refresh-package', 'nexus-agymail', 'nexus-agymail@latest', 'setup')
@@ -495,6 +587,7 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
         }
     } finally {
         if ($null -eq $savedPack) { Remove-Item Env:NEXUS_PACK -ErrorAction SilentlyContinue } else { $env:NEXUS_PACK = $savedPack }
+        Remove-Item Env:NEXUS_PACK_TARGETS -ErrorAction SilentlyContinue
         Remove-Item -LiteralPath $work -Recurse -Force -ErrorAction SilentlyContinue
     }
 
@@ -514,12 +607,24 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
         $cells = Get-Cell $product $ais
         foreach ($ai in $(if ($product.Device) { @('pc') } else { $ais })) {
             if ($cells -notcontains $ai) { Write-Host '-'.PadRight($width) -ForegroundColor DarkGray -NoNewline; continue }
-            $code = $results["$($product.Key)|$ai"]
-            $good = ($null -ne $code) -and ($code -eq 0) -and (& $Checks[$ai] $product)
-            if (-not $good) { $failed++ }
-            $events += @{ type = 'cell'; product = $product.Key; ai = $ai; ok = [bool]$good }
             $label = if ($product.Device) { "$($product.Device)" } else { '' }
+            if ($kept["$($product.Key)|$ai"]) {
+                $events += @{ type = 'cell'; product = $product.Key; ai = $ai; ok = $false; state = 'disabled' }
+                Write-Host '- off, kept'.PadRight($width) -ForegroundColor Yellow -NoNewline
+                continue
+            }
+            $code = $results["$($product.Key)|$ai"]
+            if ($null -eq $code -and $refused[$product.Key] -and $ai -ne 'claude-code') {
+                $events += @{ type = 'cell'; product = $product.Key; ai = $ai; ok = $false; state = 'refused' }
+                Write-Host '- not run'.PadRight($width) -ForegroundColor Yellow -NoNewline
+                continue
+            }
+            $state = & $Checks[$ai] $product
+            $good = ($null -ne $code) -and ($code -eq 0) -and ($state -eq 'ok')
+            if (-not $good) { $failed++ }
+            $events += @{ type = 'cell'; product = $product.Key; ai = $ai; ok = [bool]$good; state = $(if ($good) { 'ok' } else { $state }) }
             if ($good) { Write-Host "$Ok ok $label".PadRight($width) -ForegroundColor Green -NoNewline }
+            elseif ($state -eq 'invalid') { Write-Host "$No invalid".PadRight($width) -ForegroundColor Red -NoNewline }
             else { Write-Host "$No failed $label".PadRight($width) -ForegroundColor Red -NoNewline }
         }
         Write-Host ''
