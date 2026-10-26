@@ -5,6 +5,10 @@ All notable changes to this marketplace are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+- Tests: right after a PyPI release, the `uv.lock` check and the MCP servers' smoke test fetch the index again
+  (`--refresh`) and retry for a few minutes, instead of failing on an index that does not list the new version yet.
+
 ## [1.6.14] - 2026-10-26
 
 ### Changed

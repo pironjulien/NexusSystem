@@ -28,7 +28,14 @@ if ($Full) {
     $env:UV_CACHE_DIR = $cache
     try {
         foreach ($plugin in Get-ChildItem (Join-Path $PSScriptRoot 'plugins') -Directory) {
-            uv lock --check --project $plugin.FullName --quiet
+            # --refresh: right after a PyPI release, an index seen earlier can still lack the new version; retried
+            # for a few minutes while PyPI's index catches up.
+            foreach ($attempt in 1..4) {
+                uv lock --check --refresh --project $plugin.FullName --quiet
+                if (-not $LASTEXITCODE -or $attempt -eq 4) { break }
+                Write-Host "  $($plugin.Name): uv.lock check again in 60 s (PyPI index not up to date yet?)"
+                Start-Sleep -Seconds 60
+            }
             if ($LASTEXITCODE) { throw "uv.lock out of date in $($plugin.Name)" }
         }
         python -B (Join-Path $PSScriptRoot 'tests\smoke_mcp.py')

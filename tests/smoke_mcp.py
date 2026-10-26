@@ -7,6 +7,7 @@ import subprocess
 import sys
 import tempfile
 import threading
+import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -48,6 +49,9 @@ def smoke(name: str, server: dict, root: Path, data: Path) -> int:
 
     env = {**os.environ, **{k: expand(v) for k, v in server.get("env", {}).items()}}
     cmd = [server["command"], *map(expand, server["args"])]
+    if server["command"] == "uvx":
+        # Right after a PyPI release the index uv reads can still lack the new version: fetched again, not cached.
+        cmd.insert(1, "--refresh")
     proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
                             text=True, encoding="utf-8", env=env)
     try:
@@ -77,5 +81,12 @@ if __name__ == "__main__":
         for mcp in sorted([*(ROOT / "plugins").glob("*/.mcp.json"), *(ROOT / "codex").glob("*/.mcp.json")]):
             for name, server in json.loads(mcp.read_text(encoding="utf-8"))["mcpServers"].items():
                 label = f"{mcp.parent.parent.name}/{name}"
-                failures += smoke(label, server, mcp.parent, Path(tmp) / label)
+                # A version just published can take a few minutes to reach PyPI's index: tried again before failing.
+                for attempt in range(4):
+                    code = smoke(label, server, mcp.parent, Path(tmp) / label)
+                    if not code or attempt == 3:
+                        break
+                    print(f"  {label}: trying again in 60 s (PyPI index not up to date yet?)")
+                    time.sleep(60)
+                failures += code
     sys.exit(1 if failures else 0)
