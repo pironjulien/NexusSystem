@@ -76,7 +76,7 @@ try {
     # The real state of a declaration (the functions taken from the script).
     $ast = [System.Management.Automation.Language.Parser]::ParseFile($pack, [ref]$null, [ref]$null)
     $functions = ($ast.FindAll({ param($a) $a -is [System.Management.Automation.Language.FunctionDefinitionAst] -and
-                @('Read-Json', 'Get-Uvx', 'Test-CommandName', 'Get-JsonServerState', 'Get-TomlTable', 'Get-CodexState', 'Get-ClaudeCodeState') -contains $a.Name }, $true) |
+                @('Read-Json', 'Get-Uvx', 'Test-CommandName', 'Get-JsonServerState', 'Get-TomlTable', 'Get-CodexState', 'Get-ClaudeCodeState', 'Get-AntigravityState') -contains $a.Name }, $true) |
             ForEach-Object { $_.Extent.Text }) -join "`n"
     $states = Initialize-Profile 'states' @('.codex', '.claude')
     [IO.File]::WriteAllText((Join-Path $states '.codex\config.toml'), (@(
@@ -85,12 +85,15 @@ try {
                 '[mcp_servers.nexus-relay]', 'url = "http://127.0.0.1:16181/mcp"', '',
                 '[plugins."nexus-browser@nexus-plugins"]', 'enabled = false') -join "`n"))
     [IO.File]::WriteAllText((Join-Path $states '.claude\settings.json'), '{"enabledPlugins": {"nexus-windows@nexus-plugins": false, "nexus-android@nexus-plugins": true}}')
+    foreach ($plugin in 'nexus-computer', 'nexus-android') { New-Item -ItemType Directory -Force (Join-Path $states ".gemini\config\plugins\$plugin") | Out-Null; Set-Content (Join-Path $states ".gemini\config\plugins\$plugin\plugin.json") '{}' }
+    [IO.File]::WriteAllText((Join-Path $states '.gemini\config\config.json'), '{"plugins": {"nexus-computer": {"enabled": false}, "nexus-android": {"enabled": true}}}')
     $probe = "`$Marketplace = 'nexus-plugins'`n$functions`n" +
         "'codex=' + ((@('nexus-windows', 'nexus-android', 'nexus-relay', 'nexus-browser', 'nexus-agymail') | ForEach-Object { Get-CodexState @{ Server = `$_ } }) -join ',')`n" +
-        "'claude=' + ((@('nexus-windows', 'nexus-android', 'nexus-browser') | ForEach-Object { Get-ClaudeCodeState @{ Plugin = `$_; Server = `$_ } }) -join ',')"
+        "'claude=' + ((@('nexus-windows', 'nexus-android', 'nexus-browser') | ForEach-Object { Get-ClaudeCodeState @{ Plugin = `$_; Server = `$_ } }) -join ',')`n" +
+        "'agy=' + ((@('nexus-computer', 'nexus-android', 'nexus-browser') | ForEach-Object { Get-AntigravityState @{ Agy = `$_ } }) -join ',')"
     $result = Invoke-Pack $states $probe
     Test-Case 'declarations: ok, disabled, invalid, missing' $result 0 @(
-        'codex=invalid,ok,ok,disabled,missing', 'claude=disabled,ok,missing')
+        'codex=invalid,ok,ok,disabled,missing', 'claude=disabled,ok,missing', 'agy=disabled,ok,missing')
 
     $result = Invoke-Pack $all "& '$pack' -DryRun -Skip 'codex, browser'"
     Test-Case '-Skip as one comma separated string' $result 0 @('NexusWindows  for Claude Code, Claude Desktop, Antigravity') @('NexusBrowser  for', 'Node.js')

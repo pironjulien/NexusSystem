@@ -369,8 +369,14 @@ function Get-CodexState($Product) {
 }
 
 function Get-AntigravityState($Product) {
-    if (Test-Path -LiteralPath (Join-Path $env:USERPROFILE ".gemini\config\plugins\$($Product.Agy)\plugin.json")) { return 'ok' }
-    return 'missing'
+    if (-not (Test-Path -LiteralPath (Join-Path $env:USERPROFILE ".gemini\config\plugins\$($Product.Agy)\plugin.json"))) { return 'missing' }
+    # Turned off in Antigravity: plugins.<name>.enabled = false in ~\.gemini\config\config.json.
+    $config = Read-Json (Join-Path $env:USERPROFILE '.gemini\config\config.json')
+    if ($config -and $config.plugins -and $config.plugins.PSObject.Properties[$Product.Agy]) {
+        $entry = $config.plugins.($Product.Agy)
+        if ($entry.PSObject.Properties['enabled'] -and $entry.enabled -eq $false) { return 'disabled' }
+    }
+    return 'ok'
 }
 
 function Test-Device($Product) {

@@ -8,6 +8,12 @@ All notable changes to this marketplace are documented here. The format follows
 ## [1.6.11] - 2026-10-26
 
 ### Changed
+- Antigravity: a product turned off there (`plugins.<name>.enabled = false` in `~/.gemini/config/config.json`) counts
+  as turned off by the user, like in Claude Code and Codex: kept as it is, never turned on again.
+
+## [1.6.11] - 2026-10-26
+
+### Changed
 - `nexus-android` 0.14.1 (Claude Code and Codex), the version the pack requires: `setup` tells the phone and the AI
   apps apart and honors the pack's scope (`NEXUS_PACK_TARGETS`). Skill updated.
 
