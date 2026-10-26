@@ -5,6 +5,14 @@ All notable changes to this marketplace are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.6.10] - 2026-10-26
+
+### Changed
+- NexusBrowser takes the selection: from 2.26.1 its `get.ps1` (always the latest) configures only the AI apps in
+  `NEXUS_PACK_TARGETS`. The three installers that configure every AI app found in one run now all stay within
+  `-Only`/`-Skip` and leave an AI app where the user turned the product off as it is; the pack still refuses any
+  future one that would not.
+
 ## [1.6.9] - 2026-10-26
 
 ### Changed

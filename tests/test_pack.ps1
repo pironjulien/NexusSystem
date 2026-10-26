@@ -57,26 +57,21 @@ try {
     $result = Invoke-Pack $all "& '$pack' -DryRun -Only windows,codex"
     Test-Case '-Only a product and an AI app' $result 0 @('NexusWindows  for Codex', 'Node.js LTS (for Codex)') @('NexusAndroid  for', 'NexusBrowser  for')
 
-    # A product whose installer configures every AI app found is not run beyond the selection.
+    # The installers that configure every AI app found in one run take the selection (NEXUS_PACK_TARGETS).
     $result = Invoke-Pack $all "& '$pack' -DryRun -Only browser,codex -Json"
-    Test-Case 'one-run installer refused beyond -Only' $result 0 @(
-        'NexusBrowser  not run: its installer would also configure Claude Desktop, Antigravity', '"products":[]')
-    $result = Invoke-Pack $all "& '$pack' -DryRun -Only browser"
-    Test-Case 'one-run installer for every AI app' $result 0 @('NexusBrowser  for') @('not run')
-    # One that takes the selection (NexusAndroid 0.14.1, NEXUS_PACK_TARGETS) runs for it alone.
+    Test-Case 'NexusBrowser takes the selection' $result 0 @('NexusBrowser  for Codex', '"products":["browser"]') @('not run')
     $result = Invoke-Pack $all "& '$pack' -DryRun -Only android,codex -Json"
     Test-Case 'one-run installer that takes the selection' $result 0 @('NexusAndroid  for Codex', '"products":["android"]') @('not run')
     $result = Invoke-Pack $all "& '$pack' -DryRun -Only relay -Skip antigravity -Json"
     Test-Case 'NexusRelay takes the selection too' $result 0 @('NexusRelay    for Claude Code, Codex', '"products":["relay"]') @('not run')
 
-    # A product turned off by the user in an AI app stays off there (a one-run installer that ignores the selection
-    # is not run).
+    # A product turned off by the user in an AI app stays off there; the others are installed.
     $off = Initialize-Profile 'off' @('.claude', '.codex')
     [IO.File]::WriteAllText((Join-Path $off '.codex\config.toml'), "[mcp_servers.nexus-windows]`ncommand = `"npx`"`nenabled = false`n`n[mcp_servers.nexus-browser]`ncommand = `"uvx`"`nenabled = false`n")
-    $result = Invoke-Pack $off "& '$pack' -DryRun -Only windows,browser"
+    $result = Invoke-Pack $off "& '$pack' -DryRun -Only windows,browser -Json"
     Test-Case 'turned off by the user: kept' $result 0 @(
         'NexusWindows  Codex: turned off by you, left as it is', 'NexusBrowser  Codex: turned off by you, left as it is',
-        'NexusBrowser  not run: its installer would also configure Codex')
+        '"products":["windows","browser"]') @('not run')
 
     # The real state of a declaration (the functions taken from the script).
     $ast = [System.Management.Automation.Language.Parser]::ParseFile($pack, [ref]$null, [ref]$null)
