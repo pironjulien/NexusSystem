@@ -5,10 +5,14 @@ elements, gestures, typing, SMS/RCS reading, reply drafts, notifications, files,
 and quick settings. Sending, paying and other irreversible gestures need your explicit "yes".
 
 ## What it runs
-The plugin starts the open-source MCP server [`nexus-android`](https://pypi.org/project/nexus-android/) 0.14.1 from
+The plugin starts the open-source MCP server [`nexus-android`](https://pypi.org/project/nexus-android/) 0.15.0 from
 PyPI with `uvx --python 3.14`, over stdio (uv downloads Python 3.14 if needed). The exact version of the server and
 of every dependency is recorded with its hash in `uv.lock`. The plugin itself contains only this launcher, the lock
-file and a skill; it sends nothing anywhere.
+file and a skill.
+
+The server talks to your phone over ADB on your PC. It contacts only three sites, and never sends anything from your
+phone: pypi.org (its own latest version, once a day), dl.google.com (Android's platform-tools, once, if adb is
+missing) and github.com (the scrcpy server, once, the first time it types accented text).
 
 ## Requirements
 - [uv](https://docs.astral.sh/uv/) (`winget install --id astral-sh.uv -e`). `adb` is found on the PC or downloaded once

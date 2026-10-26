@@ -1,7 +1,7 @@
 {
   "name": "nexus-android",
   "displayName": "Nexus Android",
-  "version": "0.14.1",
+  "version": "0.15.0",
   "description": "Android phone over plain ADB (no root, no app): screen, gestures, SMS/RCS, notifications, files, settings.",
   "author": {
     "name": "Julien Piron",

@@ -1,9 +1,9 @@
 # Lock of the nexus-android plugin: pinned PyPI server that .mcp.json starts with uvx: every dependency by version and hash in uv.lock.
 [project]
 name = "nexus-android-plugin"
-version = "0.14.1"
+version = "0.15.0"
 requires-python = ">=3.14"
-dependencies = ["nexus-android==0.14.1"]
+dependencies = ["nexus-android==0.15.0"]
 
 [tool.uv]
 package = false

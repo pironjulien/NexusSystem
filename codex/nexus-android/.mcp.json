@@ -2,7 +2,7 @@
   "mcpServers": {
     "nexus-android": {
       "command": "uvx",
-      "args": ["--python", "3.14", "nexus-android==0.14.1"],
+      "args": ["--python", "3.14", "nexus-android==0.15.0"],
       "env": { "NEXUS_ANDROID_MANAGED": "nexus-plugins catalog" },
       "startup_timeout_sec": 120
     }

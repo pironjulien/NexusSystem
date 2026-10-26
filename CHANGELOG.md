@@ -5,7 +5,12 @@ All notable changes to this marketplace are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.6.15] - 2026-10-26
+
 ### Changed
+- `nexus-android` pinned to 0.15.0 (Claude Code and Codex plugins): the `nexus-android mirror` command (scrcpy with
+  the same adb); nothing changes in how the server is declared. `uv.lock` updated. Its README says which sites the
+  server contacts (pypi.org, dl.google.com, github.com), never with anything from the phone.
 - Tests: right after a PyPI release, the `uv.lock` check and the MCP servers' smoke test fetch the index again
   (`--refresh`) and retry for a few minutes, instead of failing on an index that does not list the new version yet.
 - README Quick start: the "Install uv" step shows its command in a block (`winget install --id=astral-sh.uv -e`),
