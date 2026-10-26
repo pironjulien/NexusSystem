@@ -12,6 +12,11 @@ All notable changes to this marketplace are documented here. The format follows
   device, Smart Lock) is lifted by `look` or the first gesture, without asking the user; only a phone that requires
   its code is refused. Skill updated to match. `uv.lock` updated.
 
+### Fixed
+- Tests: a server that exits before replying (uvx not finding a version PyPI has just published, even with
+  `--refresh`) is tried again for a few minutes, also in the pack's check of every declared server; the message says
+  the server exited instead of reporting a 300 s wait.
+
 ## [1.6.16] - 2026-10-26
 
 ### Changed

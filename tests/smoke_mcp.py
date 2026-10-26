@@ -37,11 +37,25 @@ def read_reply(proc: subprocess.Popen, want: int) -> dict:
     thread.start()
     thread.join(TIMEOUT)
     if not result:
+        if proc.poll() is not None:
+            raise ProcessLookupError(f"server exited (code {proc.returncode}) before replying to request {want}")
         raise TimeoutError(f"no reply to request {want} within {TIMEOUT} s")
     return result
 
 
 def smoke(name: str, server: dict, root: Path, data: Path) -> int:
+    """One server, tried again when it exits before replying: right after a PyPI release, the index can take a few
+    minutes to list the new version even with --refresh, and uvx then stops at once."""
+    for attempt in range(4):
+        code = smoke_once(name, server, root, data, last=attempt == 3)
+        if code != 2:
+            return code
+        print(f"  {name}: server exited before replying, trying again in 60 s (PyPI index not up to date yet?)")
+        time.sleep(60)
+    return 1
+
+
+def smoke_once(name: str, server: dict, root: Path, data: Path, last: bool) -> int:
     def expand(text: str) -> str:  # what Claude Code does for a plugin's .mcp.json: ${VAR} and ${VAR:-default}
         known = {**os.environ, "CLAUDE_PLUGIN_ROOT": str(root), "CLAUDE_PLUGIN_DATA": str(data)}
         return re.sub(r"\$\{([A-Za-z_][A-Za-z0-9_]*)(?::-([^}]*))?\}",
@@ -68,6 +82,11 @@ def smoke(name: str, server: dict, root: Path, data: Path) -> int:
             raise ValueError(f"server text sent to every client names {PERSONAL!r}")
         print(f"OK {name}: {info.get('name')} {info.get('version')}, {len(tools)} tools")
         return 0
+    except ProcessLookupError as exc:
+        if not last:
+            return 2
+        print(f"FAIL {name}: {exc}")
+        return 1
     except Exception as exc:  # noqa: BLE001 - report every failure kind the same way
         print(f"FAIL {name}: {exc}")
         return 1
@@ -81,12 +100,5 @@ if __name__ == "__main__":
         for mcp in sorted([*(ROOT / "plugins").glob("*/.mcp.json"), *(ROOT / "codex").glob("*/.mcp.json")]):
             for name, server in json.loads(mcp.read_text(encoding="utf-8"))["mcpServers"].items():
                 label = f"{mcp.parent.parent.name}/{name}"
-                # A version just published can take a few minutes to reach PyPI's index: tried again before failing.
-                for attempt in range(4):
-                    code = smoke(label, server, mcp.parent, Path(tmp) / label)
-                    if not code or attempt == 3:
-                        break
-                    print(f"  {label}: trying again in 60 s (PyPI index not up to date yet?)")
-                    time.sleep(60)
-                failures += code
+                failures += smoke(label, server, mcp.parent, Path(tmp) / label)
     sys.exit(1 if failures else 0)
