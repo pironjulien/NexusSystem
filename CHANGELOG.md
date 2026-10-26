@@ -5,6 +5,13 @@ All notable changes to this marketplace are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.6.8] - 2026-10-26
+
+### Changed
+- NexusAndroid takes the selection: from 0.14.1 its `setup` configures only the AI apps in `NEXUS_PACK_TARGETS`, so
+  the pack runs it with `-Only`/`-Skip` or beside an AI app where it is turned off (`nexus-android>=0.14.1`, never an
+  older one from the index cache). NexusBrowser and NexusRelay are still not run beyond the selection until theirs do.
+
 ## [1.6.7] - 2026-10-26
 
 ### Changed

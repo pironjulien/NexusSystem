@@ -396,7 +396,7 @@ $Checks = @{
 # NEXUS_PACK_TARGETS (pack names, comma separated). Until a product honors it (listed here), the pack does not run it
 # when that would go beyond the selection: -Only/-Skip, or an AI app where the user turned the product off.
 $OneRunForAll = @('android', 'browser', 'relay')
-$HonorsTargets = @()
+$HonorsTargets = @('android')  # nexus-android 0.14.1
 
 # Why a product does not apply on this PC, or $null when it does.
 function Get-Unfit($Product, [string[]]$Ais) {
@@ -552,11 +552,11 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
             }
         }
         # 3. NexusAndroid: one setup for every AI app (adb, declarations), without waiting for the phone. Its newest
-        #    release, never one older than its pack mode and Claude-Data fix (0.12.1), even while the index cache still serves it.
+        #    release, never one older than its reading of NEXUS_PACK_TARGETS (0.14.1), even while the index cache still serves it.
         if ($wants['android']) {
             $env:NEXUS_PACK_TARGETS = $targets['android'] -join ','
             $code = if ($prereq['uv']) { 1 } else { Invoke-Native 'NexusAndroid' {
-                Invoke-Console (Get-Uvx) @('--python', '3.14', '--refresh-package', 'nexus-android', '--from', 'nexus-android>=0.12.1', 'nexus-android', 'setup')
+                Invoke-Console (Get-Uvx) @('--python', '3.14', '--refresh-package', 'nexus-android', '--from', 'nexus-android>=0.14.1', 'nexus-android', 'setup')
             } }
             foreach ($ai in $targets['android']) { $results["android|$ai"] = $code }
         }
