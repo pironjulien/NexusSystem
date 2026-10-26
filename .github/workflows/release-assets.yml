@@ -7,7 +7,9 @@ permissions:
 jobs:
   # The one-line install as a release file too, for the way without "iex": get-nexus.ps1, its SHA-256 and a
   # provenance attestation (gh attestation verify get-nexus.ps1 --repo pironjulien/nexus-plugins).
+  # Catalog releases only (v*): a NexusSystem release (nexussystem-v*) carries the Store app's version, no pack file.
   assets:
+    if: startsWith(github.event.release.tag_name, 'v')
     runs-on: ubuntu-latest
     permissions:
       contents: write

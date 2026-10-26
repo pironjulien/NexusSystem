@@ -65,8 +65,14 @@ use it.
 
 ## Quick start
 
-1. Install [uv](https://docs.astral.sh/uv/) (it fetches Python 3.14 and the servers on first use): in PowerShell,
-   `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"`, then restart Claude Code.
+1. Install [uv](https://docs.astral.sh/uv/) (it fetches Python 3.14 and the servers on first use). In PowerShell:
+
+   ```powershell
+   winget install --id=astral-sh.uv -e
+   ```
+
+   Without winget, use uv's own installer:
+   `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"`. Then restart Claude Code.
 2. In Claude Code, add the marketplace and install the plugins you want:
 
    ```text

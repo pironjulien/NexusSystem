@@ -8,6 +8,11 @@ All notable changes to this marketplace are documented here. The format follows
 ### Changed
 - Tests: right after a PyPI release, the `uv.lock` check and the MCP servers' smoke test fetch the index again
   (`--refresh`) and retry for a few minutes, instead of failing on an index that does not list the new version yet.
+- README Quick start: the "Install uv" step shows its command in a block (`winget install --id=astral-sh.uv -e`),
+  uv's own installer as the fallback.
+
+### Added
+- NexusSystem releases (`nexussystem-v*` tags, never marked latest): the Store app's version, readable by the site.
 
 ## [1.6.14] - 2026-10-26
 
