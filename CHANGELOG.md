@@ -5,6 +5,12 @@ All notable changes to this marketplace are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.6.11] - 2026-10-26
+
+### Changed
+- `nexus-android` 0.14.1 (Claude Code and Codex), the version the pack requires: `setup` tells the phone and the AI
+  apps apart and honors the pack's scope (`NEXUS_PACK_TARGETS`). Skill updated.
+
 ## [1.6.10] - 2026-10-26
 
 ### Changed
