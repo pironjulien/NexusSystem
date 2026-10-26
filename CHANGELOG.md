@@ -5,6 +5,13 @@ All notable changes to this marketplace are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.6.16] - 2026-10-26
+
+### Changed
+- `nexus-browser` pinned to 2.26.4 (Claude Code and Codex plugins): `browser_scroll` turns on focus emulation, so
+  infinite feeds (X, Reddit...) keep loading in a background tab. Only that tool's description changes, no tool or
+  parameter. `uv.lock` updated.
+
 ## [1.6.15] - 2026-10-26
 
 ### Changed
