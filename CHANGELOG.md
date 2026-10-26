@@ -5,6 +5,13 @@ All notable changes to this marketplace are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.6.14] - 2026-10-26
+
+### Changed
+- NexusRelay without Claude Code (1.4.0): it needs two AI apps among Claude Code, Codex and Antigravity, and the
+  first of them hosts the exchanges, so Codex + Antigravity is enough. The Codex project step is shown only when Codex
+  answers (Claude Code hosts); as the host, Codex needs none.
+
 ## [1.6.13] - 2026-10-26
 
 ### Changed

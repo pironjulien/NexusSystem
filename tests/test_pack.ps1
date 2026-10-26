@@ -107,15 +107,19 @@ try {
 
     $codexOnly = Initialize-Profile 'codex' @('.codex')
     $result = Invoke-Pack $codexOnly "& '$pack' -DryRun"
-    Test-Case 'NexusRelay needs Claude Code, NexusAGYmail Antigravity' $result 0 @(
-        'NexusWindows  for Codex', 'NexusRelay    needs Claude Code', 'NexusAGYmail  for Antigravity only')
+    Test-Case 'NexusRelay needs two AI apps, NexusAGYmail Antigravity' $result 0 @(
+        'NexusWindows  for Codex', 'NexusRelay    needs two of Claude Code, Codex, Antigravity', 'NexusAGYmail  for Antigravity only')
+    # Without Claude Code: Codex hosts the relay (NexusRelay 1.4.0).
+    $codexAgy = Initialize-Profile 'codex-agy' @('.codex', '.gemini\antigravity')
+    $result = Invoke-Pack $codexAgy "& '$pack' -DryRun -Only relay"
+    Test-Case 'NexusRelay without Claude Code' $result 0 @('NexusRelay    for Codex, Antigravity')
 
     $result = Invoke-Pack $all "& '$pack' -DryRun -Only nexuswindows"
     Test-Case 'unknown name refused' $result 2 @("Unknown name 'nexuswindows'")
 
     $desktop = Initialize-Profile 'desktop' @('AppData\Roaming\Claude')
     $result = Invoke-Pack $desktop "& '$pack' -DryRun"
-    Test-Case 'Claude Desktop alone also means its Code tab' $result 0 @('AI apps found: Claude Code, Claude Desktop', 'NexusRelay    for Claude Code') @('AI apps found: Claude Code, Claude Desktop, Codex')
+    Test-Case 'Claude Desktop alone also means its Code tab' $result 0 @('AI apps found: Claude Code, Claude Desktop', 'NexusWindows  for Claude Code, Claude Desktop', 'NexusRelay    needs two of') @('AI apps found: Claude Code, Claude Desktop, Codex')
 
     $store = Initialize-Profile 'store' @('AppData\Local\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Roaming\Claude')
     $result = Invoke-Pack $store "& '$pack' -DryRun"

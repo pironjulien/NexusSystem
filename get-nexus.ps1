@@ -52,9 +52,10 @@ $Products = @(
        Targets = $AllAi },
     @{ Key = 'browser'; Name = 'NexusBrowser'; Plugin = 'nexus-browser'; Agy = 'nexus-browser'; Server = 'nexus-browser'
        Targets = $AllAi },
-    # Claude Code opens the exchanges (Claude Desktop's chat is not a relay client); Codex and Antigravity answer.
+    # Two AI apps talking: one host opens the exchanges (NexusRelay 1.4.0: the first of Claude Code, Codex,
+    # Antigravity among those configured), the others answer. Claude Desktop's chat is not a relay client.
     @{ Key = 'relay'; Name = 'NexusRelay'; Agy = 'nexus-relay'; Server = 'nexus-relay'
-       Targets = @('claude-code', 'codex', 'antigravity'); Needs = 'claude-code' },
+       Targets = @('claude-code', 'codex', 'antigravity'); MinAis = 2 },
     # Claude and Codex have their own official Gmail connector.
     @{ Key = 'agymail'; Name = 'NexusAGYmail'; Agy = 'nexus-agymail'; Server = 'nexus-agymail'; Targets = @('antigravity') },
     @{ Key = 'keypad'; Name = 'NexusKeypad'; Targets = @(); Device = 'Logi Options+' }
@@ -411,6 +412,9 @@ function Get-Unfit($Product, [string[]]$Ais) {
         return "needs $($Product.Device), opened once (https://www.logitech.com/software/logi-options-plus.html)"
     }
     if ($Product.Needs -and $Ais -notcontains $Product.Needs) { return "needs $($AiNames[$Product.Needs])" }
+    if ($Product.MinAis -and @($Product.Targets | Where-Object { $Ais -contains $_ }).Count -lt $Product.MinAis) {
+        return "needs two of $((@($Product.Targets) | ForEach-Object { $AiNames[$_] }) -join ', ')"
+    }
     if (-not @($Product.Targets | Where-Object { $Ais -contains $_ }).Count) {
         return "for $((@($Product.Targets) | ForEach-Object { $AiNames[$_] }) -join ', ') only"
     }
@@ -656,7 +660,8 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
         Say '     Plug it in with a USB data cable, then run: uvx --python 3.14 nexus-android setup'
         Say '     (https://github.com/pironjulien/NexusAndroid#quick-start)'
     }
-    if ($wants['relay'] -and $for['codex']) {
+    # The Codex project, only when Codex answers (Claude Code is the host); as the host, Codex needs none.
+    if ($wants['relay'] -and $targets['relay'] -contains 'codex' -and $targets['relay'] -contains 'claude-code') {
         $step++
         Say "  $step. Codex, once: Add a project, name ""Nexus Relay"", folder $env:USERPROFILE\.nexus\relay\codex-projet"
         Say '     (https://github.com/pironjulien/NexusRelay#quick-start)'
