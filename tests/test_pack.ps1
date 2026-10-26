@@ -66,6 +66,8 @@ try {
     # One that takes the selection (NexusAndroid 0.14.1, NEXUS_PACK_TARGETS) runs for it alone.
     $result = Invoke-Pack $all "& '$pack' -DryRun -Only android,codex -Json"
     Test-Case 'one-run installer that takes the selection' $result 0 @('NexusAndroid  for Codex', '"products":["android"]') @('not run')
+    $result = Invoke-Pack $all "& '$pack' -DryRun -Only relay -Skip antigravity -Json"
+    Test-Case 'NexusRelay takes the selection too' $result 0 @('NexusRelay    for Claude Code, Codex', '"products":["relay"]') @('not run')
 
     # A product turned off by the user in an AI app stays off there (a one-run installer that ignores the selection
     # is not run).

@@ -5,6 +5,13 @@ All notable changes to this marketplace are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.6.9] - 2026-10-26
+
+### Changed
+- NexusRelay takes the selection: from 1.3.2 its `get.ps1` (always the latest) configures only the AI apps in
+  `NEXUS_PACK_TARGETS`, so the pack runs it with `-Only`/`-Skip` or beside an AI app where it is turned off. Only
+  NexusBrowser is still not run beyond the selection.
+
 ## [1.6.8] - 2026-10-26
 
 ### Changed

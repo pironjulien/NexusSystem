@@ -396,7 +396,7 @@ $Checks = @{
 # NEXUS_PACK_TARGETS (pack names, comma separated). Until a product honors it (listed here), the pack does not run it
 # when that would go beyond the selection: -Only/-Skip, or an AI app where the user turned the product off.
 $OneRunForAll = @('android', 'browser', 'relay')
-$HonorsTargets = @('android')  # nexus-android 0.14.1
+$HonorsTargets = @('android', 'relay')  # nexus-android 0.14.1, NexusRelay 1.3.2 (its get.ps1 is always the latest)
 
 # Why a product does not apply on this PC, or $null when it does.
 function Get-Unfit($Product, [string[]]$Ais) {
