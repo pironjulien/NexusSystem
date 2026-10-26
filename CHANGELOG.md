@@ -5,6 +5,17 @@ All notable changes to this marketplace are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.6.19] - 2026-10-26
+
+### Fixed
+- Pack on a new Windows without Git: Claude Code clones the catalog with `git`, so `get-nexus.ps1` now installs Git
+  first through winget (`Git.Git`, official package, Windows asks once), only when Claude Code gets a plugin and git
+  is missing; without winget it says where to get Git and skips the Claude Code plugins step. Checked in Windows
+  Sandbox: Git installed, the three plugins installed and connected.
+- Summary: a product whose plugin route failed but whose own installer declared it to Claude Code
+  (`~\.claude.json`, NexusAndroid and NexusBrowser) shows "ok" instead of a false "failed"; the state of a
+  declaration reads `~\.claude.json` when the plugin is missing.
+
 ## [1.6.18] - 2026-10-26
 
 ### Changed

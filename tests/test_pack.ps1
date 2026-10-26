@@ -52,10 +52,15 @@ try {
         'NexusBrowser  for Claude Code, Claude Desktop, Codex, Antigravity',
         'NexusRelay    for Claude Code, Codex, Antigravity', 'NexusAGYmail  for Antigravity',
         'NexusKeypad   needs Logi Options+',
-        'Prerequisites, once: uv, Node.js LTS (for Codex)', 'Dry run: nothing installed.')
+        'Prerequisites, once: uv, Git (for Claude Code), Node.js LTS (for Codex)', 'Dry run: nothing installed.')
 
     $result = Invoke-Pack $all "& '$pack' -DryRun -Only windows,codex"
-    Test-Case '-Only a product and an AI app' $result 0 @('NexusWindows  for Codex', 'Node.js LTS (for Codex)') @('NexusAndroid  for', 'NexusBrowser  for')
+    Test-Case '-Only a product and an AI app' $result 0 @('NexusWindows  for Codex', 'Node.js LTS (for Codex)') @('NexusAndroid  for', 'NexusBrowser  for', 'Git (for Claude Code)')
+    # Git (Claude Code clones the catalog with it) only when Claude Code gets a plugin and git is missing.
+    $result = Invoke-Pack $all "& '$pack' -DryRun -Only claude-code -Json"
+    Test-Case 'Git for Claude Code when missing' $result 0 @('Prerequisites, once: uv, Git (for Claude Code)', '"git":true')
+    $result = Invoke-Pack $all "`$env:PATH += ';$(Split-Path (Get-Command git.exe).Source)'; & '$pack' -DryRun -Only claude-code -Json"
+    Test-Case 'no Git step when git is there' $result 0 @('Prerequisites, once: uv', '"git":false') @('Git (for Claude Code)')
 
     # The installers that configure every AI app found in one run take the selection (NEXUS_PACK_TARGETS).
     $result = Invoke-Pack $all "& '$pack' -DryRun -Only browser,codex -Json"
@@ -85,15 +90,17 @@ try {
                 '[mcp_servers.nexus-relay]', 'url = "http://127.0.0.1:16181/mcp"', '',
                 '[plugins."nexus-browser@nexus-plugins"]', 'enabled = false') -join "`n"))
     [IO.File]::WriteAllText((Join-Path $states '.claude\settings.json'), '{"enabledPlugins": {"nexus-windows@nexus-plugins": false, "nexus-android@nexus-plugins": true}}')
+    # No plugin (its route failed): the product's own installer declared it in ~\.claude.json.
+    [IO.File]::WriteAllText((Join-Path $states '.claude.json'), '{"mcpServers": {"nexus-browser": {"command": "powershell.exe"}, "nexus-relay": {"command": "C:\\nowhere\\uvx.exe"}}}')
     foreach ($plugin in 'nexus-computer', 'nexus-android') { New-Item -ItemType Directory -Force (Join-Path $states ".gemini\config\plugins\$plugin") | Out-Null; Set-Content (Join-Path $states ".gemini\config\plugins\$plugin\plugin.json") '{}' }
     [IO.File]::WriteAllText((Join-Path $states '.gemini\config\config.json'), '{"plugins": {"nexus-computer": {"enabled": false}, "nexus-android": {"enabled": true}}}')
     $probe = "`$Marketplace = 'nexus-plugins'`n$functions`n" +
         "'codex=' + ((@('nexus-windows', 'nexus-android', 'nexus-relay', 'nexus-browser', 'nexus-agymail') | ForEach-Object { Get-CodexState @{ Server = `$_ } }) -join ',')`n" +
-        "'claude=' + ((@('nexus-windows', 'nexus-android', 'nexus-browser') | ForEach-Object { Get-ClaudeCodeState @{ Plugin = `$_; Server = `$_ } }) -join ',')`n" +
+        "'claude=' + ((@('nexus-windows', 'nexus-android', 'nexus-browser', 'nexus-relay', 'nexus-agymail') | ForEach-Object { Get-ClaudeCodeState @{ Plugin = `$_; Server = `$_ } }) -join ',')`n" +
         "'agy=' + ((@('nexus-computer', 'nexus-android', 'nexus-browser') | ForEach-Object { Get-AntigravityState @{ Agy = `$_ } }) -join ',')"
     $result = Invoke-Pack $states $probe
     Test-Case 'declarations: ok, disabled, invalid, missing' $result 0 @(
-        'codex=invalid,ok,ok,disabled,missing', 'claude=disabled,ok,missing', 'agy=disabled,ok,missing')
+        'codex=invalid,ok,ok,disabled,missing', 'claude=disabled,ok,ok,invalid,missing', 'agy=disabled,ok,missing')
 
     $result = Invoke-Pack $all "& '$pack' -DryRun -Skip 'codex, browser'"
     Test-Case '-Skip as one comma separated string' $result 0 @('NexusWindows  for Claude Code, Claude Desktop, Antigravity') @('NexusBrowser  for', 'Node.js')

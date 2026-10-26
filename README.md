@@ -22,7 +22,7 @@ release (its SHA-256 is in `SHA256SUMS.txt`, its origin can be checked with
 (Run once). The window stays open at the end until you press Enter.
 
 It shows which AI apps it found and what it will install for each, installs [uv](https://docs.astral.sh/uv/) (and
-Node.js LTS when Codex is there; Windows asks once), then runs each product's own official installer:
+Git when Claude Code is there without it, Node.js LTS when Codex is there; Windows asks once), then runs each product's own official installer:
 
 | Product | Claude Code | Claude Desktop | Codex | Antigravity |
 | --- | --- | --- | --- | --- |
@@ -72,7 +72,8 @@ use it.
    ```
 
    Without winget, use uv's own installer:
-   `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"`. Then restart Claude Code.
+   `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"`. Claude Code adds a
+   marketplace with Git: on a PC without it, `winget install --id Git.Git -e` first. Then restart Claude Code.
 2. In Claude Code, add the marketplace and install the plugins you want:
 
    ```text

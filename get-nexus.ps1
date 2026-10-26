@@ -2,9 +2,11 @@
 #   irm https://raw.githubusercontent.com/pironjulien/nexus-plugins/main/get-nexus.ps1 | iex
 # With options:
 #   & ([scriptblock]::Create((irm https://raw.githubusercontent.com/pironjulien/nexus-plugins/main/get-nexus.ps1))) -Only windows,browser
-# Windows PowerShell 5.1 or PowerShell 7, no administrator rights (Node.js, needed by Codex, asks Windows once).
+# Windows PowerShell 5.1 or PowerShell 7, no administrator rights (Git for Claude Code and Node.js for Codex, when
+# missing, ask Windows once).
 # It finds Claude Code, Claude Desktop, Codex and Antigravity, shows what it will install and for whom, installs the
-# shared prerequisites once (uv; Node.js LTS through winget when Codex is there), then runs each product's own
+# shared prerequisites once (uv; Git through winget when Claude Code is there and git is missing; Node.js LTS through
+# winget when Codex is there), then runs each product's own
 # official installer, unchanged: nothing of their logic is copied here. Claude Code gets the plugins of this
 # catalog. Then it checks what each AI app now declares and prints a summary and the steps left to a human.
 # Run it again at any time: every installer only does what is missing.
@@ -238,6 +240,8 @@ function Get-NodeMajor {
     return 0
 }
 
+function Test-Git { return [bool](Get-Command git.exe -ErrorAction SilentlyContinue) }
+
 function Install-ClaudePlugin([string[]]$Plugins) {
     # Claude Code: the plugins of this catalog (server pinned and locked, plus its skill). With the claude command,
     # its own plugin commands; without it (Claude Desktop's Code tab only), the documented settings.json keys, which
@@ -304,9 +308,11 @@ function Get-ClaudeCodeState($Product) {
     if ($Product.Plugin) {
         # This catalog's plugin: true installed and on, false turned off by the user.
         $mine = @($plugins | Where-Object { $_.Name -eq "$($Product.Plugin)@$Marketplace" })
-        if (-not $mine.Count) { return 'missing' }
-        if ($mine[0].Value -eq $true) { return 'ok' }
-        return 'disabled'
+        if ($mine.Count) {
+            if ($mine[0].Value -eq $true) { return 'ok' }
+            return 'disabled'
+        }
+        # No plugin (its route failed): the product's own installer then declares it itself, as below.
     }
     # Declared by the product's own installer, user scope (~\.claude.json), or a plugin of the same name the user has.
     $config = Read-Json (Join-Path $env:USERPROFILE '.claude.json')
@@ -497,9 +503,11 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
     $for = @{}
     foreach ($ai in $ais) { $for[$ai] = $true }
     $needsNode = $wants['windows'] -and $for['codex'] -and (Get-NodeMajor) -lt 22
+    # Claude Code adds a catalog by cloning it with git, which a new Windows lacks.
+    $needsGit = $for['claude-code'] -and @($selected | Where-Object { $_.Plugin -and -not $kept["$($_.Key)|claude-code"] }).Count -and -not (Test-Git)
     Say ''
-    Say "Prerequisites, once: uv$(if ($needsNode) { ', Node.js LTS (for Codex)' })"
-    Send-Event @{ type = 'plan'; ais = @($ais); products = @($selected | Where-Object { $wants[$_.Key] } | ForEach-Object { $_.Key }); node = [bool]$needsNode }
+    Say "Prerequisites, once: uv$(if ($needsGit) { ', Git (for Claude Code)' })$(if ($needsNode) { ', Node.js LTS (for Codex)' })"
+    Send-Event @{ type = 'plan'; ais = @($ais); products = @($selected | Where-Object { $wants[$_.Key] } | ForEach-Object { $_.Key }); node = [bool]$needsNode; git = [bool]$needsGit }
     if ($DryRun) { Say 'Dry run: nothing installed.' Yellow; return 0 }
 
     $work = Join-Path ([IO.Path]::GetTempPath()) "nexus-pack-$PID"
@@ -507,6 +515,7 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
     $savedPack = $env:NEXUS_PACK
     $env:NEXUS_PACK = '1'  # the product installers' non-interactive mode: no question, no wait, no window
     $results = @{}  # "product|ai" -> exit code of the route that serves it
+    $own = @{}      # product -> exit code of its own installer, which declares Claude Code itself when no plugin does
     $prereq = @{}
     try {
         Sync-SessionPath
@@ -521,6 +530,18 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
             Sync-SessionPath
             if (-not $prereq['uv'] -and -not (Get-Uvx)) { $prereq['uv'] = 1 }
         } else { $prereq['uv'] = 0 }
+        if ($needsGit) {
+            if (-not (Get-Command winget.exe -ErrorAction SilentlyContinue)) {
+                Say 'Git is needed by Claude Code to add the Nexus catalog and winget is missing: install Git from https://git-scm.com/downloads/win, then run this again.' Red
+                $prereq['git'] = 1
+            } else {
+                $prereq['git'] = Invoke-Native 'Git (official package, through winget)' {
+                    Invoke-Console (Get-Command winget.exe).Source @('install', '--exact', '--id', 'Git.Git', '--source', 'winget', '--accept-source-agreements', '--accept-package-agreements')
+                }
+                Sync-SessionPath -Registry
+                if (Test-Git) { $prereq['git'] = 0 } elseif (-not $prereq['git']) { $prereq['git'] = 1 }
+            }
+        }
         if ($needsNode) {
             if ((Get-NodeMajor) -ge 22) { $prereq['node'] = 0 }
             elseif (-not (Get-Command winget.exe -ErrorAction SilentlyContinue)) {
@@ -539,7 +560,7 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
         if ($for['claude-code']) {
             $withPlugin = @($selected | Where-Object { $_.Plugin -and -not $kept["$($_.Key)|claude-code"] })
             if ($withPlugin.Count) {
-                $code = if ($prereq['uv']) { 1 } else { Install-ClaudePlugin @($withPlugin | ForEach-Object { $_.Plugin }) }
+                $code = if ($prereq['uv'] -or $prereq['git']) { 1 } else { Install-ClaudePlugin @($withPlugin | ForEach-Object { $_.Plugin }) }
                 foreach ($product in $withPlugin) { $results["$($product.Key)|claude-code"] = $code }
             }
         }
@@ -569,12 +590,14 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
                 Invoke-Console (Get-Uvx) @('--python', '3.14', '--refresh-package', 'nexus-android', '--from', 'nexus-android>=0.14.1', 'nexus-android', 'setup')
             } }
             foreach ($ai in $targets['android']) { $results["android|$ai"] = $code }
+            $own['android'] = $code
         }
         # 4. NexusBrowser: local bridge and native host for Chrome, declared to every AI app.
         if ($wants['browser']) {
             $env:NEXUS_PACK_TARGETS = $targets['browser'] -join ','
             $code = Invoke-Installer 'NexusBrowser' "$Raw/NexusBrowser/main/get.ps1" $work
             foreach ($ai in $targets['browser']) { $results["browser|$ai"] = $code }
+            $own['browser'] = $code
             if ($code -and $for['claude-code']) { $results['browser|claude-code'] = $code }  # bridge missing: plugin useless
         }
         # 5. NexusRelay: local relay daemon, declared to Claude Code, Codex and Antigravity.
@@ -605,7 +628,7 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
     Say ''
     Say 'Summary' Cyan
     $failed = 0
-    foreach ($name in 'uv', 'node') {
+    foreach ($name in 'uv', 'git', 'node') {
         if ($prereq.ContainsKey($name) -and $prereq[$name]) { Say "  $No $name (the steps that need it were not run)" Red; $failed++ }
     }
     $width = 16
@@ -630,6 +653,8 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
                 continue
             }
             $state = & $Checks[$ai] $product
+            # The plugin route failed, but the product's own installer, run after it, declared Claude Code itself.
+            if ($ai -eq 'claude-code' -and $code -and $own.ContainsKey($product.Key) -and $own[$product.Key] -eq 0) { $code = 0 }
             $good = ($null -ne $code) -and ($code -eq 0) -and ($state -eq 'ok')
             if (-not $good) { $failed++ }
             $events += @{ type = 'cell'; product = $product.Key; ai = $ai; ok = [bool]$good; state = $(if ($good) { 'ok' } else { $state }) }
