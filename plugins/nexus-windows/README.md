@@ -5,7 +5,7 @@ uses menus and shortcuts and launches apps without taking your mouse, keyboard o
 action. Irreversible gestures need your explicit "yes"; Ctrl+Alt+Shift+Esc stops everything for two minutes.
 
 ## What it runs
-The plugin starts the open-source MCP server [`nexus-windows-claude`](https://pypi.org/project/nexus-windows-claude/) 3.3.0 from
+The plugin starts the open-source MCP server [`nexus-windows-claude`](https://pypi.org/project/nexus-windows-claude/) 3.3.1 from
 PyPI with `uvx --python 3.14`, over stdio (uv downloads Python 3.14 if needed). The exact version of the server and
 of every dependency is recorded with its hash in `uv.lock`. The plugin itself contains only this launcher, the lock
 file and a skill; it sends nothing anywhere. The server's only request of its own is its update check: at most once a

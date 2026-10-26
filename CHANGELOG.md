@@ -5,6 +5,14 @@ All notable changes to this marketplace are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.6.18] - 2026-10-26
+
+### Changed
+- `nexus-windows` pinned to 3.3.1: a document whose default app is a Store app (an MP4 with Media Player) is opened by
+  that app's file activation and its window recognized by its process and the document name read in it (it did not
+  open in the background before); the UI Automation tree is read again on a transient Electron or Edge error.
+  `uv.lock` updated.
+
 ## [1.6.17] - 2026-10-26
 
 ### Changed
