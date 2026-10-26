@@ -5,6 +5,14 @@ All notable changes to this marketplace are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.6.13] - 2026-10-26
+
+### Changed
+- `nexus-browser` pinned to 2.26.2 (Claude Code and Codex plugins): a lighter tool list for the model (`tab_id` in
+  one sentence, `browser_click`, `browser_fill` and `browser_drag_and_drop` tightened; same tools and parameters),
+  a failed update keeps the working version, the pack's AI selection (`NEXUS_PACK_TARGETS`) honored, no second
+  Claude Desktop server next to the `.mcpb` extension. `uv.lock` updated.
+
 ## [1.6.12] - 2026-10-26
 
 ### Changed
