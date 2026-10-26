@@ -5,7 +5,7 @@ All notable changes to this marketplace are documented here. The format follows
 
 ## [Unreleased]
 
-## [1.6.11] - 2026-10-26
+## [1.6.12] - 2026-10-26
 
 ### Changed
 - Antigravity: a product turned off there (`plugins.<name>.enabled = false` in `~/.gemini/config/config.json`) counts
