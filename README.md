@@ -127,7 +127,7 @@ Per-plugin requirements:
 
 ```mermaid
 flowchart LR
-    C["Claude Code"] -- "stdio (MCP)" --> A["uvx nexus-android==0.15.0"] -- ADB --> P["Android phone"]
+    C["Claude Code"] -- "stdio (MCP)" --> A["uvx nexus-android==0.16.0"] -- ADB --> P["Android phone"]
     C -- "stdio (MCP)" --> W["uvx nexus-windows-claude==3.3.0"] -- "UI Automation, Win32" --> D["Windows apps"]
     C -- "stdio (MCP)" --> B["uvx nexus-browser==2.26.4"] -- "local bridge" --> E["Chrome extension"] --> T["Chrome tabs"]
 ```

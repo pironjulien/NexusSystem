@@ -5,6 +5,13 @@ All notable changes to this marketplace are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.6.17] - 2026-10-26
+
+### Changed
+- `nexus-android` pinned to 0.16.0 (Claude Code and Codex plugins): a lock screen without a code (trusted place or
+  device, Smart Lock) is lifted by `look` or the first gesture, without asking the user; only a phone that requires
+  its code is refused. Skill updated to match. `uv.lock` updated.
+
 ## [1.6.16] - 2026-10-26
 
 ### Changed
