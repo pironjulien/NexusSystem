@@ -5,6 +5,15 @@ All notable changes to this marketplace are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.6.6] - 2026-10-26
+
+### Changed
+- `nexus-browser` pinned to 2.26.0 (Claude Code and Codex plugins): self-update by the bridge (state in
+  `~/.nexus/status/browser.json`, `GET`/`POST /api/update`, "Nexus Browser Update" task on a one-line install),
+  pairing without the native host (`pair.html`, single-use secret, non-extractable key), Claude Desktop extension
+  `nexus-browser.mcpb` on every release, `get.ps1` without the GitHub API, compact tool results, date/time/color
+  inputs, field labels in the interactive map. `uv.lock` updated.
+
 ## [1.6.5] - 2026-10-26
 
 ### Changed
