@@ -5,6 +5,12 @@ All notable changes to this marketplace are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.6.20] - 2026-10-27
+
+### Changed
+- Plugin icons of `nexus-android`, `nexus-browser` and `nexus-windows`: the Nexus family medallion (512 px) replaces
+  the bare pictogram, as on julienpiron.fr and the other stores.
+
 ## [1.6.19] - 2026-10-26
 
 ### Fixed
