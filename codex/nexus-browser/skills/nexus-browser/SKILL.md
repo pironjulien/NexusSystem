@@ -24,7 +24,7 @@ the bridge, not by the agent.
 - `browser_interactive_map(tab_id)`: visible interactive elements with `mark` numbers (far fewer tokens than HTML).
 - `browser_export(tab_id)`: main content as Markdown. Avoid `browser_content(mode="html")` and `browser_axtree` on
   heavy pages.
-- Images only on request: `browser_screenshot(tab_id, inline=True)` attaches the view (WebP, at most 1568 px);
+- Images only on request: `browser_screenshot(tab_id, inline=True)` attaches the view (WebP, at most 2000 px);
   `region=[x1, y1, x2, y2]`, in pixels of the last whole-view image, zooms on an area to read small text. A view
   unchanged since the last image sent says `unchanged` and attaches nothing (`force=True` resends it).
   `browser_vision_inspect(tab_id, inline=True)` draws numbered markers with their `image_box`.

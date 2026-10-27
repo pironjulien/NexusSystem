@@ -5,6 +5,14 @@ All notable changes to this marketplace are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.6.21] - 2026-10-27
+
+### Changed
+- Servers updated for sharper images (long side up to 2000 px, lossless WebP up to 500 KB): `nexus-android`
+  0.18.0, `nexus-browser` 2.28.0, `nexus-windows-claude` 3.5.0 (plugins, Codex plugins and locks).
+- `nexus-browser` skill (Claude Code and Codex): inline screenshots are now at most 2000 px (was 1568 px), as the
+  NexusBrowser server sends them.
+
 ## [1.6.20] - 2026-10-27
 
 ### Changed
