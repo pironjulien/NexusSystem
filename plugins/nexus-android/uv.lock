@@ -287,27 +287,27 @@ wheels = [
 
 [[package]]
 name = "nexus-android"
-version = "0.18.0"
+version = "0.19.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "mcp" },
     { name = "pillow" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/d9/16/ea3b16200e08c4d943e920d576ce825e060ce036948009af23427ade3ef2/nexus_android-0.18.0.tar.gz", hash = "sha256:c826b1f60ce2e8eff8abd82ac0b359ee8b38785094200e56ffe54b2a3b82f657", size = 335981, upload-time = "2026-10-27T10:19:05.843Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/2b/9b/d929209e3f50a783f6b43556e48b5a13062dee1b81b7f8daa902ef5f88f1/nexus_android-0.19.0.tar.gz", hash = "sha256:fa4e8c0ddd4bcb6f0afb791aad9bd56d83c4f65988cbdc27cbd0502356a3ecd2", size = 336398, upload-time = "2026-10-27T11:03:38.403Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/c1/06/cf7253930305355ebf77fb663b6b22e1af01a72b0dff1feb4430f5d020b3/nexus_android-0.18.0-py3-none-any.whl", hash = "sha256:9f81c279696233d4783656277fd797d2dbca6e736add811053146e2a4a5a5b2e", size = 331461, upload-time = "2026-10-27T10:19:04.241Z" },
+    { url = "https://files.pythonhosted.org/packages/85/7a/f832b3da54b0b6055b62e932eca3ee800bf9eb13a2b6d58f461a09d12f04/nexus_android-0.19.0-py3-none-any.whl", hash = "sha256:39e47fefdc6ed0fde453eff5232ab6fd22de261aae6bc30e6db0d75d070923af", size = 331837, upload-time = "2026-10-27T11:03:36.374Z" },
 ]
 
 [[package]]
 name = "nexus-android-plugin"
-version = "0.18.0"
+version = "0.19.0"
 source = { virtual = "." }
 dependencies = [
     { name = "nexus-android" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "nexus-android", specifier = "==0.18.0" }]
+requires-dist = [{ name = "nexus-android", specifier = "==0.19.0" }]
 
 [[package]]
 name = "opentelemetry-api"

@@ -5,6 +5,12 @@ All notable changes to this marketplace are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.6.22] - 2026-10-27
+
+### Changed
+- `nexus-android` 0.19.0: the phone captures its screen without loss, so the image sent to the AI is no longer
+  compressed twice.
+
 ## [1.6.21] - 2026-10-27
 
 ### Changed
