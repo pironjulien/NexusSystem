@@ -5,6 +5,18 @@ All notable changes to this marketplace are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.6.26] - 2026-10-28
+
+### Added
+- `nexus-relay` in both catalogs (Claude Code and Codex): the plugin declares the local NexusRelay daemon (its key read
+  from the user variable `NEXUS_MCP_TOKEN`, never written) and adds the relay's skill. The daemon is still installed
+  by the one-line install or NexusRelay's `get.ps1`; for Claude Code, the one-line install now adds the plugin from
+  this catalog, and NexusRelay 1.8.6 then adds no second server (nor for Codex).
+
+### Changed
+- The catalog source lives with the NexusSystem app (private repository `nexus-apps`, folder `catalog/`), its history
+  kept: one product, one source.
+
 ## [1.6.25] - 2026-10-28
 
 ### Changed

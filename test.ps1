@@ -27,7 +27,9 @@ if ($Full) {
     $cache = Join-Path ([IO.Path]::GetTempPath()) "nexus-plugins-uv-$PID"
     $env:UV_CACHE_DIR = $cache
     try {
-        foreach ($plugin in Get-ChildItem (Join-Path $PSScriptRoot 'plugins') -Directory) {
+        # Plugins with their own server (pyproject.toml and uv.lock); a daemon plugin (nexus-relay) starts nothing.
+        foreach ($plugin in Get-ChildItem (Join-Path $PSScriptRoot 'plugins') -Directory |
+                Where-Object { Test-Path (Join-Path $_.FullName 'pyproject.toml') }) {
             # --refresh: right after a PyPI release, an index seen earlier can still lack the new version; retried
             # for a few minutes while PyPI's index catches up.
             foreach ($attempt in 1..4) {

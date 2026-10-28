@@ -38,7 +38,7 @@ Git when Claude Code is there without it, Node.js LTS when Codex is there; Windo
 | NexusWindows | plugin `nexus-windows` (this catalog) | [NexusWindows-Claude](https://github.com/pironjulien/NexusWindows-Claude) `setup.ps1` | [NexusWindows-Codex](https://github.com/pironjulien/NexusWindows-Codex) `setup.ps1` | [NexusWindows-Antigravity](https://github.com/pironjulien/NexusWindows-Antigravity) plugin |
 | NexusAndroid | plugin `nexus-android` | [NexusAndroid](https://github.com/pironjulien/NexusAndroid) `setup` | same | same (a plugin) |
 | NexusBrowser | plugin `nexus-browser` + bridge | [NexusBrowser](https://github.com/pironjulien/NexusBrowser) `get.ps1` | same | same (a plugin) |
-| NexusRelay (experimental) | [NexusRelay](https://github.com/pironjulien/NexusRelay) `get.ps1` | not a relay client | same | same (a plugin) |
+| NexusRelay (experimental) | plugin `nexus-relay` + daemon ([NexusRelay](https://github.com/pironjulien/NexusRelay) `get.ps1`) | not a relay client | same | same (a plugin) |
 | NexusAGYmail | official Gmail connector instead | official Gmail connector instead | official Gmail connector instead | [NexusAGYmail](https://github.com/pironjulien/NexusAGYmail) `setup` (a plugin) |
 
 NexusKeypad, for Logitech's MX Creative Keypad, is installed by [its own `get.ps1`](https://github.com/pironjulien/NexusKeypad)
@@ -90,6 +90,7 @@ use it.
    /plugin install nexus-android@nexus-plugins
    /plugin install nexus-windows@nexus-plugins
    /plugin install nexus-browser@nexus-plugins
+   /plugin install nexus-relay@nexus-plugins
    ```
 
 3. Start a new conversation and ask, for example: *"Look at my phone and tell me what is on the screen."* or
@@ -112,6 +113,7 @@ codex plugin marketplace add pironjulien/NexusSystem
 codex plugin add nexus-windows@nexus-plugins
 codex plugin add nexus-android@nexus-plugins
 codex plugin add nexus-browser@nexus-plugins
+codex plugin add nexus-relay@nexus-plugins
 ```
 
 Use either these plugins or the one-line install for Codex. Plugin first, then the one-line install: NexusWindows

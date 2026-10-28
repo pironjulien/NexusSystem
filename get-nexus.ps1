@@ -56,7 +56,10 @@ $Products = @(
        Targets = $AllAi },
     # Two AI apps talking: one host opens the exchanges (NexusRelay 1.4.0: the first of Claude Code, Codex,
     # Antigravity among those configured), the others answer. Claude Desktop's chat is not a relay client.
-    @{ Key = 'relay'; Name = 'NexusRelay'; Agy = 'nexus-relay'; Server = 'nexus-relay'
+    # Claude Code gets its plugin from this catalog (1.6.26); the daemon, Codex and Antigravity come from its installer,
+    # which sees the plugin and adds no second server. Daemon: the installer still serves Claude Code (it is told every
+    # chosen client, so the host stays Claude when present, and a daemon that failed marks Claude Code failed too).
+    @{ Key = 'relay'; Name = 'NexusRelay'; Plugin = 'nexus-relay'; Daemon = $true; Agy = 'nexus-relay'; Server = 'nexus-relay'
        Targets = @('claude-code', 'codex', 'antigravity'); MinAis = 2 },
     # Claude and Codex have their own official Gmail connector.
     @{ Key = 'agymail'; Name = 'NexusAGYmail'; Agy = 'nexus-agymail'; Server = 'nexus-agymail'; Targets = @('antigravity') },
@@ -484,7 +487,8 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
     $refused = @{}
     foreach ($product in $selected) {
         if ($OneRunForAll -notcontains $product.Key) { continue }
-        $touched = @($found | Where-Object { $product.Targets -contains $_ -and -not ($product.Plugin -and $_ -eq 'claude-code') })
+        $touched = @($found | Where-Object {
+            $product.Targets -contains $_ -and -not ($product.Plugin -and -not $product.Daemon -and $_ -eq 'claude-code') })
         $chosen = @($touched | Where-Object { $ais -contains $_ -and -not $kept["$($product.Key)|$_"] })
         $targets[$product.Key] = $chosen
         $beyond = @($touched | Where-Object { $chosen -notcontains $_ })
@@ -507,7 +511,8 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
     $needsGit = $for['claude-code'] -and @($selected | Where-Object { $_.Plugin -and -not $kept["$($_.Key)|claude-code"] }).Count -and -not (Test-Git)
     Say ''
     Say "Prerequisites, once: uv$(if ($needsGit) { ', Git (for Claude Code)' })$(if ($needsNode) { ', Node.js LTS (for Codex)' })"
-    Send-Event @{ type = 'plan'; ais = @($ais); products = @($selected | Where-Object { $wants[$_.Key] } | ForEach-Object { $_.Key }); node = [bool]$needsNode; git = [bool]$needsGit }
+    Send-Event @{ type = 'plan'; ais = @($ais); products = @($selected | Where-Object { $wants[$_.Key] } | ForEach-Object { $_.Key }); node = [bool]$needsNode; git = [bool]$needsGit
+                  installer_targets = $targets }  # AI apps told to each one-run installer (NEXUS_PACK_TARGETS)
     if ($DryRun) { Say 'Dry run: nothing installed.' Yellow; return 0 }
 
     $work = Join-Path ([IO.Path]::GetTempPath()) "nexus-pack-$PID"
@@ -604,7 +609,8 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
         if ($wants['relay']) {
             $env:NEXUS_PACK_TARGETS = $targets['relay'] -join ','
             $code = Invoke-Installer 'NexusRelay' "$Raw/NexusRelay/main/get.ps1" $work
-            foreach ($ai in $targets['relay']) { $results["relay|$ai"] = $code }
+            # Claude Code: its plugin result (step 1) is kept if it failed, else the daemon's decides
+            foreach ($ai in $targets['relay']) { if (-not $results["relay|$ai"]) { $results["relay|$ai"] = $code } }
         }
         # 6. NexusAGYmail: its Antigravity plugin (the Google sign-in is the user's own step, below).
         if ($wants['agymail'] -and -not $kept['agymail|antigravity']) {

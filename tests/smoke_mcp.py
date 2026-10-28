@@ -100,5 +100,8 @@ if __name__ == "__main__":
         for mcp in sorted([*(ROOT / "plugins").glob("*/.mcp.json"), *(ROOT / "codex").glob("*/.mcp.json")]):
             for name, server in json.loads(mcp.read_text(encoding="utf-8"))["mcpServers"].items():
                 label = f"{mcp.parent.parent.name}/{name}"
+                if "command" not in server:  # daemon plugin (nexus-relay): its exact declaration is checked offline
+                    print(f"SKIP {label}: served by a local daemon, nothing to start")
+                    continue
                 failures += smoke(label, server, mcp.parent, Path(tmp) / label)
     sys.exit(1 if failures else 0)

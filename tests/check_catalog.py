@@ -10,13 +10,23 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 NAME = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 SEMVER = re.compile(r"^\d+\.\d+\.\d+$")
-# A public catalog never points to a local daemon, a token or a path of the author's PC.
+# A public catalog never points to a local daemon, a token or a path of the author's PC; the one exception is the
+# relay's plugin (DAEMON below), whose server IS the local NexusRelay daemon installed by the one-line install.
 FORBIDDEN = [
     (re.compile(r"127\.0\.0\.1|localhost:\d+"), "local daemon address"),
     (re.compile(r"NEXUS_MCP_TOKEN|Bearer"), "token"),
     (re.compile(r"[A-Za-z]:\\Users\\|/home/|USERPROFILE|OneDrive", re.I), "local path"),
-    (re.compile(r"nexus-relay", re.I), "private plugin"),
 ]
+# Plugins served by a local daemon (no uvx, no lock): exactly this declaration, the token never written, only read from
+# the user variable NEXUS_MCP_TOKEN (28/10: the relay joins the catalog, its daemon stays installed by the pack).
+DAEMON = {
+    "nexus-relay": {
+        "claude": {"nexus-relay": {"type": "http", "url": "http://127.0.0.1:16181/mcp?agent=claude",
+                                   "headers": {"Authorization": "Bearer ${NEXUS_MCP_TOKEN}"}}},
+        "codex": {"nexus-relay": {"url": "http://127.0.0.1:16181/mcp?agent=codex",
+                                  "bearer_token_env_var": "NEXUS_MCP_TOKEN", "startup_timeout_sec": 60}},
+    }
+}
 # PyPI package started by a plugin, when it differs from the plugin name (NexusWindows for Claude took the family
 # name nexus-windows-claude in 3.0.1; the plugin keeps its name so the tool prefix stays the same).
 PACKAGES = {"nexus-windows": "nexus-windows-claude"}
@@ -75,22 +85,32 @@ for entry in entries:
         if not manifest.get(field) or not entry.get(field if field != "license" else "license"):
             fail(f"{where}: {field} missing")
     servers = load(folder / ".mcp.json").get("mcpServers", {})
-    if list(servers) != [name]:
+    if name in DAEMON:
+        if servers != DAEMON[name]["claude"]:
+            fail(f"{where}: .mcp.json must declare exactly the local daemon {DAEMON[name]['claude']}")
+        if "daemon" not in entry.get("description", "").lower():
+            fail(f"{where}: description must say that the daemon is required")
+    elif list(servers) != [name]:
         fail(f"{where}: .mcp.json must declare exactly the server {name}")
     server = servers.get(name, {})
     args = server.get("args", [])
     package = PACKAGES.get(name, name)
-    # The directory's validator reads exactly "uvx <package>==<version>", with uv.lock next to the manifest.
-    if server.get("command") != "uvx" or args != ["--python", "3.14", f"{package}=={version}"]:
+    # The directory's validator reads exactly "uvx <package>==<version>", with uv.lock next to the manifest (a daemon
+    # plugin starts nothing: its declaration was checked above).
+    if name not in DAEMON and (server.get("command") != "uvx" or args != ["--python", "3.14", f"{package}=={version}"]):
         fail(f"{where}: server must start with uvx --python 3.14 {package}=={version}")
     if any(key.startswith("UV_") for key in server.get("env", {})):
         fail(f"{where}: no uv setting in the server env (the directory blocks registry redirects)")
-    project = tomllib.loads((folder / "pyproject.toml").read_text(encoding="utf-8")).get("project", {})
-    if project.get("dependencies") != [f"{package}=={version}"] or project.get("version") != version:
-        fail(f"{where}: pyproject.toml must depend on exactly {package}=={version}")
-    lock = (folder / "uv.lock").read_text(encoding="utf-8") if (folder / "uv.lock").is_file() else ""
-    if f'name = "{package}"\nversion = "{version}"' not in lock or "sha256:" not in lock:
-        fail(f"{where}: uv.lock must lock {package} {version} with hashes")
+    if name in DAEMON:
+        if (folder / "pyproject.toml").exists() or (folder / "uv.lock").exists():
+            fail(f"{where}: a daemon plugin starts nothing: no pyproject.toml nor uv.lock")
+    else:
+        project = tomllib.loads((folder / "pyproject.toml").read_text(encoding="utf-8")).get("project", {})
+        if project.get("dependencies") != [f"{package}=={version}"] or project.get("version") != version:
+            fail(f"{where}: pyproject.toml must depend on exactly {package}=={version}")
+        lock = (folder / "uv.lock").read_text(encoding="utf-8") if (folder / "uv.lock").is_file() else ""
+        if f'name = "{package}"\nversion = "{version}"' not in lock or "sha256:" not in lock:
+            fail(f"{where}: uv.lock must lock {package} {version} with hashes")
     icon = folder / ".claude-plugin" / "icon.png"
     if manifest.get("icon") != "./.claude-plugin/icon.png" or not icon.is_file():
         fail(f"{where}: icon must be ./.claude-plugin/icon.png")
@@ -146,6 +166,14 @@ for entry in codex_entries:
         fail(f"{where}: interface.displayName missing")
     server = load(folder / ".mcp.json").get("mcpServers", {})
     package = PACKAGES.get(name, name)
+    if name in DAEMON:
+        if server != DAEMON[name]["codex"]:
+            fail(f"{where}: .mcp.json must declare exactly the local daemon {DAEMON[name]['codex']}")
+        skill = folder / "skills" / name / "SKILL.md"
+        meta = frontmatter(skill) if skill.is_file() else {}
+        if meta.get("name") != name or len(meta.get("description", "")) < 40:
+            fail(f"{where}: skills/{name}/SKILL.md needs name = folder and a real description (its own Codex skill)")
+        continue
     if list(server) != [name] or server[name].get("command") != "uvx" or \
             server[name].get("args") != ["--python", "3.14", f"{package}=={version}"]:
         fail(f"{where}: .mcp.json must start only uvx --python 3.14 {package}=={version}")
@@ -162,6 +190,9 @@ for path in ROOT.rglob("*"):
     if path.name == "CHANGELOG.md":
         continue
     text = path.read_text(encoding="utf-8")
+    rel = path.relative_to(ROOT).parts
+    if len(rel) > 2 and rel[0] in {"plugins", "codex"} and rel[1] in DAEMON and path.name == ".mcp.json":
+        continue  # checked above: exactly the daemon declaration, token read from the user variable
     for pattern, label in FORBIDDEN:
         if pattern.search(text):
             fail(f"{path.relative_to(ROOT)}: {label} ({pattern.search(text).group(0)})")

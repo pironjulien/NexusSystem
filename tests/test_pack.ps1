@@ -69,6 +69,9 @@ try {
     Test-Case 'one-run installer that takes the selection' $result 0 @('NexusAndroid  for Codex', '"products":["android"]') @('not run')
     $result = Invoke-Pack $all "& '$pack' -DryRun -Only relay -Skip antigravity -Json"
     Test-Case 'NexusRelay takes the selection too' $result 0 @('NexusRelay    for Claude Code, Codex', '"products":["relay"]') @('not run')
+    # Its Claude Code plugin comes from the catalog, but its installer is still told Claude Code: the host stays
+    # Claude on a new PC (Codex review of 28/10: without it, Codex became the host).
+    Test-Case 'NexusRelay installer told Claude Code' $result 0 @('"relay":["claude-code","codex"]')
 
     # A product turned off by the user in an AI app stays off there; the others are installed.
     $off = Initialize-Profile 'off' @('.claude', '.codex')
