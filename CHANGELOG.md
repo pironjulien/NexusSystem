@@ -5,6 +5,12 @@ All notable changes to this marketplace are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.6.27] - 2026-10-28
+
+### Changed
+- `nexus-windows` 3.7.4: F2 and Enter now work in a covered File Explorer window (simulated activation, the user's
+  foreground untouched). Plugin, lock and marketplace entry.
+
 ## [1.6.26] - 2026-10-28
 
 ### Added
