@@ -36,6 +36,7 @@ jobs:
         shell: powershell
         run: |
           $ErrorActionPreference = 'Stop'
+          $ProgressPreference = 'SilentlyContinue' # PowerShell 5.1 progress makes this large binary download very slow.
           $toolDir = Join-Path $env:RUNNER_TEMP 'codex-0.165.0'
           New-Item -ItemType Directory -Force $toolDir | Out-Null
           $engine = Join-Path $toolDir 'codex.exe'
