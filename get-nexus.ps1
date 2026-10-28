@@ -245,6 +245,314 @@ function Get-NodeMajor {
 
 function Test-Git { return [bool](Get-Command git.exe -ErrorAction SilentlyContinue) }
 
+function Get-CodexCli {
+    # The desktop ships the same signed engine as the CLI, without necessarily putting it on PATH.
+    # Never download another Codex or execute an arbitrary executable found beside the desktop app.
+    $candidates = @()
+    foreach ($command in @(Get-Command codex -All -ErrorAction SilentlyContinue)) {
+        if (-not $command.Source) { continue }
+        if ([IO.Path]::GetFileName($command.Source) -ieq 'codex.exe') { $candidates += $command.Source }
+        $package = Join-Path (Split-Path $command.Source) 'node_modules\@openai\codex'
+        if (Test-Path -LiteralPath $package -PathType Container) {
+            $candidates += @(Get-ChildItem -LiteralPath $package -Recurse -Filter codex.exe -File | ForEach-Object { $_.FullName })
+        }
+    }
+    $candidates += @(Get-Process -Name codex -ErrorAction SilentlyContinue | Where-Object { $_.Path } | ForEach-Object {
+        $engine = Join-Path (Split-Path $_.Path) 'resources\codex.exe'
+        if (Test-Path -LiteralPath $engine) { $engine } else { $_.Path }
+    })
+    $desktop = Join-Path $env:LOCALAPPDATA 'OpenAI\Codex\bin'
+    if (Test-Path -LiteralPath $desktop -PathType Container) {
+        $candidates += @(Get-ChildItem -LiteralPath $desktop -Directory | Sort-Object LastWriteTime -Descending | ForEach-Object {
+            Join-Path $_.FullName 'codex.exe'
+        })
+    }
+    if (Get-Command Get-AppxPackage -ErrorAction SilentlyContinue) {
+        $candidates += @(Get-AppxPackage -Name OpenAI.Codex -ErrorAction SilentlyContinue | ForEach-Object {
+            Join-Path $_.InstallLocation 'app\resources\codex.exe'
+        })
+    }
+    foreach ($candidate in @($candidates | Select-Object -Unique)) {
+        if (-not (Test-Path -LiteralPath $candidate -PathType Leaf)) { continue }
+        $signature = Get-AuthenticodeSignature -LiteralPath $candidate
+        if ($signature.Status -eq 'Valid' -and $signature.SignerCertificate -and
+            $signature.SignerCertificate.Subject -match '(^|,\s*)(CN|O)="OpenAI OpCo, LLC"(?=,|$)') { return $candidate }
+    }
+    return $null
+}
+
+function Get-CodexHome {
+    if ($env:CODEX_HOME) { return $env:CODEX_HOME }
+    return Join-Path $env:USERPROFILE '.codex'
+}
+
+function Read-CodexTomlKeyPath([string]$Text) {
+    # TOML keys, including literal/basic quoted keys, escaped Unicode and spaces around dots. Values are never
+    # evaluated as PowerShell. Anything outside this grammar is a visible failure before configuration mutation.
+    $keys = @(); $rest = $Text.Trim()
+    while ($rest) {
+        $key = [regex]::Match($rest, '^("(?:[^"\\\r\n]|\\.)*"|''[^''\r\n]*''|[A-Za-z0-9_-]+)[\t ]*')
+        if (-not $key.Success) { throw 'Unsupported Codex TOML key; configuration was kept.' }
+        $value = $key.Groups[1].Value
+        if ($value.StartsWith("'")) { $value = $value.Substring(1, $value.Length - 2) }
+        elseif ($value.StartsWith('"')) {
+            # JSON and TOML basic keys share their escapes, except TOML's eight-digit Unicode form.
+            $value = [regex]::Replace($value, '(?<!\\)((?:\\\\)*)\\U([0-9A-Fa-f]{8})', {
+                param($match_)
+                $match_.Groups[1].Value + [char]::ConvertFromUtf32([Convert]::ToInt32($match_.Groups[2].Value, 16))
+            })
+            $value = ConvertFrom-Json $value -ErrorAction Stop
+        }
+        $keys += $value
+        $rest = $rest.Substring($key.Length)
+        if (-not $rest) { break }
+        if (-not $rest.StartsWith('.')) { throw 'Unsupported Codex TOML key; configuration was kept.' }
+        $rest = $rest.Substring(1).TrimStart()
+        if (-not $rest) { throw 'Incomplete Codex TOML key; configuration was kept.' }
+    }
+    return , $keys
+}
+
+function Get-CodexTomlTable([string]$Text) {
+    # A small lexical scanner, not a regex over the whole document: a fake header inside a multiline string or
+    # array must never become an editable table. Retain character offsets into the original text for surgical removal.
+    $tables = @(); $current = [pscustomobject]@{ Path=@(); Index=0; Length=0; Body=''; Assignments=@(); Array=$false }
+    $quote = ''; $depth = 0; $offset = 0
+    $keyPattern = '(?:"(?:[^"\\\r\n]|\\.)*"|''[^''\r\n]*''|[A-Za-z0-9_-]+)'
+    foreach ($lineMatch in [regex]::Matches($Text, '[^\r\n]*(?:\r?\n|\z)')) {
+        if (-not $lineMatch.Length) { continue }
+        $line = $lineMatch.Value.TrimEnd("`r", "`n")
+        if (-not $quote -and -not $depth -and $line -match '^[\t ]*\[') {
+            $header = [regex]::Match($line, '^[\t ]*(?<open>\[\[?)[\t ]*(?<path>' + $keyPattern + '(?:[\t ]*\.[\t ]*' + $keyPattern + ')*)[\t ]*(?<close>\]\]?)[\t ]*(?:#.*)?$')
+            if (-not $header.Success -or $header.Groups['open'].Length -ne $header.Groups['close'].Length) {
+                throw 'Unsupported Codex TOML table; configuration was kept.'
+            }
+            $current.Length = $offset - $current.Index
+            $tables += $current
+            $current = [pscustomobject]@{ Path=(Read-CodexTomlKeyPath $header.Groups['path'].Value); Index=$offset; Length=0; Body=''; Assignments=@(); Array=($header.Groups['open'].Length -eq 2) }
+            $offset += $lineMatch.Length
+            continue
+        }
+        if (-not $quote -and -not $depth -and $line -notmatch '^[\t ]*(#|$)') {
+            $assignment = [regex]::Match($line, '^[\t ]*(?<key>' + $keyPattern + '(?:[\t ]*\.[\t ]*' + $keyPattern + ')*)[\t ]*=[\t ]*(?<value>.*)$')
+            if (-not $assignment.Success) { throw 'Unsupported Codex TOML assignment; configuration was kept.' }
+            $current.Assignments += [pscustomobject]@{ Path=(Read-CodexTomlKeyPath $assignment.Groups['key'].Value); Value=$assignment.Groups['value'].Value }
+        }
+        $current.Body += $lineMatch.Value
+        for ($i=0; $i -lt $line.Length; $i++) {
+            $c = $line[$i]
+            if ($quote) {
+                if ($quote.StartsWith('"') -and $c -eq '\') { $i++; continue }
+                if ($quote.Length -eq 3) {
+                    if ($i + 2 -lt $line.Length -and $line.Substring($i,3) -ceq $quote) {
+                        $i += 2
+                        while ($i + 1 -lt $line.Length -and $line[$i + 1] -eq $quote[0]) { $i++ }
+                        $quote = ''
+                    }
+                } elseif ([string]$c -ceq $quote) { $quote = '' }
+                continue
+            }
+            if ($c -eq '#') { break }
+            if ($c -eq '"' -or $c -eq "'") {
+                $quote = [string]$c
+                if ($i + 2 -lt $line.Length -and $line.Substring($i,3) -ceq ($quote * 3)) { $quote *= 3; $i += 2 }
+            } elseif ($c -eq '[' -or $c -eq '{') { $depth++ }
+            elseif ($c -eq ']' -or $c -eq '}') { $depth-- }
+        }
+        if (($quote -and $quote.Length -eq 1) -or $depth -lt 0) { throw 'Incomplete Codex TOML value; configuration was kept.' }
+        $offset += $lineMatch.Length
+    }
+    if ($quote -or $depth) { throw 'Incomplete Codex TOML value; configuration was kept.' }
+    $current.Length = $Text.Length - $current.Index
+    $tables += $current
+    return $tables
+}
+
+function Get-CodexPluginState([string]$Text, [string]$Name, [string]$CatalogName = '') {
+    $found = $false; $unknown = $false; $disabled = $false
+    foreach ($table in @(Get-CodexTomlTable $Text)) {
+        if ($table.Path.Count -ge 2 -and $table.Path[0] -ceq 'plugins' -and
+            $table.Path[1].StartsWith("$Name@") -and (-not $CatalogName -or $table.Path[1] -ceq "$Name@$CatalogName")) {
+            if ($table.Path.Count -ne 2 -or $table.Array) { $unknown = $true } else { $found = $true }
+        }
+        foreach ($assignment in $table.Assignments) {
+            $path_ = @($table.Path) + @($assignment.Path)
+            if ($path_[0] -cne 'plugins') { continue }
+            if ($path_.Count -eq 1) { $unknown = $true; continue } # inline plugins = {...}: keep, never infer missing
+            if (-not $path_[1].StartsWith("$Name@") -or ($CatalogName -and $path_[1] -cne "$Name@$CatalogName")) { continue }
+            if ($path_.Count -eq 2) { $unknown = $true; continue } # inline plugin = {...}
+            $found = $true
+            if ($path_.Count -eq 3 -and $path_[2] -ceq 'enabled') {
+                if ($assignment.Value -match '^false[\t ]*(?:#.*)?$') { $disabled = $true }
+                elseif ($assignment.Value -notmatch '^true[\t ]*(?:#.*)?$') { $unknown = $true }
+            }
+        }
+    }
+    if ($disabled) { return 'disabled' }
+    if ($unknown) { return 'unknown' }
+    if ($found) { return 'enabled' }
+    return 'missing'
+}
+
+function Get-CodexServerTable([string]$Text, [string]$Name) {
+    foreach ($table in @(Get-CodexTomlTable $Text)) {
+        if ($table.Path.Count -ge 2 -and $table.Path[0] -ceq 'mcp_servers' -and $table.Path[1] -ceq $Name) {
+            $sub = if ($table.Path.Count -gt 2) { '.' + ($table.Path[2..($table.Path.Count-1)] -join '.') } else { '' }
+            [pscustomobject]@{ Index=$table.Index; Length=$table.Length; Body=$table.Body; Sub=$sub; Assignments=$table.Assignments; Unsupported=$table.Array }
+        } else {
+            foreach ($assignment in $table.Assignments) {
+                $path_ = @($table.Path) + @($assignment.Path)
+                if ($path_[0] -ceq 'mcp_servers' -and ($path_.Count -eq 1 -or $path_[1] -ceq $Name)) {
+                    # Inline/dotted declarations are valid TOML, but are not installer-owned editable tables.
+                    [pscustomobject]@{ Index=$table.Index; Length=$table.Length; Body=$table.Body; Sub=''; Assignments=$table.Assignments; Unsupported=$true }
+                    break
+                }
+            }
+        }
+    }
+}
+
+function Read-CodexTomlString([string]$Value) {
+    if ($Value -match "^'([^']*)'$" ) { return $Matches[1] }
+    if ($Value -match '^"(?:[^"\\]|\\.)*"$') { return ConvertFrom-Json $Value }
+    throw 'Not a simple TOML string.'
+}
+
+function Test-CodexOwnedServer([string]$Text, [string]$Name) {
+    # Recognize only complete declarations written by the official installers. A same-named Docker command,
+    # extra argument, custom URL, environment variable or unsupported TOML form belongs to the user and is kept.
+    $tables = @(Get-CodexServerTable $Text $Name)
+    if (-not $tables.Count) { return $false }
+    $root = @{}; $environment = @{}
+    try {
+        foreach ($table in $tables) {
+            if ($table.Unsupported) { return $false }
+            $sub = $table.Sub
+            if ($sub -and $sub -ne '.env') { return $false }
+            $values = if ($sub) { $environment } else { $root }
+            foreach ($line in ($table.Body -split "`r?`n")) {
+                if (-not $line.Trim() -or $line -match '^\s*#') { continue }
+                if ($line -notmatch '^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*?)\s*$') { return $false }
+                $key = $Matches[1]; $value = $Matches[2]
+                if ($values.ContainsKey($key)) { return $false }
+                if ($key -eq 'args' -and -not $sub) {
+                    if ($value -notmatch '^\[(.*)\]$') { return $false }
+                    $items = $Matches[1]; $args_ = @()
+                    while ($items.Trim()) {
+                        if ($items -notmatch '^\s*("(?:[^"\\]|\\.)*"|''[^'']*'')\s*(,\s*|$)') { return $false }
+                        $args_ += Read-CodexTomlString $Matches[1]
+                        $items = $items.Substring($Matches[0].Length)
+                    }
+                    $values[$key] = $args_
+                } elseif ($key -eq 'enabled' -and -not $sub) {
+                    if ($value -ne 'true') { return $false }; $values[$key] = $true
+                } elseif ($key -eq 'startup_timeout_sec' -and -not $sub) {
+                    if ($value -notmatch '^\d+$') { return $false }; $values[$key] = $value
+                } else { $values[$key] = Read-CodexTomlString $value }
+            }
+        }
+    } catch { return $false }
+    $allowed = @('command', 'args', 'startup_timeout_sec', 'enabled')
+    if ($Name -eq 'nexus-relay') { $allowed = @('url', 'bearer_token_env_var', 'startup_timeout_sec', 'enabled') }
+    if (@($root.Keys | Where-Object { $allowed -notcontains $_ }).Count) { return $false }
+    $command = [IO.Path]::GetFileName([string]$root['command']).ToLowerInvariant()
+    $args_ = @($root['args'])
+    switch ($Name) {
+        'nexus-windows' {
+            return -not $environment.Count -and $command -in @('npx', 'npx.cmd', 'npx.exe') -and $args_.Count -eq 2 -and
+                $args_[0] -in @('-y', '--yes') -and $args_[1] -match '^nexus-windows-codex(@latest)?$'
+        }
+        'nexus-android' {
+            $package = $args_ -join ' '
+            return -not $environment.Count -and $command -in @('uvx', 'uvx.exe') -and
+                $package -match '^(--python 3\.14 )?nexus-android(==\d+\.\d+\.\d+)?$'
+        }
+        'nexus-browser' {
+            if ($environment.Count -ne 1 -or $environment['NEXUS_BROWSER_AGENT'] -ne 'Codex' -or $args_.Count -ne 2 -or $args_[0] -ne '-B') { return $false }
+            $locations = @(
+                @((Join-Path $env:LOCALAPPDATA 'NexusBrowser\venv\Scripts\python.exe'), (Join-Path $env:LOCALAPPDATA 'NexusBrowser\app\client\mcp_server.py')),
+                @((Join-Path $env:USERPROFILE '.nexus\nexus-browser\venv\Scripts\python.exe'), (Join-Path $env:LOCALAPPDATA 'NexusBrowser\app\client\mcp_server.py'))
+            )
+            foreach ($location in $locations) { if ($root['command'] -ieq $location[0] -and $args_[1] -ieq $location[1]) { return $true } }
+            return $false
+        }
+        'nexus-relay' {
+            return -not $environment.Count -and $root['url'] -eq 'http://127.0.0.1:16181/mcp?agent=codex' -and
+                $root['bearer_token_env_var'] -eq 'NEXUS_MCP_TOKEN'
+        }
+    }
+    return $false
+}
+
+function Remove-CodexOwnedServer {
+    [CmdletBinding(SupportsShouldProcess = $true)]
+    param([string]$Name)
+    $path = Join-Path (Get-CodexHome) 'config.toml'
+    if (-not (Test-Path -LiteralPath $path)) { return }
+    $text = [IO.File]::ReadAllText($path)
+    if (-not @(Get-CodexServerTable $text $Name).Count) { return }
+    if ((Get-CodexPluginState $text $Name) -ne 'enabled' -or -not (Test-CodexOwnedServer $text $Name)) {
+        throw "${Name}: direct Codex declaration changed or belongs to you; it was kept."
+    }
+    $updated = $text
+    foreach ($table in @(Get-CodexServerTable $text $Name) | Sort-Object Index -Descending) {
+        $updated = $updated.Remove($table.Index, $table.Length)
+    }
+    if (-not $PSCmdlet.ShouldProcess($path, "Remove only the old official $Name declaration, now served by its installed plugin")) { return }
+    $backups = Join-Path $env:USERPROFILE '.nexus\pack\backups'
+    New-Item -ItemType Directory -Force $backups | Out-Null
+    Copy-Item -LiteralPath $path -Destination (Join-Path $backups ("codex-config-$([guid]::NewGuid().ToString('N')).toml"))
+    $temporary = "$path.nexus-$([guid]::NewGuid().ToString('N')).tmp"
+    try {
+        [IO.File]::WriteAllText($temporary, $updated, (New-Object Text.UTF8Encoding $false))
+        if ([IO.File]::ReadAllText($path) -cne $text) { throw 'Codex configuration changed meanwhile; run the pack again.' }
+        Move-Item -LiteralPath $temporary -Destination $path -Force
+    } finally { if (Test-Path -LiteralPath $temporary) { Remove-Item -LiteralPath $temporary -Force } }
+    Say "${Name}: the plugin now provides its tools and guide; the old direct declaration was removed."
+}
+
+function Test-CodexPluginInstalled([string]$Name, [string]$InstalledPath) {
+    $home_ = Get-CodexHome
+    $path = Join-Path $home_ 'config.toml'
+    if (-not (Test-Path -LiteralPath $path) -or (Get-CodexPluginState ([IO.File]::ReadAllText($path)) $Name) -ne 'enabled') { return $false }
+    $cache = Join-Path $home_ "plugins\cache\$Marketplace\$Name"
+    $versions = if ($InstalledPath) { @(Get-Item -LiteralPath $InstalledPath -ErrorAction SilentlyContinue) }
+                else { @(Get-ChildItem -LiteralPath $cache -Directory -ErrorAction SilentlyContinue) }
+    foreach ($version in $versions) {
+        if (-not $version.PSIsContainer -or (Split-Path $version.FullName) -ine $cache) { continue }
+        $manifest = Read-Json (Join-Path $version.FullName '.codex-plugin\plugin.json')
+        if ($manifest -and $manifest.name -eq $Name -and $manifest.skills -eq './skills/' -and
+            (Test-Path -LiteralPath (Join-Path $version.FullName "skills\$Name\SKILL.md")) -and
+            (Test-Path -LiteralPath (Join-Path $version.FullName '.mcp.json'))) { return $true }
+    }
+    return $false
+}
+
+function Install-CodexMarketplace([string]$Cli, [string]$Catalog) {
+    return Invoke-Native 'Codex: Nexus plugin catalog' {
+        # The CLI owns its configuration. Existing Git snapshots need an explicit refresh; local catalogs are read
+        # in place (also how the offline recipe verifies the exact catalog about to be published).
+        & $Cli plugin marketplace add $Catalog --json
+        if ($LASTEXITCODE -eq 0 -and -not (Test-Path -LiteralPath $Catalog -PathType Container)) {
+            & $Cli plugin marketplace upgrade $Marketplace --json
+        }
+    }
+}
+
+function Install-CodexPlugin([string]$Cli, [string]$Name) {
+    return Invoke-Native "Codex: $Name tools and guide" {
+        $output = & $Cli plugin add "$Name@$Marketplace" --json | Out-String
+        $code = $LASTEXITCODE
+        Write-Host $output
+        if ($code) { $global:LASTEXITCODE = $code; return }
+        $installed = $output | ConvertFrom-Json
+        if ($installed.pluginId -ne "$Name@$Marketplace" -or -not $installed.installedPath -or
+            -not (Test-CodexPluginInstalled $Name $installed.installedPath)) {
+            throw 'Codex did not return an installed plugin with its MCP declaration and guide.'
+        }
+    }
+}
+
 function Install-ClaudePlugin([string[]]$Plugins) {
     # Claude Code: the plugins of this catalog (server pinned and locked, plus its skill). With the claude command,
     # its own plugin commands; without it (Claude Desktop's Code tab only), the documented settings.json keys, which
@@ -356,25 +664,28 @@ function Get-TomlTable([string]$Text, [string]$Header) {
 }
 
 function Get-CodexState($Product) {
-    $home_ = if ($env:CODEX_HOME) { $env:CODEX_HOME } else { Join-Path $env:USERPROFILE '.codex' }
+    $home_ = Get-CodexHome
     $path = Join-Path $home_ 'config.toml'
     if (-not (Test-Path -LiteralPath $path)) { return 'missing' }
     $text = [IO.File]::ReadAllText($path)
-    $name = [regex]::Escape($Product.Server)
-    $server = Get-TomlTable $text "^\s*\[mcp_servers\.(`"?)$name\1\]\s*(#.*)?$"
-    if ($null -ne $server) {
-        if (@($server | Where-Object { $_ -match '^\s*enabled\s*=\s*false\b' }).Count) { return 'disabled' }
-        if (@($server | Where-Object { $_ -match '^\s*url\s*=' }).Count) { return 'ok' }
-        foreach ($line in $server) {
-            if ($line -match '^\s*command\s*=\s*["''](.+?)["'']') { if (Test-CommandName ($Matches[1] -replace '\\\\', '\')) { return 'ok' } }
+    $pluginState = Get-CodexPluginState $text $Product.Server
+    if ($pluginState -eq 'disabled') { return 'disabled' }
+    $serverTables = @(Get-CodexServerTable $text $Product.Server)
+    foreach ($table in $serverTables | Where-Object { -not $_.Sub }) {
+        foreach ($assignment in $table.Assignments) {
+            if ($assignment.Path.Count -eq 1 -and $assignment.Path[0] -ceq 'enabled' -and
+                $assignment.Value -match '^false[\t ]*(?:#.*)?$') { return 'disabled' }
         }
-        return 'invalid'
     }
-    $plugin = Get-TomlTable $text "^\s*\[plugins\.`"$name@[^`"]+`"\]\s*(#.*)?$"
-    if ($null -ne $plugin) {
-        if (@($plugin | Where-Object { $_ -match '^\s*enabled\s*=\s*false\b' }).Count) { return 'disabled' }
-        return 'ok'
+    foreach ($table in $serverTables | Where-Object { -not $_.Sub -and -not $_.Unsupported }) {
+        foreach ($assignment in $table.Assignments) {
+            if ($assignment.Path.Count -ne 1 -or $assignment.Path[0] -cnotin @('url', 'command')) { continue }
+            try { $value = Read-CodexTomlString $assignment.Value } catch { continue }
+            if ($assignment.Path[0] -ceq 'url' -or (Test-CommandName $value)) { return 'ok' }
+        }
     }
+    if ($pluginState -eq 'enabled') { return 'ok' }
+    if ($pluginState -eq 'unknown' -or $serverTables.Count) { return 'invalid' }
     return 'missing'
 }
 
@@ -477,10 +788,28 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
 
     # The user's own choices: an AI app where a product is turned off stays as it is for that product.
     $kept = @{}
+    $codexCustom = @{}
+    $codexExisting = @{}
+    $codexUnrecognized = @{}
     foreach ($product in $selected) {
         $cells = Get-Cell $product $ais  # assigned first: a list returned with "," stays one item in foreach
         foreach ($ai in $cells) {
             if ($ai -ne 'pc' -and (& $Checks[$ai] $product) -eq 'disabled') { $kept["$($product.Key)|$ai"] = $true }
+            if ($ai -eq 'codex' -and $product.Plugin -and -not $kept["$($product.Key)|$ai"]) {
+                $configPath = Join-Path (Get-CodexHome) 'config.toml'
+                $config = if (Test-Path -LiteralPath $configPath) { [IO.File]::ReadAllText($configPath) } else { '' }
+                if ((Get-CodexPluginState $config $product.Server) -eq 'unknown') {
+                    $kept["$($product.Key)|$ai"] = $true
+                    $codexUnrecognized[$product.Key] = $true
+                } elseif (@(Get-CodexServerTable $config $product.Server).Count -and -not (Test-CodexOwnedServer $config $product.Server)) {
+                    $kept["$($product.Key)|$ai"] = $true
+                    $codexCustom[$product.Key] = $true
+                } elseif ((Get-CodexPluginState $config $product.Server) -eq 'enabled' -and
+                    (Get-CodexPluginState $config $product.Server $Marketplace) -ne 'enabled') {
+                    $kept["$($product.Key)|$ai"] = $true
+                    $codexExisting[$product.Key] = $true
+                }
+            }
         }
     }
     $targets = @{}
@@ -496,7 +825,13 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
     }
     foreach ($key in @($kept.Keys)) {
         $product, $ai = $key -split '\|'
-        Say ("  {0,-13} {1}: turned off by you, left as it is" -f (Get-Product $product).Name, $AiNames[$ai]) Yellow
+        if ($ai -eq 'codex' -and $codexUnrecognized[$product]) {
+            Say ("  {0,-13} Codex: unsupported plugin configuration kept; no second server or plugin added" -f (Get-Product $product).Name) Yellow
+        } elseif ($ai -eq 'codex' -and $codexCustom[$product]) {
+            Say ("  {0,-13} Codex: custom direct declaration kept; no second server or plugin added" -f (Get-Product $product).Name) Yellow
+        } elseif ($ai -eq 'codex' -and $codexExisting[$product]) {
+            Say ("  {0,-13} Codex: plugin from another catalog kept; no second plugin added" -f (Get-Product $product).Name) Yellow
+        } else { Say ("  {0,-13} {1}: turned off by you, left as it is" -f (Get-Product $product).Name, $AiNames[$ai]) Yellow }
     }
     foreach ($key in @($refused.Keys)) {
         Say ("  {0,-13} not run: its installer would also configure {1}. Run it for every AI app, or wait for a {0} that takes a selection." -f (Get-Product $key).Name, (($refused[$key] | ForEach-Object { $AiNames[$_] }) -join ', ')) Yellow
@@ -506,11 +841,13 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
     foreach ($product in $selected) { if (-not $refused[$product.Key]) { $wants[$product.Key] = $true } }
     $for = @{}
     foreach ($ai in $ais) { $for[$ai] = $true }
-    $needsNode = $wants['windows'] -and $for['codex'] -and (Get-NodeMajor) -lt 22
+    $needsNode = $wants['windows'] -and $for['codex'] -and -not $kept['windows|codex'] -and (Get-NodeMajor) -lt 22
     # Claude Code adds a catalog by cloning it with git, which a new Windows lacks.
-    $needsGit = $for['claude-code'] -and @($selected | Where-Object { $_.Plugin -and -not $kept["$($_.Key)|claude-code"] }).Count -and -not (Test-Git)
+    $needsGit = (($for['claude-code'] -and @($selected | Where-Object { $_.Plugin -and -not $kept["$($_.Key)|claude-code"] }).Count) -or
+        ($for['codex'] -and @($selected | Where-Object { $_.Plugin -and -not $kept["$($_.Key)|codex"] }).Count)) -and -not (Test-Git)
     Say ''
-    Say "Prerequisites, once: uv$(if ($needsGit) { ', Git (for Claude Code)' })$(if ($needsNode) { ', Node.js LTS (for Codex)' })"
+    $gitFor = @('claude-code', 'codex' | Where-Object { $for[$_] } | ForEach-Object { $AiNames[$_] }) -join ' and '
+    Say "Prerequisites, once: uv$(if ($needsGit) { ", Git (for $gitFor)" })$(if ($needsNode) { ', Node.js LTS (for Codex)' })"
     Send-Event @{ type = 'plan'; ais = @($ais); products = @($selected | Where-Object { $wants[$_.Key] } | ForEach-Object { $_.Key }); node = [bool]$needsNode; git = [bool]$needsGit
                   installer_targets = $targets }  # AI apps told to each one-run installer (NEXUS_PACK_TARGETS)
     if ($DryRun) { Say 'Dry run: nothing installed.' Yellow; return 0 }
@@ -537,7 +874,7 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
         } else { $prereq['uv'] = 0 }
         if ($needsGit) {
             if (-not (Get-Command winget.exe -ErrorAction SilentlyContinue)) {
-                Say 'Git is needed by Claude Code to add the Nexus catalog and winget is missing: install Git from https://git-scm.com/downloads/win, then run this again.' Red
+                Say 'Git is needed to add the Nexus plugin catalog and winget is missing: install Git from https://git-scm.com/downloads/win, then run this again.' Red
                 $prereq['git'] = 1
             } else {
                 $prereq['git'] = Invoke-Native 'Git (official package, through winget)' {
@@ -569,16 +906,25 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
                 foreach ($product in $withPlugin) { $results["$($product.Key)|claude-code"] = $code }
             }
         }
+        # Codex first gets the real plugin (MCP plus its guide). Product installers still prepare ADB, Chrome and
+        # the relay daemon; the final pass below removes only their exact old MCP declarations after success.
+        $codexPlugins = @($selected | Where-Object { $_.Plugin -and $for['codex'] -and -not $kept["$($_.Key)|codex"] })
+        $codexCli = $null
+        if ($codexPlugins.Count) {
+            $codexCli = Get-CodexCli
+            $catalogCode = if (-not $codexCli -or $prereq['git']) { 1 } else { Install-CodexMarketplace $codexCli $Catalog }
+            if (-not $codexCli) { Say 'The installed Codex engine with a valid OpenAI signature was not found. Open or update Codex, then run this again.' Red }
+            foreach ($product in $codexPlugins) {
+                $code = if ($catalogCode -or ($product.Key -eq 'windows' -and $prereq['node'])) { 1 } else { Install-CodexPlugin $codexCli $product.Plugin }
+                $results["$($product.Key)|codex"] = $code
+            }
+        }
         # 2. NexusWindows: one edition per AI app.
         if ($wants['windows']) {
             if ($for['claude-desktop'] -and -not $kept['windows|claude-desktop']) {
                 $results['windows|claude-desktop'] = Invoke-Installer 'NexusWindows for Claude (Claude Desktop)' "$Raw/NexusWindows-Claude/main/setup.ps1" $work
             }
-            if ($for['codex'] -and -not $kept['windows|codex']) {
-                $results['windows|codex'] = if ($prereq['node']) { 1 } else {
-                    Invoke-Installer 'NexusWindows for Codex' "$Raw/NexusWindows-Codex/main/setup.ps1" $work
-                }
-            }
+            # Codex's Windows plugin already contains its runtime and guide; do not add a direct MCP declaration.
             if ($for['antigravity'] -and -not $kept['windows|antigravity']) {
                 $results['windows|antigravity'] = if ($prereq['uv']) { 1 } else {
                     Invoke-Native 'NexusWindows for Antigravity' {
@@ -589,24 +935,24 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
         }
         # 3. NexusAndroid: one setup for every AI app (adb, declarations), without waiting for the phone. Its newest
         #    release, never one older than its reading of NEXUS_PACK_TARGETS (0.14.1), even while the index cache still serves it.
-        if ($wants['android']) {
+        if ($wants['android'] -and $targets['android'].Count) {
             $env:NEXUS_PACK_TARGETS = $targets['android'] -join ','
             $code = if ($prereq['uv']) { 1 } else { Invoke-Native 'NexusAndroid' {
                 Invoke-Console (Get-Uvx) @('--python', '3.14', '--refresh-package', 'nexus-android', '--from', 'nexus-android>=0.14.1', 'nexus-android', 'setup')
             } }
-            foreach ($ai in $targets['android']) { $results["android|$ai"] = $code }
+            foreach ($ai in $targets['android']) { if (-not $results["android|$ai"]) { $results["android|$ai"] = $code } }
             $own['android'] = $code
         }
         # 4. NexusBrowser: local bridge and native host for Chrome, declared to every AI app.
-        if ($wants['browser']) {
+        if ($wants['browser'] -and $targets['browser'].Count) {
             $env:NEXUS_PACK_TARGETS = $targets['browser'] -join ','
             $code = Invoke-Installer 'NexusBrowser' "$Raw/NexusBrowser/main/get.ps1" $work
-            foreach ($ai in $targets['browser']) { $results["browser|$ai"] = $code }
+            foreach ($ai in $targets['browser']) { if (-not $results["browser|$ai"]) { $results["browser|$ai"] = $code } }
             $own['browser'] = $code
             if ($code -and $for['claude-code']) { $results['browser|claude-code'] = $code }  # bridge missing: plugin useless
         }
         # 5. NexusRelay: local relay daemon, declared to Claude Code, Codex and Antigravity.
-        if ($wants['relay']) {
+        if ($wants['relay'] -and $targets['relay'].Count) {
             $env:NEXUS_PACK_TARGETS = $targets['relay'] -join ','
             $code = Invoke-Installer 'NexusRelay' "$Raw/NexusRelay/main/get.ps1" $work
             # Claude Code: its plugin result (step 1) is kept if it failed, else the daemon's decides
@@ -623,6 +969,14 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
         # 7. NexusKeypad: the full plugin for Logi Options+ (keys placed by a guide, below).
         if ($wants['keypad']) {
             $results['keypad|pc'] = Invoke-Installer 'NexusKeypad' "$Raw/NexusKeypad/main/get.ps1" $work
+        }
+        foreach ($product in $codexPlugins) {
+            if ($results["$($product.Key)|codex"]) { continue }
+            $code = Invoke-Native "Codex: verify $($product.Plugin) guide and single server" {
+                if (-not (Test-CodexPluginInstalled $product.Plugin)) { throw 'The installed Codex plugin or its guide is missing; the direct declaration was kept.' }
+                Remove-CodexOwnedServer $product.Server
+            }
+            if ($code) { $results["$($product.Key)|codex"] = $code }
         }
     } finally {
         if ($null -eq $savedPack) { Remove-Item Env:NEXUS_PACK -ErrorAction SilentlyContinue } else { $env:NEXUS_PACK = $savedPack }
@@ -648,6 +1002,11 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
             if ($cells -notcontains $ai) { Write-Host '-'.PadRight($width) -ForegroundColor DarkGray -NoNewline; continue }
             $label = if ($product.Device) { "$($product.Device)" } else { '' }
             if ($kept["$($product.Key)|$ai"]) {
+                if ($ai -eq 'codex' -and ($codexCustom[$product.Key] -or $codexExisting[$product.Key] -or $codexUnrecognized[$product.Key])) {
+                    $events += @{ type = 'cell'; product = $product.Key; ai = $ai; ok = $false; state = 'kept' }
+                    Write-Host '- kept'.PadRight($width) -ForegroundColor Yellow -NoNewline
+                    continue
+                }
                 $events += @{ type = 'cell'; product = $product.Key; ai = $ai; ok = $false; state = 'disabled' }
                 Write-Host '- off, kept'.PadRight($width) -ForegroundColor Yellow -NoNewline
                 continue

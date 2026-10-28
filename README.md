@@ -31,11 +31,11 @@ release (its SHA-256 is in `SHA256SUMS.txt`, its origin can be checked with
 (Run once). The window stays open at the end until you press Enter.
 
 It shows which AI apps it found and what it will install for each, installs [uv](https://docs.astral.sh/uv/) (and
-Git when Claude Code is there without it, Node.js LTS when Codex is there; Windows asks once), then runs each product's own official installer:
+Git when a Claude Code or Codex plugin needs it, Node.js LTS when Codex is there; Windows asks once), then runs each product's own official installer:
 
 | Product | Claude Code | Claude Desktop | Codex | Antigravity |
 | --- | --- | --- | --- | --- |
-| NexusWindows | plugin `nexus-windows` (this catalog) | [NexusWindows-Claude](https://github.com/pironjulien/NexusWindows-Claude) `setup.ps1` | [NexusWindows-Codex](https://github.com/pironjulien/NexusWindows-Codex) `setup.ps1` | [NexusWindows-Antigravity](https://github.com/pironjulien/NexusWindows-Antigravity) plugin |
+| NexusWindows | plugin `nexus-windows` (this catalog) | [NexusWindows-Claude](https://github.com/pironjulien/NexusWindows-Claude) `setup.ps1` | plugin `nexus-windows` ([NexusWindows-Codex](https://github.com/pironjulien/NexusWindows-Codex)) | [NexusWindows-Antigravity](https://github.com/pironjulien/NexusWindows-Antigravity) plugin |
 | NexusAndroid | plugin `nexus-android` | [NexusAndroid](https://github.com/pironjulien/NexusAndroid) `setup` | same | same (a plugin) |
 | NexusBrowser | plugin `nexus-browser` + bridge | [NexusBrowser](https://github.com/pironjulien/NexusBrowser) `get.ps1` | same | same (a plugin) |
 | NexusRelay (experimental) | plugin `nexus-relay` + daemon ([NexusRelay](https://github.com/pironjulien/NexusRelay) `get.ps1`) | not a relay client | same | same (a plugin) |
@@ -61,10 +61,9 @@ Each product also installs alone: see its README.
 
 ## The plugins, one by one
 
-**Computer use in the background for Claude Code and Codex.** A plugin marketplace with three plugins that give Claude your
-Android phone, your Windows desktop apps and your real Chrome, while you keep working. Each plugin starts an
-open-source MCP server from PyPI with `uvx`, pinned to an exact version (versions and hashes in a `uv.lock`), and adds a skill that teaches Claude how to
-use it.
+**Computer use in the background for Claude Code and Codex.** Four plugins provide Android, Windows, Chrome and the
+Relay between AI apps. Each includes its guide. Android, Browser and Windows for Claude start a pinned open-source
+MCP server from PyPI; Relay connects to its installed local daemon, and Windows for Codex uses its npm package.
 
 | Plugin | What Claude gets | Server |
 | --- | --- | --- |
@@ -103,9 +102,15 @@ their tools appear in the conversation after that. Enabling them for one project
 
 ### Codex
 
+The installer adds the Codex plugins from this marketplace, with their tools and guides. It uses Codex's installed,
+OpenAI-signed desktop engine when the CLI is not on PATH. It keeps disabled products, custom MCP declarations and
+plugins from another catalog; it migrates only the official installers' old direct declarations after the installed
+plugin and its guide have been verified. It never adds a second server beside a custom one.
+
 The same repository is a Codex plugin marketplace (`.agents/plugins/marketplace.json`): `nexus-windows` (from
 [NexusWindows-Codex](https://github.com/pironjulien/NexusWindows-Codex), needs Node.js 22+), `nexus-android` and
-`nexus-browser` (pinned like their Claude twins, uv needed). In the Codex app: **Settings > Plugins > Add > Add a
+`nexus-browser` (pinned like their Claude twins, uv needed), and `nexus-relay` (its local daemon must be installed).
+In the Codex app: **Settings > Plugins > Add > Add a
 marketplace**, source `pironjulien/NexusSystem`, then install the plugins; or from a terminal:
 
 ```text
@@ -116,9 +121,8 @@ codex plugin add nexus-browser@nexus-plugins
 codex plugin add nexus-relay@nexus-plugins
 ```
 
-Use either these plugins or the one-line install for Codex. Plugin first, then the one-line install: NexusWindows
-for Codex sees its plugin and adds nothing. The other way round, a server already declared in `~/.codex/config.toml`
-hides the plugin's server of the same name (the same server runs, nothing to remove).
+The one-line install uses these same plugins and also prepares each product's local requirements. Starting with a
+plugin is supported too: the pack installs any missing runtime and checks for duplicate official declarations.
 
 More examples, and how to test each plugin without your own phone or data, are in each plugin's README
 ([nexus-android](https://github.com/pironjulien/NexusSystem/tree/main/plugins/nexus-android#try-it),
@@ -139,9 +143,9 @@ Per-plugin requirements:
 
 ```mermaid
 flowchart LR
-    C["Claude Code"] -- "stdio (MCP)" --> A["uvx nexus-android==0.20.2"] -- ADB --> P["Android phone"]
+    C["Claude Code"] -- "stdio (MCP)" --> A["uvx nexus-android==0.20.3"] -- ADB --> P["Android phone"]
     C -- "stdio (MCP)" --> W["uvx nexus-windows-claude==3.7.4"] -- "UI Automation, Win32" --> D["Windows apps"]
-    C -- "stdio (MCP)" --> B["uvx nexus-browser==2.31.4"] -- "local bridge" --> E["Chrome extension"] --> T["Chrome tabs"]
+    C -- "stdio (MCP)" --> B["uvx nexus-browser==2.31.6"] -- "local bridge" --> E["Chrome extension"] --> T["Chrome tabs"]
 ```
 
 Each plugin is a folder with a manifest, an icon, a `.mcp.json` launcher, a `pyproject.toml` with its `uv.lock`, and a

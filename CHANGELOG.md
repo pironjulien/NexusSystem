@@ -5,6 +5,22 @@ All notable changes to this marketplace are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.6.28] - 2026-10-28
+
+### Fixed
+- The public installer now installs Codex's four Nexus plugins, including their bundled guides, through Codex's own
+  plugin commands. It finds the installed OpenAI-signed desktop engine when no CLI is on PATH; no second Codex is
+  installed. Product installers still prepare ADB, Chrome and the Relay daemon.
+- Codex keeps products the user disabled, custom direct MCP declarations and plugins from another catalog. Only
+  exact declarations from the official installers are migrated after the plugin and its guide are verified in
+  Codex's cache; the post-install pass removes declarations added by older product installers. Plugin failures and
+  missing guides remain visible failures instead of being hidden by a successful runtime installer.
+- Codex migration reads literal and escaped TOML keys and spaces around dotted headers. Inline or unsupported
+  declarations are preserved; apparent headers inside multiline strings and arrays are never edited as tables.
+
+### Changed
+- Android 0.20.3, Browser 2.31.6 and Relay 1.8.7 ship the same public guides used by the catalog. Codex Android and Browser now carry the official product icons. The Relay edit guard ships with its plugin and uses its exact published version.
+
 ## [1.6.27] - 2026-10-28
 
 ### Changed

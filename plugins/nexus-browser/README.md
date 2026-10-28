@@ -18,7 +18,7 @@ server for Claude Code (run before the plugin, running it again removes its own 
 extension, the server starts but every call answers with an error giving that command.
 
 ## What it runs
-The plugin starts the open-source MCP server [`nexus-browser`](https://pypi.org/project/nexus-browser/) 2.31.4 from
+The plugin starts the open-source MCP server [`nexus-browser`](https://pypi.org/project/nexus-browser/) 2.31.6 from
 PyPI with `uvx --python 3.14` (uv downloads Python 3.14 if needed; versions and hashes of the server and its
 dependencies recorded in `uv.lock`), over stdio, with `NEXUS_BROWSER_AGENT=Claude`
 (the name of the agent's tab group). It talks only to the local bridge on this PC; the plugin sends nothing anywhere.

@@ -52,7 +52,7 @@ try {
         'NexusBrowser  for Claude Code, Claude Desktop, Codex, Antigravity',
         'NexusRelay    for Claude Code, Codex, Antigravity', 'NexusAGYmail  for Antigravity',
         'NexusKeypad   needs Logi Options+',
-        'Prerequisites, once: uv, Git (for Claude Code), Node.js LTS (for Codex)', 'Dry run: nothing installed.')
+        'Prerequisites, once: uv, Git (for Claude Code and Codex), Node.js LTS (for Codex)', 'Dry run: nothing installed.')
 
     $result = Invoke-Pack $all "& '$pack' -DryRun -Only windows,codex"
     Test-Case '-Only a product and an AI app' $result 0 @('NexusWindows  for Codex', 'Node.js LTS (for Codex)') @('NexusAndroid  for', 'NexusBrowser  for', 'Git (for Claude Code)')
@@ -84,7 +84,7 @@ try {
     # The real state of a declaration (the functions taken from the script).
     $ast = [System.Management.Automation.Language.Parser]::ParseFile($pack, [ref]$null, [ref]$null)
     $functions = ($ast.FindAll({ param($a) $a -is [System.Management.Automation.Language.FunctionDefinitionAst] -and
-                @('Read-Json', 'Get-Uvx', 'Test-CommandName', 'Get-JsonServerState', 'Get-TomlTable', 'Get-CodexState', 'Get-ClaudeCodeState', 'Get-AntigravityState') -contains $a.Name }, $true) |
+                @('Read-Json', 'Get-Uvx', 'Test-CommandName', 'Get-JsonServerState', 'Get-TomlTable', 'Get-CodexState', 'Get-CodexHome', 'Read-CodexTomlKeyPath', 'Get-CodexTomlTable', 'Get-CodexPluginState', 'Get-CodexServerTable', 'Read-CodexTomlString', 'Get-ClaudeCodeState', 'Get-AntigravityState') -contains $a.Name }, $true) |
             ForEach-Object { $_.Extent.Text }) -join "`n"
     $states = Initialize-Profile 'states' @('.codex', '.claude')
     [IO.File]::WriteAllText((Join-Path $states '.codex\config.toml'), (@(
@@ -175,6 +175,9 @@ try {
         $expected = if ($case[0] -eq 'none') { 'installed=False' } else { 'installed=True' }
         Test-Case "NexusKeypad detected: $($case[0])" $result 0 @($expected)
     }
+
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'test_codex_pack.ps1')
+    if ($LASTEXITCODE) { $failures++ }
 } finally {
     Remove-Item -LiteralPath $work -Recurse -Force -ErrorAction SilentlyContinue
 }

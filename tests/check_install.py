@@ -21,7 +21,9 @@ HOME = Path(os.environ["USERPROFILE"])
 APPDATA = Path(os.environ["APPDATA"])
 LOCALAPPDATA = Path(os.environ["LOCALAPPDATA"])
 SERVERS = {"windows": "nexus-windows", "android": "nexus-android", "browser": "nexus-browser", "agymail": "nexus-agymail"}
-AGY_PLUGINS = {"windows": "nexus-computer", "android": "nexus-android", "browser": "nexus-browser", "agymail": "nexus-agymail"}
+# Nom actuel d'abord, puis l'ancien d'une installation pas encore migrée (NexusWindows : nexus-computer).
+AGY_PLUGINS = {"windows": ("nexus-windows", "nexus-computer"), "android": ("nexus-android",), "browser": ("nexus-browser",),
+               "agymail": ("nexus-agymail",)}
 
 
 def read_json(path: Path) -> dict:
@@ -72,12 +74,32 @@ def codex(product: str) -> list[tuple[dict, Path]]:
     config = folder / "config.toml"
     if not config.is_file():
         return []
-    server = tomllib.loads(config.read_text(encoding="utf-8-sig")).get("mcp_servers", {}).get(SERVERS[product])
-    return [(server, folder)] if server else []
+    data = tomllib.loads(config.read_text(encoding="utf-8-sig"))
+    name = SERVERS[product]
+    if data.get("mcp_servers", {}).get(name) is not None:
+        raise ValueError(f"{name}: direct MCP declaration remains; expected only the installed plugin and guide")
+    plugins = [(key.split("@", 1)[1], value) for key, value in data.get("plugins", {}).items()
+               if key.startswith(name + "@") and value.get("enabled", True)]
+    if len(plugins) != 1:
+        raise ValueError(f"{name}: expected one enabled plugin, found {len(plugins)}")
+    cache = folder / "plugins" / "cache" / plugins[0][0] / name
+    installed = []
+    for root in cache.iterdir() if cache.is_dir() else []:
+        manifest = read_json(root / ".codex-plugin" / "plugin.json")
+        if manifest.get("name") == name and manifest.get("skills") == "./skills/" and \
+                (root / "skills" / name / "SKILL.md").is_file():
+            server = read_json(root / ".mcp.json").get("mcpServers", {}).get(name)
+            if server:
+                installed.append((server, root))
+    if not installed:
+        raise ValueError(f"{name}: installed MCP plugin and bundled guide not found")
+    return installed[-1:]
 
 
 def antigravity(product: str) -> list[tuple[dict, Path]]:
-    plugin = HOME / ".gemini" / "config" / "plugins" / AGY_PLUGINS[product]
+    plugins = HOME / ".gemini" / "config" / "plugins"
+    plugin = next((plugins / n for n in AGY_PLUGINS[product] if (plugins / n / "plugin.json").is_file()),
+                  plugins / AGY_PLUGINS[product][0])
     servers = read_json(plugin / "mcp_config.json").get("mcpServers", {})
     return [(server, plugin) for server in servers.values() if "command" in server][:1]
 
@@ -95,7 +117,12 @@ def main() -> int:
         for ai in args.ais.split(","):
             for product in args.products.split(","):
                 label = f"{ai}/{SERVERS[product]}"
-                declared = READERS[ai](product)
+                try:
+                    declared = READERS[ai](product)
+                except (OSError, ValueError) as error:
+                    print(f"FAIL {label}: {error}")
+                    failures += 1
+                    continue
                 if not declared:
                     print(f"FAIL {label}: not declared")
                     failures += 1

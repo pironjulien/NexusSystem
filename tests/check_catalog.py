@@ -164,6 +164,27 @@ for entry in codex_entries:
         fail(f"{where}: plugin.json must point to ./.mcp.json and ./skills/")
     if not manifest.get("interface", {}).get("displayName"):
         fail(f"{where}: interface.displayName missing")
+    for field, size in (("composerIcon", 64), ("logo", 512)):
+        relative = manifest.get("interface", {}).get(field, "")
+        asset = folder / relative
+        if not relative.startswith("./assets/") or not asset.is_file():
+            fail(f"{where}: interface.{field} must point to a bundled assets/ PNG")
+            continue
+        head = asset.read_bytes()[:24]
+        if len(head) < 24 or head[:8] != bytes.fromhex("89504e470d0a1a0a"):
+            fail(f"{where}: interface.{field} must be a PNG")
+        elif struct.unpack(">II", head[16:24]) != (size, size):
+            fail(f"{where}: interface.{field} must be {size}x{size}")
+    if name == "nexus-relay":
+        expected_hooks = {"hooks": {"PreToolUse": [{
+            "matcher": "apply_patch", "hooks": [{
+                "type": "command",
+                "command": f"uvx --python 3.14 --from nexus-relay=={version} python -I -B -m nexus_relay.edit_guard codex",
+                "timeout": 60, "async": False,
+            }],
+        }]}}
+        if manifest.get("hooks") != expected_hooks:
+            fail(f"{where}: edit guard must use this plugin's exact published version, synchronously")
     server = load(folder / ".mcp.json").get("mcpServers", {})
     package = PACKAGES.get(name, name)
     if name in DAEMON:

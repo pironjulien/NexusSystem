@@ -6,14 +6,14 @@
   },
   "metadata": {
     "description": "Computer use in the background for Claude Code: your Android phone over ADB, your Windows desktop apps, your real Chrome. Each plugin starts its open-source MCP server from PyPI with uvx, pinned and locked with hashes.",
-    "version": "1.6.27"
+    "version": "1.6.28"
   },
   "plugins": [
     {
       "name": "nexus-android",
       "source": "./plugins/nexus-android",
       "description": "Android phone over plain ADB (no root, no app): screen, gestures, SMS/RCS, notifications, files, settings. Needs uv and USB debugging; adb is downloaded if missing.",
-      "version": "0.20.2",
+      "version": "0.20.3",
       "category": "productivity",
       "keywords": [
         "android",
@@ -29,7 +29,7 @@
     {
       "name": "nexus-windows",
       "source": "./plugins/nexus-windows",
-      "description": "Windows desktop apps in the background (look, click, type, menus, shortcuts, launch) without taking your mouse, keyboard or foreground. Windows 10/11, needs uv.",
+      "description": "Windows desktop apps through native UI Automation: observe, click, type, menus, shortcuts and launch. Foreground interaction is explicit when required. Windows 10/11, needs uv.",
       "version": "3.7.4",
       "category": "productivity",
       "keywords": [
@@ -47,7 +47,7 @@
       "name": "nexus-browser",
       "source": "./plugins/nexus-browser",
       "description": "Your real Chrome (your sessions) driven in background tabs: forms, network, dialogs, cross-origin iframes, exports, downloads. Requires the one-time NexusBrowser install (Chrome extension + local bridge, Windows).",
-      "version": "2.31.4",
+      "version": "2.31.6",
       "category": "productivity",
       "keywords": [
         "chrome",
@@ -64,7 +64,7 @@
       "name": "nexus-relay",
       "source": "./plugins/nexus-relay",
       "description": "Direct link between Claude, Codex and Antigravity on one Windows PC: topic rooms, multi-agent review, delegated tasks. Needs the NexusRelay daemon, installed by the one-line install (or NexusRelay's get.ps1).",
-      "version": "1.8.6",
+      "version": "1.8.7",
       "category": "productivity",
       "keywords": [
         "multi-agent",

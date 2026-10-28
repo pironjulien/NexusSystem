@@ -1,6 +1,6 @@
 {
   "name": "nexus-browser",
-  "version": "2.31.4",
+  "version": "2.31.6",
   "description": "Your real Chrome (your sessions) driven in background tabs. Requires the one-time NexusBrowser install: Chrome extension and local bridge (Windows).",
   "author": { "name": "Julien Piron", "url": "https://github.com/pironjulien" },
   "homepage": "https://julienpiron.fr/nexusbrowser/",
@@ -14,6 +14,8 @@
     "shortDescription": "Your real Chrome in background tabs (extension required)",
     "developerName": "Julien Piron",
     "category": "Productivity",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/logo.png",
     "websiteURL": "https://julienpiron.fr/nexusbrowser/"
   }
 }
