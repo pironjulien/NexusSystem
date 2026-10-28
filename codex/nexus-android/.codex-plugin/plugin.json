@@ -1,6 +1,6 @@
 {
   "name": "nexus-android",
-  "version": "0.19.0",
+  "version": "0.20.2",
   "description": "Android phone over plain ADB (no root, no app): screen, gestures, SMS/RCS, notifications, files, settings.",
   "author": { "name": "Julien Piron", "url": "https://github.com/pironjulien" },
   "homepage": "https://julienpiron.fr/nexusandroid/",

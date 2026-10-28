@@ -5,6 +5,13 @@ All notable changes to this marketplace are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.6.24] - 2026-10-28
+
+### Changed
+- `nexus-android` 0.20.2 (was 0.19.0) and `nexus-browser` 2.31.4 (was 2.28.0): the catalogue starts the latest
+  published servers (CodeQL fixes, reconnect waits that cancellation stops, extension messages accepted from older or
+  newer extensions). Plugins, Codex plugins, locks and marketplace entries.
+
 ## [1.6.23] - 2026-10-28
 
 ### Changed

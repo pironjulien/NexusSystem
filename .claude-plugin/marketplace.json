@@ -6,14 +6,14 @@
   },
   "metadata": {
     "description": "Computer use in the background for Claude Code: your Android phone over ADB, your Windows desktop apps, your real Chrome. Each plugin starts its open-source MCP server from PyPI with uvx, pinned and locked with hashes.",
-    "version": "1.6.23"
+    "version": "1.6.24"
   },
   "plugins": [
     {
       "name": "nexus-android",
       "source": "./plugins/nexus-android",
       "description": "Android phone over plain ADB (no root, no app): screen, gestures, SMS/RCS, notifications, files, settings. Needs uv and USB debugging; adb is downloaded if missing.",
-      "version": "0.19.0",
+      "version": "0.20.2",
       "category": "productivity",
       "keywords": [
         "android",
@@ -47,7 +47,7 @@
       "name": "nexus-browser",
       "source": "./plugins/nexus-browser",
       "description": "Your real Chrome (your sessions) driven in background tabs: forms, network, dialogs, cross-origin iframes, exports, downloads. Requires the one-time NexusBrowser install (Chrome extension + local bridge, Windows).",
-      "version": "2.28.0",
+      "version": "2.31.4",
       "category": "productivity",
       "keywords": [
         "chrome",
