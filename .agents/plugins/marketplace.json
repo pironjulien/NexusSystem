@@ -1,7 +1,7 @@
 {
   "name": "nexus-plugins",
   "interface": {
-    "displayName": "Nexus plugins"
+    "displayName": "NexusSystem"
   },
   "plugins": [
     {

@@ -3,7 +3,7 @@
 # the detections it raised are read back (Get-MpThreatDetection). Never on a real PC: it changes Defender's settings.
 $ErrorActionPreference = 'Stop'
 if ($env:GITHUB_ACTIONS -ne 'true') { throw 'defender_probe.ps1 runs on a disposable CI runner only.' }
-$pack = 'https://raw.githubusercontent.com/pironjulien/nexus-plugins/main/get-nexus.ps1'
+$pack = 'https://raw.githubusercontent.com/pironjulien/NexusSystem/main/get-nexus.ps1'
 $work = Join-Path $env:RUNNER_TEMP 'defender-probe'
 New-Item -ItemType Directory -Force $work | Out-Null
 

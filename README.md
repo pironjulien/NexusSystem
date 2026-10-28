@@ -1,8 +1,17 @@
-# Nexus plugins for Claude Code and Codex
+# NexusSystem
 
-[![test](https://github.com/pironjulien/nexus-plugins/actions/workflows/test.yml/badge.svg)](https://github.com/pironjulien/nexus-plugins/actions/workflows/test.yml)
-[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/pironjulien/nexus-plugins/badge)](https://scorecard.dev/viewer/?uri=github.com/pironjulien/nexus-plugins)
-[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/pironjulien/nexus-plugins/blob/main/LICENSE)
+The installer of the Nexus ecosystem, two ways for the same thing:
+
+- **The NexusSystem app** from the [Microsoft Store](https://apps.microsoft.com/detail/9NSH2P3QLWT1): install, update
+  and follow every Nexus product with a window, an activity log and the emergency stop.
+- **This repository**: the one-line install below, and the plugin catalogs for Claude Code and Codex (catalog name
+  `nexus-plugins`, kept so that existing installs keep working). The app runs the same `get-nexus.ps1`.
+
+This repository was called `nexus-plugins` until 28/10/2026; GitHub redirects the old address.
+
+[![test](https://github.com/pironjulien/NexusSystem/actions/workflows/test.yml/badge.svg)](https://github.com/pironjulien/NexusSystem/actions/workflows/test.yml)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/pironjulien/NexusSystem/badge)](https://scorecard.dev/viewer/?uri=github.com/pironjulien/NexusSystem)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/pironjulien/NexusSystem/blob/main/LICENSE)
 
 ## Install everything
 
@@ -11,13 +20,13 @@ line. Windows 10 or 11, no administrator rights, nothing to install first. Open 
 `PowerShell`) and paste:
 
 ```powershell
-irm https://raw.githubusercontent.com/pironjulien/nexus-plugins/main/get-nexus.ps1 | iex
+irm https://raw.githubusercontent.com/pironjulien/NexusSystem/main/get-nexus.ps1 | iex
 ```
 
 Rather not paste a command? Download
-[`get-nexus.ps1`](https://github.com/pironjulien/nexus-plugins/releases/latest/download/get-nexus.ps1) from the latest
+[`get-nexus.ps1`](https://github.com/pironjulien/NexusSystem/releases/latest/download/get-nexus.ps1) from the latest
 release (its SHA-256 is in `SHA256SUMS.txt`, its origin can be checked with
-`gh attestation verify get-nexus.ps1 --repo pironjulien/nexus-plugins`), then right click it > **Run with PowerShell**
+`gh attestation verify get-nexus.ps1 --repo pironjulien/NexusSystem`), then right click it > **Run with PowerShell**
 (on Windows 11: **Show more options** first). Windows asks whether to run a script from the internet: answer **R**
 (Run once). The window stays open at the end until you press Enter.
 
@@ -45,7 +54,7 @@ Options: `-Only` and `-Skip` take product names (`windows`, `android`, `browser`
 have one installer for every AI app: when they run, they declare themselves to each app they find. For example:
 
 ```powershell
-& ([scriptblock]::Create((irm https://raw.githubusercontent.com/pironjulien/nexus-plugins/main/get-nexus.ps1))) -Only windows,browser
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/pironjulien/NexusSystem/main/get-nexus.ps1))) -Only windows,browser
 ```
 
 Each product also installs alone: see its README.
@@ -77,7 +86,7 @@ use it.
 2. In Claude Code, add the marketplace and install the plugins you want:
 
    ```text
-   /plugin marketplace add pironjulien/nexus-plugins
+   /plugin marketplace add pironjulien/NexusSystem
    /plugin install nexus-android@nexus-plugins
    /plugin install nexus-windows@nexus-plugins
    /plugin install nexus-browser@nexus-plugins
@@ -96,10 +105,10 @@ their tools appear in the conversation after that. Enabling them for one project
 The same repository is a Codex plugin marketplace (`.agents/plugins/marketplace.json`): `nexus-windows` (from
 [NexusWindows-Codex](https://github.com/pironjulien/NexusWindows-Codex), needs Node.js 22+), `nexus-android` and
 `nexus-browser` (pinned like their Claude twins, uv needed). In the Codex app: **Settings > Plugins > Add > Add a
-marketplace**, source `pironjulien/nexus-plugins`, then install the plugins; or from a terminal:
+marketplace**, source `pironjulien/NexusSystem`, then install the plugins; or from a terminal:
 
 ```text
-codex plugin marketplace add pironjulien/nexus-plugins
+codex plugin marketplace add pironjulien/NexusSystem
 codex plugin add nexus-windows@nexus-plugins
 codex plugin add nexus-android@nexus-plugins
 codex plugin add nexus-browser@nexus-plugins
@@ -110,9 +119,9 @@ for Codex sees its plugin and adds nothing. The other way round, a server alread
 hides the plugin's server of the same name (the same server runs, nothing to remove).
 
 More examples, and how to test each plugin without your own phone or data, are in each plugin's README
-([nexus-android](https://github.com/pironjulien/nexus-plugins/tree/main/plugins/nexus-android#try-it),
-[nexus-windows](https://github.com/pironjulien/nexus-plugins/tree/main/plugins/nexus-windows#try-it),
-[nexus-browser](https://github.com/pironjulien/nexus-plugins/tree/main/plugins/nexus-browser#try-it)).
+([nexus-android](https://github.com/pironjulien/NexusSystem/tree/main/plugins/nexus-android#try-it),
+[nexus-windows](https://github.com/pironjulien/NexusSystem/tree/main/plugins/nexus-windows#try-it),
+[nexus-browser](https://github.com/pironjulien/NexusSystem/tree/main/plugins/nexus-browser#try-it)).
 
 Per-plugin requirements:
 
@@ -167,4 +176,4 @@ uv run --no-project --python 3.14 python -B tests/check_install.py --ais claude-
 
 ## License
 
-[MIT](https://github.com/pironjulien/nexus-plugins/blob/main/LICENSE) © Julien Piron
+[MIT](https://github.com/pironjulien/NexusSystem/blob/main/LICENSE) © Julien Piron

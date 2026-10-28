@@ -1,7 +1,7 @@
 # Nexus pack: the whole Nexus ecosystem on a Windows 10/11 PC, for the AI apps found on it, in one line:
-#   irm https://raw.githubusercontent.com/pironjulien/nexus-plugins/main/get-nexus.ps1 | iex
+#   irm https://raw.githubusercontent.com/pironjulien/NexusSystem/main/get-nexus.ps1 | iex
 # With options:
-#   & ([scriptblock]::Create((irm https://raw.githubusercontent.com/pironjulien/nexus-plugins/main/get-nexus.ps1))) -Only windows,browser
+#   & ([scriptblock]::Create((irm https://raw.githubusercontent.com/pironjulien/NexusSystem/main/get-nexus.ps1))) -Only windows,browser
 # Windows PowerShell 5.1 or PowerShell 7, no administrator rights (Git for Claude Code and Node.js for Codex, when
 # missing, ask Windows once).
 # It finds Claude Code, Claude Desktop, Codex and Antigravity, shows what it will install and for whom, installs the
@@ -14,7 +14,7 @@
 #                  claude-desktop, codex, antigravity), comma separated
 #   -DryRun        show the plan and do nothing
 #   -NoGuide       do not open Chrome on its extensions page at the end (the guide is printed instead)
-#   -Catalog       marketplace given to Claude Code (default pironjulien/nexus-plugins; a local folder for tests)
+#   -Catalog       marketplace given to Claude Code (default pironjulien/NexusSystem; a local folder for tests)
 #   -Json          also print one "NEXUS_PACK_EVENT {json}" line per event (found, plan, step, cell, done), for the
 #                  Nexus apps that run this same script and show its progress
 param(
@@ -22,7 +22,7 @@ param(
     [string[]]$Skip = @(),
     [switch]$DryRun,
     [switch]$NoGuide,
-    [string]$Catalog = 'pironjulien/nexus-plugins',
+    [string]$Catalog = 'pironjulien/NexusSystem',
     [switch]$Json
 )
 

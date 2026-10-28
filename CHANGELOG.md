@@ -5,6 +5,15 @@ All notable changes to this marketplace are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.6.25] - 2026-10-28
+
+### Changed
+- The repository is now **NexusSystem** (`pironjulien/NexusSystem`, was `pironjulien/nexus-plugins`; GitHub redirects
+  the old address): one product, two ways to install the Nexus ecosystem, the Microsoft Store app or this repository
+  (one-line install and plugin catalogs). The catalog name stays `nexus-plugins`, so installed plugins
+  (`nexus-windows@nexus-plugins`…) keep working; the Codex catalog is shown as "NexusSystem". `get-nexus.ps1` adds the
+  catalog from the new address.
+
 ## [1.6.24] - 2026-10-28
 
 ### Changed
