@@ -5,6 +5,14 @@ All notable changes to this marketplace are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.6.23] - 2026-10-28
+
+### Changed
+- `nexus-windows` 3.7.3 (was 3.5.0): a single key is verified by an effect only it can produce (keyboard focus on a
+  new element or window, Ctrl+A selecting more items), dialog [N] numbers stay valid when the dialog is targeted by
+  its title, images up to 2000 px with lossless WebP, Tk wheel and covered-window capture fixes, guardrails that see
+  through invisible characters and look-alike letters. Plugin, lock and marketplace entry.
+
 ## [1.6.22] - 2026-10-27
 
 ### Changed
