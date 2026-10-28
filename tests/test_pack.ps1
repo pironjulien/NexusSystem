@@ -105,6 +105,27 @@ try {
     Test-Case 'declarations: ok, disabled, invalid, missing' $result 0 @(
         'codex=invalid,ok,ok,disabled,missing', 'claude=disabled,ok,ok,invalid,missing', 'agy=disabled,ok,missing')
 
+    foreach ($case_ in @(
+        @('current', @('nexus-windows'), '{}', 'ok'),
+        @('legacy', @('nexus-computer'), '{}', 'ok'),
+        @('current-disabled', @('nexus-windows'), '{"plugins":{"nexus-windows":{"enabled":false}}}', 'disabled'),
+        @('legacy-disabled', @('nexus-computer'), '{"plugins":{"nexus-computer":{"enabled":false}}}', 'disabled'),
+        @('legacy-disabled-after-move', @('nexus-windows'), '{"plugins":{"nexus-computer":{"enabled":false}}}', 'disabled'),
+        @('disabled-without-folder', @(), '{"plugins":{"nexus-windows":{"enabled":false}}}', 'disabled'),
+        @('absent', @(), '{}', 'missing')
+    )) {
+        $agyProfile = Initialize-Profile "agy-$($case_[0])" @('.gemini\config\plugins')
+        foreach ($name in $case_[1]) {
+            $pluginFolder = Join-Path $agyProfile ".gemini\config\plugins\$name"
+            New-Item -ItemType Directory -Force $pluginFolder | Out-Null
+            [IO.File]::WriteAllText((Join-Path $pluginFolder 'plugin.json'), '{}')
+        }
+        [IO.File]::WriteAllText((Join-Path $agyProfile '.gemini\config\config.json'), $case_[2])
+        $probe = "$functions`n'windows=' + (Get-AntigravityState @{ Agy = 'nexus-windows'; AgyLegacy = @('nexus-computer') })"
+        $result = Invoke-Pack $agyProfile $probe
+        Test-Case "Antigravity Windows identity: $($case_[0])" $result 0 @("windows=$($case_[3])")
+    }
+
     $result = Invoke-Pack $all "& '$pack' -DryRun -Skip 'codex, browser'"
     Test-Case '-Skip as one comma separated string' $result 0 @('NexusWindows  for Claude Code, Claude Desktop, Antigravity') @('NexusBrowser  for', 'Node.js')
 

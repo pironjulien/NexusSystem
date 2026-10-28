@@ -48,7 +48,7 @@ $AiNames = [ordered]@{
 # installer. Targets: the AI apps a product serves (an empty list: a device, the MX Creative Keypad).
 $AllAi = @('claude-code', 'claude-desktop', 'codex', 'antigravity')
 $Products = @(
-    @{ Key = 'windows'; Name = 'NexusWindows'; Plugin = 'nexus-windows'; Agy = 'nexus-computer'; Server = 'nexus-windows'
+    @{ Key = 'windows'; Name = 'NexusWindows'; Plugin = 'nexus-windows'; Agy = 'nexus-windows'; AgyLegacy = @('nexus-computer'); Server = 'nexus-windows'
        Targets = $AllAi },
     @{ Key = 'android'; Name = 'NexusAndroid'; Plugin = 'nexus-android'; Agy = 'nexus-android'; Server = 'nexus-android'
        Targets = $AllAi },
@@ -690,14 +690,20 @@ function Get-CodexState($Product) {
 }
 
 function Get-AntigravityState($Product) {
-    if (-not (Test-Path -LiteralPath (Join-Path $env:USERPROFILE ".gemini\config\plugins\$($Product.Agy)\plugin.json"))) { return 'missing' }
+    $names = @($Product.Agy) + @($Product.AgyLegacy) | Where-Object { $_ }
     # Turned off in Antigravity: plugins.<name>.enabled = false in ~\.gemini\config\config.json.
+    # A migration must keep a disabled legacy identity, including when its old folder has already been removed.
     $config = Read-Json (Join-Path $env:USERPROFILE '.gemini\config\config.json')
-    if ($config -and $config.plugins -and $config.plugins.PSObject.Properties[$Product.Agy]) {
-        $entry = $config.plugins.($Product.Agy)
-        if ($entry.PSObject.Properties['enabled'] -and $entry.enabled -eq $false) { return 'disabled' }
+    foreach ($name in $names) {
+        if ($config -and $config.plugins -and $config.plugins.PSObject.Properties[$name]) {
+            $entry = $config.plugins.($name)
+            if ($entry.PSObject.Properties['enabled'] -and $entry.enabled -eq $false) { return 'disabled' }
+        }
     }
-    return 'ok'
+    foreach ($name in $names) {
+        if (Test-Path -LiteralPath (Join-Path $env:USERPROFILE ".gemini\config\plugins\$name\plugin.json")) { return 'ok' }
+    }
+    return 'missing'
 }
 
 function Test-Device($Product) {

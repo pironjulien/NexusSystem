@@ -22,7 +22,8 @@ jobs:
         run: ./test.ps1 -Full
 
   # The one-liner on a machine with none of its prerequisites set up by the workflow: no uv, the runner's own Node.js,
-  # the official Claude Code installer, and the folders by which Claude Desktop, Codex and Antigravity are found.
+  # the official Claude Code installer, the pinned signed Codex engine, and the folders by which Claude Desktop
+  # and Antigravity are found. Codex must install real plugins; an empty .codex folder cannot stand in for its engine.
   # Then every server that each AI app declares is started as that app would start it.
   pack:
     runs-on: windows-latest
@@ -31,11 +32,25 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: AI apps present (Claude Code installed, the others found by their folders)
+      - name: Official Codex engine (pinned release, SHA-256 and OpenAI signature verified)
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $toolDir = Join-Path $env:RUNNER_TEMP 'codex-0.165.0'
+          New-Item -ItemType Directory -Force $toolDir | Out-Null
+          $engine = Join-Path $toolDir 'codex.exe'
+          Invoke-WebRequest -UseBasicParsing 'https://github.com/openai/codex/releases/download/rust-v0.165.0/codex-x86_64-pc-windows-msvc.exe' -OutFile $engine
+          if ((Get-FileHash -LiteralPath $engine -Algorithm SHA256).Hash -ne 'D4B2E6A054EA1DFE53217F9D8942C5F8A9F4B76171A1E0BB76CED5759915300A') { throw 'Codex release SHA-256 mismatch' }
+          $signature = Get-AuthenticodeSignature -LiteralPath $engine
+          if ($signature.Status -ne 'Valid' -or -not $signature.SignerCertificate -or
+              $signature.SignerCertificate.Subject -notmatch '(^|,\s*)(CN|O)="OpenAI OpCo, LLC"(?=,|$)') { throw 'Codex release lacks a valid OpenAI signature' }
+          if ((& $engine --version) -ne 'codex-cli 0.165.0' -or $LASTEXITCODE) { throw 'Unexpected Codex engine version' }
+          Add-Content -LiteralPath $env:GITHUB_PATH -Value $toolDir
+      - name: AI apps present (Claude Code installed, Claude Desktop and Antigravity found by their folders)
         shell: powershell
         run: |
           irm https://claude.ai/install.ps1 | iex
-          New-Item -ItemType Directory -Force "$env:APPDATA\Claude", "$env:USERPROFILE\.codex", "$env:USERPROFILE\.gemini\antigravity" | Out-Null
+          New-Item -ItemType Directory -Force "$env:APPDATA\Claude", "$env:USERPROFILE\.gemini\antigravity" | Out-Null
           if (Get-Command uv -ErrorAction SilentlyContinue) { Write-Host "uv already here: $((Get-Command uv).Source)" }
       - name: get-nexus.ps1 (Windows PowerShell 5.1), this commit's catalog
         shell: powershell

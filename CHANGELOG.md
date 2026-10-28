@@ -5,6 +5,14 @@ All notable changes to this marketplace are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.6.29] - 2026-10-28
+
+### Fixed
+- The real Windows CI installs Codex's official 0.165.0 engine, pinned by release and SHA-256 and checked for a valid
+  OpenAI signature, before installing its plugins. An empty profile no longer substitutes for the actual engine.
+- NexusWindows for Antigravity is detected as `nexus-windows`; legacy `nexus-computer` installs and disabled choices
+  remain recognised, including an old disabled identity whose directory has already been removed.
+
 ## [1.6.28] - 2026-10-28
 
 ### Fixed
