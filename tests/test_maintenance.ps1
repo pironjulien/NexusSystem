@@ -117,7 +117,7 @@ try{
 
     # Task registration is mocked. The exact durable copy and one authority have logon + hourly triggers.
     function New-ScheduledTaskAction {param($Execute,$Argument) [pscustomobject]@{Execute=$Execute;Arguments=$Argument}}
-    function New-ScheduledTaskTrigger {param([switch]$AtLogOn,[switch]$Once,$At,$RepetitionInterval) [pscustomobject]@{Logon=$AtLogOn.IsPresent;Interval=$RepetitionInterval}}
+    function New-ScheduledTaskTrigger {param([switch]$AtLogOn,[switch]$Once,$At,$RepetitionInterval,$User) [pscustomobject]@{Logon=$AtLogOn.IsPresent;Interval=$RepetitionInterval;User=$User}}
     function New-ScheduledTaskSettingsSet {param([switch]$Hidden,[switch]$StartWhenAvailable,$MultipleInstances,$ExecutionTimeLimit,$RestartCount,$RestartInterval,[switch]$AllowStartIfOnBatteries,[switch]$DontStopIfGoingOnBatteries) [pscustomobject]@{Hidden=$Hidden.IsPresent;Enabled=$true;MultipleInstances=$MultipleInstances;RestartCount=$RestartCount}}
     function New-ScheduledTaskPrincipal {param($UserId,$LogonType,$RunLevel) [pscustomobject]@{UserId=$UserId;RunLevel=$RunLevel}}
     function Get-ScheduledTask {param($TaskName,$ErrorAction) return $null}
@@ -126,6 +126,7 @@ try{
     function Start-ScheduledTask {param($TaskName) Assert ($TaskName -eq 'NexusSystem Update') 'A bootstrap started another task.'; $script:maintenanceStarts++}
     Install-NexusMaintenance $pack
     Assert ($script:task.Name -eq 'NexusSystem Update' -and $script:task.Triggers.Count -eq 2 -and $script:task.Triggers[1].Interval.TotalHours -eq 1) 'Task authority/cadence differs.'
+    Assert ($script:task.Triggers[0].User -eq $script:task.Principal.UserId) 'A per-user update task requested an all-users logon trigger.'
     Assert ($script:task.Action.Arguments -match '-WindowStyle Hidden.*-Maintain' -and $script:task.Settings.MultipleInstances -eq 'IgnoreNew' -and $script:task.Principal.RunLevel -eq 'Limited') 'Task is not hidden, serial and least-privileged.'
     Assert ((Get-FileHash -LiteralPath (Join-Path (Get-NexusMaintenanceRoot) 'get-nexus.ps1')).Hash -eq (Get-FileHash -LiteralPath $pack).Hash) 'Durable copy differs.'
     Assert ($script:maintenanceStarts -eq 0) 'Normal pack installation unexpectedly started maintenance.'

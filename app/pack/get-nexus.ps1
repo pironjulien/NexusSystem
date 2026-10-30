@@ -53,7 +53,7 @@ $ProgressPreference = 'SilentlyContinue'  # Invoke-WebRequest is many times slow
 $Ok = [string][char]0x2713
 $No = [string][char]0x2717
 $Marketplace = 'nexus-plugins'
-$NexusMaintenanceVersion = '1.6.36'
+$NexusMaintenanceVersion = '1.6.37'
 
 # AI apps, in display order. Claude Desktop also carries Claude Code (its Code tab reads the same ~\.claude).
 $AiNames = [ordered]@{
@@ -961,9 +961,10 @@ function Install-NexusMaintenance([string]$Source,[switch]$Start) {
     $shell=Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
     $arguments='-NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -File "'+$destination+'" -Maintain'
     $action=New-ScheduledTaskAction -Execute $shell -Argument $arguments
-    $triggers=@((New-ScheduledTaskTrigger -AtLogOn), (New-ScheduledTaskTrigger -Once -At (Get-Date).AddHours(1) -RepetitionInterval (New-TimeSpan -Hours 1)))
+    $currentUser=[Security.Principal.WindowsIdentity]::GetCurrent().Name
+    $triggers=@((New-ScheduledTaskTrigger -AtLogOn -User $currentUser), (New-ScheduledTaskTrigger -Once -At (Get-Date).AddHours(1) -RepetitionInterval (New-TimeSpan -Hours 1)))
     $settings=New-ScheduledTaskSettingsSet -Hidden -StartWhenAvailable -MultipleInstances IgnoreNew -ExecutionTimeLimit (New-TimeSpan -Minutes 30) -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 15) -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
-    $principal=New-ScheduledTaskPrincipal -UserId ([Security.Principal.WindowsIdentity]::GetCurrent().Name) -LogonType Interactive -RunLevel Limited
+    $principal=New-ScheduledTaskPrincipal -UserId $currentUser -LogonType Interactive -RunLevel Limited
     $previous=Get-ScheduledTask -TaskName 'NexusSystem Update' -ErrorAction SilentlyContinue
     if ($previous -and -not $previous.Settings.Enabled) { $settings.Enabled=$false }
     Register-ScheduledTask -TaskName 'NexusSystem Update' -Action $action -Trigger $triggers -Settings $settings -Principal $principal -Description 'Verified Nexus releases; installed products and existing active AI routes only. Sessions are preserved.' -Force | Out-Null

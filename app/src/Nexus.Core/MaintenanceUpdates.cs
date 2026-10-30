@@ -28,6 +28,21 @@ public static class MaintenanceUpdates
     public static string ScriptPath(UserFolders folders) => Path.Combine(folders.Nexus, "nexussystem", "maintenance", "get-nexus.ps1");
     public static string StatusPath(UserFolders folders) => Path.Combine(folders.Nexus, "status", "nexussystem-update.json");
     public static bool IsInstalled(UserFolders folders) => File.Exists(ScriptPath(folders));
+    /// <summary>A copied script is not a completed registration; failed first installs must be repairable.</summary>
+    public static bool IsRegistered()
+    {
+        try
+        {
+            var command = RequestCommand();
+            command.ArgumentList[0] = "/Query";
+            using var process = Process.Start(command);
+            if (process is null) return false;
+            process.BeginOutputReadLine();
+            process.BeginErrorReadLine();
+            return process.WaitForExit(3000) && process.ExitCode == 0;
+        }
+        catch (Exception error) when (error is Win32Exception or IOException or InvalidOperationException) { return false; }
+    }
     public static bool Supports(Product product) => product == Products.Windows || product == Products.Browser;
 
     public static MaintenanceState? Read(UserFolders folders)
