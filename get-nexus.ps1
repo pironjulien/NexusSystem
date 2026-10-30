@@ -50,7 +50,9 @@ $AllAi = @('claude-code', 'claude-desktop', 'codex', 'antigravity')
 $Products = @(
     @{ Key = 'windows'; Name = 'NexusWindows'; Plugin = 'nexus-windows'; Agy = 'nexus-windows'; AgyLegacy = @('nexus-computer'); Server = 'nexus-windows'
        Targets = $AllAi },
-    @{ Key = 'android'; Name = 'NexusAndroid'; Plugin = 'nexus-android'; Agy = 'nexus-android'; Server = 'nexus-android'
+    # Native since 0.22.0: its get.ps1 installs the shared daemon (127.0.0.1:16180, token NEXUS_MCP_TOKEN) the Claude
+    # Code and Codex plugins reach, so its installer is told every chosen AI app (Daemon) and sees the plugins.
+    @{ Key = 'android'; Name = 'NexusAndroid'; Plugin = 'nexus-android'; Daemon = $true; Agy = 'nexus-android'; Server = 'nexus-android'
        Targets = $AllAi },
     @{ Key = 'browser'; Name = 'NexusBrowser'; Plugin = 'nexus-browser'; Agy = 'nexus-browser'; Server = 'nexus-browser'
        Targets = $AllAi },
@@ -453,7 +455,8 @@ function Test-CodexOwnedServer([string]$Text, [string]$Name) {
         }
     } catch { return $false }
     $allowed = @('command', 'args', 'startup_timeout_sec', 'enabled')
-    if ($Name -eq 'nexus-relay') { $allowed = @('url', 'bearer_token_env_var', 'startup_timeout_sec', 'enabled') }
+    # The local daemons (NexusRelay; NexusAndroid since its native 0.22.0, which no longer writes a uvx command).
+    if ($Name -eq 'nexus-relay' -or ($Name -eq 'nexus-android' -and $root.ContainsKey('url'))) { $allowed = @('url', 'bearer_token_env_var', 'startup_timeout_sec', 'enabled') }
     if (@($root.Keys | Where-Object { $allowed -notcontains $_ }).Count) { return $false }
     $command = [IO.Path]::GetFileName([string]$root['command']).ToLowerInvariant()
     $args_ = @($root['args'])
@@ -463,6 +466,9 @@ function Test-CodexOwnedServer([string]$Text, [string]$Name) {
                 $args_[0] -in @('-y', '--yes') -and $args_[1] -match '^nexus-windows-codex(@latest)?$'
         }
         'nexus-android' {
+            if ($root.ContainsKey('url')) {
+                return -not $environment.Count -and $root['url'] -eq 'http://127.0.0.1:16180/mcp' -and $root['bearer_token_env_var'] -eq 'NEXUS_MCP_TOKEN'
+            }
             $package = $args_ -join ' '
             return -not $environment.Count -and $command -in @('uvx', 'uvx.exe') -and
                 $package -match '^(--python 3\.14 )?nexus-android(==\d+\.\d+\.\d+)?$'
@@ -729,7 +735,7 @@ $Checks = @{
 # NEXUS_PACK_TARGETS (pack names, comma separated). Until a product honors it (listed here), the pack does not run it
 # when that would go beyond the selection: -Only/-Skip, or an AI app where the user turned the product off.
 $OneRunForAll = @('android', 'browser', 'relay')
-$HonorsTargets = @('android', 'relay', 'browser')  # nexus-android 0.14.1; NexusRelay 1.3.2, NexusBrowser 2.26.1 (their get.ps1 is always the latest)
+$HonorsTargets = @('android', 'relay', 'browser')  # NexusAndroid 0.22.0 (native get.ps1); NexusRelay 1.3.2, NexusBrowser 2.26.1 (their get.ps1 is always the latest)
 
 # Why a product does not apply on this PC, or $null when it does.
 function Get-Unfit($Product, [string[]]$Ais) {
@@ -853,8 +859,8 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
         ($for['codex'] -and @($selected | Where-Object { $_.Plugin -and -not $kept["$($_.Key)|codex"] }).Count)) -and -not (Test-Git)
     Say ''
     $gitFor = @('claude-code', 'codex' | Where-Object { $for[$_] } | ForEach-Object { $AiNames[$_] }) -join ' and '
-    # uv for the products still served from PyPI; NexusAGYmail and NexusKeypad are native (their own get.ps1).
-    $needsUv = [bool]@('windows', 'android', 'browser', 'relay' | Where-Object { $wants[$_] }).Count
+    # uv for the products still served from PyPI; NexusAndroid, NexusRelay, NexusAGYmail and NexusKeypad are native (their get.ps1).
+    $needsUv = [bool]@('windows', 'browser' | Where-Object { $wants[$_] }).Count
     $prerequisites = @($(if ($needsUv) { 'uv' }), $(if ($needsGit) { "Git (for $gitFor)" }), $(if ($needsNode) { 'Node.js LTS (for Codex)' })) | Where-Object { $_ }
     Say "Prerequisites, once: $(if ($prerequisites) { $prerequisites -join ', ' } else { 'none' })"
     Send-Event @{ type = 'plan'; ais = @($ais); products = @($selected | Where-Object { $wants[$_.Key] } | ForEach-Object { $_.Key }); node = [bool]$needsNode; git = [bool]$needsGit
@@ -942,13 +948,12 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
                 }
             }
         }
-        # 3. NexusAndroid: one setup for every AI app (adb, declarations), without waiting for the phone. Its newest
-        #    release, never one older than its reading of NEXUS_PACK_TARGETS (0.14.1), even while the index cache still serves it.
+        # 3. NexusAndroid: its native get.ps1 (latest release, SHA-256 checked): the shared daemon, adb and the
+        #    declarations of the AI apps told here, without waiting for the phone (NEXUS_PACK=1).
         if ($wants['android'] -and $targets['android'].Count) {
             $env:NEXUS_PACK_TARGETS = $targets['android'] -join ','
-            $code = if ($prereq['uv']) { 1 } else { Invoke-Native 'NexusAndroid' {
-                Invoke-Console (Get-Uvx) @('--python', '3.14', '--refresh-package', 'nexus-android', '--from', 'nexus-android>=0.14.1', 'nexus-android', 'setup')
-            } }
+            $code = Invoke-Installer 'NexusAndroid' "$Raw/NexusAndroid/main/get.ps1" $work
+            # The daemon is what the plugins reach: a failed installer fails their cells too.
             foreach ($ai in $targets['android']) { if (-not $results["android|$ai"]) { $results["android|$ai"] = $code } }
             $own['android'] = $code
         }
@@ -960,7 +965,8 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
             $own['browser'] = $code
             if ($code -and $for['claude-code']) { $results['browser|claude-code'] = $code }  # bridge missing: plugin useless
         }
-        # 5. NexusRelay: local relay daemon, declared to Claude Code, Codex and Antigravity.
+        # 5. NexusRelay: its native get.ps1 (1.10.0+): local relay daemon, engine at its stable path (the plugins' edit
+        #    guard), declared to Claude Code, Codex and Antigravity.
         if ($wants['relay'] -and $targets['relay'].Count) {
             $env:NEXUS_PACK_TARGETS = $targets['relay'] -join ','
             $code = Invoke-Installer 'NexusRelay' "$Raw/NexusRelay/main/get.ps1" $work
@@ -1053,7 +1059,8 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
     if ($wants['android']) {
         $step++
         Say "  $step. Phone: Settings > About phone, tap Build number 7 times; Developer options > turn on USB debugging."
-        Say '     Plug it in with a USB data cable, then run: uvx --python 3.14 nexus-android setup'
+        Say '     Plug it in with a USB data cable, then run (guided, waits for the phone):'
+        Say "     irm $Raw/NexusAndroid/main/get.ps1 | iex"
         Say '     (https://github.com/pironjulien/NexusAndroid#quick-start)'
     }
     # The Codex project, only when Codex answers (Claude Code is the host); as the host, Codex needs none.

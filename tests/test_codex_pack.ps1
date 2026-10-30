@@ -17,7 +17,7 @@ $Marketplace = 'nexus-plugins'; $EmitEvents = $false; $Ok = 'ok'; $No = 'failed'
 $AiNames = [ordered]@{ 'claude-code' = 'Claude Code'; 'codex' = 'Codex' }
 $Products = @(
     @{Key='windows'; Name='NexusWindows'; Plugin='nexus-windows'; Server='nexus-windows'; Targets=@('codex')},
-    @{Key='android'; Name='NexusAndroid'; Plugin='nexus-android'; Server='nexus-android'; Targets=@('codex')},
+    @{Key='android'; Name='NexusAndroid'; Plugin='nexus-android'; Server='nexus-android'; Daemon=$true; Targets=@('codex')},
     @{Key='browser'; Name='NexusBrowser'; Plugin='nexus-browser'; Server='nexus-browser'; Targets=@('codex')},
     @{Key='relay'; Name='NexusRelay'; Plugin='nexus-relay'; Server='nexus-relay'; Daemon=$true; Targets=@('codex')}
 )
@@ -56,20 +56,17 @@ function Install-CodexPlugin([string]$Cli, [string]$Name) {
     Install-Fixture $Name
     return 0
 }
-function Invoke-Console([string]$File, [string[]]$Arguments) {
-    $script:operations += "runtime:android|$env:NEXUS_PACK_TARGETS"
-    if (($env:NEXUS_PACK_TARGETS -split ',') -contains 'codex' -and (Get-CodexPluginState (Read-Config) 'nexus-android') -ne 'enabled') {
-        Add-Config "[mcp_servers.nexus-android]`ncommand = `"uvx`"`nargs = [`"nexus-android`"]"
-    }
-    $global:LASTEXITCODE = 0
-}
+function Invoke-Console([string]$File, [string[]]$Arguments) { throw "No product runs through a console command here: $File" }
 function Invoke-Installer([string]$What, [string]$Url, [string]$Work) {
-    $name = if ($What -eq 'NexusBrowser') { 'browser' } elseif ($What -eq 'NexusRelay') { 'relay' } else { throw "Unexpected installer $What" }
+    $name = if ($What -eq 'NexusBrowser') { 'browser' } elseif ($What -eq 'NexusRelay') { 'relay' } elseif ($What -eq 'NexusAndroid') { 'android' } else { throw "Unexpected installer $What" }
     $script:operations += "runtime:$name|$env:NEXUS_PACK_TARGETS"
     if ($script:installerFailure -eq $name) { return 1 }
     if (($env:NEXUS_PACK_TARGETS -split ',') -contains 'codex') {
         # Browser's older installer does not detect an installed plugin and writes a duplicate direct MCP table.
-        if ($name -eq 'browser') {
+        if ($name -eq 'android') {
+            # NexusAndroid's native installer declares its daemon directly when it does not see the plugin.
+            Add-Config "[mcp_servers.nexus-android]`nurl = `"http://127.0.0.1:16180/mcp`"`nbearer_token_env_var = `"NEXUS_MCP_TOKEN`""
+        } elseif ($name -eq 'browser') {
             $python = (Join-Path $env:USERPROFILE '.nexus\nexus-browser\venv\Scripts\python.exe') | ConvertTo-Json -Compress
             $server = (Join-Path $env:LOCALAPPDATA 'NexusBrowser\app\client\mcp_server.py') | ConvertTo-Json -Compress
             Add-Config "[mcp_servers.nexus-browser]`ncommand = $python`nargs = [`"-B`", $server]`n[mcp_servers.nexus-browser.env]`nNEXUS_BROWSER_AGENT = `"Codex`""
@@ -174,6 +171,10 @@ other = [
     Assert-True (-not (Test-CodexOwnedServer ($android.Replace('nexus-android==0.20.3','--from nexus-android-dev')) 'nexus-android')) 'Custom package must prevent removal.'
     Assert-True (-not (Test-CodexOwnedServer "[mcp_servers.nexus-relay]`nurl = `"http://127.0.0.1:9999/mcp?agent=codex`"`nbearer_token_env_var = `"NEXUS_MCP_TOKEN`"`n" 'nexus-relay')) 'Nonstandard relay port must prevent removal.'
     Assert-True (-not (Test-CodexOwnedServer ($android+"[mcp_servers.nexus-android.env]`nMY_SETTING = `"yes`"`n") 'nexus-android')) 'Custom env must prevent removal.'
+    $daemon = "[mcp_servers.nexus-android]`nurl = `"http://127.0.0.1:16180/mcp`"`nbearer_token_env_var = `"NEXUS_MCP_TOKEN`"`n"
+    Assert-True (Test-CodexOwnedServer $daemon 'nexus-android') 'Native NexusAndroid daemon declaration not recognized.'
+    Assert-True (-not (Test-CodexOwnedServer $daemon.Replace('NEXUS_MCP_TOKEN', 'MY_TOKEN') 'nexus-android')) 'Another token variable must prevent removal.'
+    Assert-True (-not (Test-CodexOwnedServer $daemon.Replace('16180', '9999') 'nexus-android')) 'Another port must prevent removal.'
     Write-Host 'OK Codex: only exact official command/args/environment/URL signatures migrate'
 
     $spacedOwned = "[ mcp_servers . 'nexus-android' ] # original`ncommand = 'uvx'`nargs = ['--python','3.14','nexus-android']`n[other]`ntext = 'kept'`n[ plugins . 'nexus-android@nexus-plugins' ]`nenabled = true`n"

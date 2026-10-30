@@ -13,7 +13,14 @@ before those releases and broke the public install; they are back to the forms t
 on a local branch to be applied product by product.
 
 ### Changed
-- App: the Claude Desktop extension of NexusWindows comes from the single NexusWindows repository
+- NexusAndroid is native (0.22.0): the `nexus-android` plugins (Claude Code 0.22.0, Codex) reach its daemon
+  (`127.0.0.1:16180/mcp`, token read from the user variable `NEXUS_MCP_TOKEN`), installed by its `get.ps1`, which the
+  pack runs with `NEXUS_PACK=1` and `NEXUS_PACK_TARGETS`; its `pyproject.toml` and `uv.lock` are gone. The Codex
+  migration also recognises the daemon declaration its installer may write.
+- NexusRelay is native (1.10.0): the `nexus-relay` plugins (1.10.0) keep its daemon; the Codex edit guard calls the
+  engine NexusRelay's installer keeps at `%USERPROFILE%\.nexus\nexus-relay\bin\NexusRelay.exe` through `cmd.exe`
+  (before, after the edit and at the end of the turn), and Claude Code's plugin now carries the edit guard and the
+  unread-message notice from the same engine. uv is no longer needed for the relay.- App: the Claude Desktop extension of NexusWindows comes from the single NexusWindows repository
   (`nexus-windows-claude.mcpb` of its latest release), no longer from the archived NexusWindows-Claude.
 - NexusAGYmail is installed by its native `get.ps1` (v0.14.0: Windows engine, SHA-256 checked, Antigravity plugin);
   its Google sign-in is `get.ps1 -Auth`, in the pack's last steps and in the app. uv is a prerequisite only when a

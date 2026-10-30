@@ -1,11 +1,20 @@
 {
   "name": "nexus-relay",
-  "version": "1.9.0",
-  "description": "Nexus Relay for Codex: direct link between Codex, Claude and Antigravity on one Windows PC (topic rooms, multi-agent review, delegated tasks), served by the local nexus-relay daemon.",
-  "author": { "name": "Julien Piron", "url": "https://julienpiron.fr" },
+  "version": "1.10.0",
+  "description": "Direct link between Claude, Codex and Antigravity on one Windows PC: topic rooms, multi-agent review, delegated tasks. Served by the local NexusRelay daemon, installed by NexusSystem (or NexusRelay's get.ps1).",
+  "author": {
+    "name": "Julien Piron",
+    "url": "https://julienpiron.fr"
+  },
   "repository": "https://github.com/pironjulien/NexusRelay",
   "license": "MIT",
-  "keywords": ["multi-agent", "codex", "claude", "antigravity", "mcp"],
+  "keywords": [
+    "multi-agent",
+    "codex",
+    "claude",
+    "antigravity",
+    "mcp"
+  ],
   "mcpServers": "./.mcp.json",
   "skills": "./skills/",
   "hooks": {
@@ -16,8 +25,33 @@
           "hooks": [
             {
               "type": "command",
-              "command": "uvx --python 3.14 --from nexus-relay==1.9.0 python -I -B -m nexus_relay.edit_guard codex",
-              "timeout": 60,
+              "command": "cmd.exe /d /c \"%USERPROFILE%\\.nexus\\nexus-relay\\bin\\NexusRelay.exe\" --edit-guard codex",
+              "timeout": 15,
+              "async": false
+            }
+          ]
+        }
+      ],
+      "PostToolUse": [
+        {
+          "matcher": "apply_patch",
+          "hooks": [
+            {
+              "type": "command",
+              "command": "cmd.exe /d /c \"%USERPROFILE%\\.nexus\\nexus-relay\\bin\\NexusRelay.exe\" --edit-guard codex --finish-tool",
+              "timeout": 15,
+              "async": false
+            }
+          ]
+        }
+      ],
+      "Stop": [
+        {
+          "hooks": [
+            {
+              "type": "command",
+              "command": "cmd.exe /d /c \"%USERPROFILE%\\.nexus\\nexus-relay\\bin\\NexusRelay.exe\" --edit-guard codex --finish-session",
+              "timeout": 15,
               "async": false
             }
           ]

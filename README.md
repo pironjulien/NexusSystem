@@ -48,9 +48,9 @@ Git when a Claude Code or Codex plugin needs it, Node.js LTS when Codex is there
 | Product | Claude Code | Claude Desktop | Codex | Antigravity |
 | --- | --- | --- | --- | --- |
 | NexusWindows | plugin `nexus-windows` (this catalog) | [NexusWindows](https://github.com/pironjulien/NexusWindows/tree/main/claude) `setup.ps1` | plugin `nexus-windows` ([NexusWindows](https://github.com/pironjulien/NexusWindows/tree/main/codex)) | [NexusWindows](https://github.com/pironjulien/NexusWindows/tree/main/agy) plugin |
-| NexusAndroid | plugin `nexus-android` | [NexusAndroid](https://github.com/pironjulien/NexusAndroid) `setup` | same | same (a plugin) |
+| NexusAndroid | plugin `nexus-android` + daemon ([NexusAndroid](https://github.com/pironjulien/NexusAndroid) native `get.ps1`) | NexusAndroid `get.ps1` | same | same (a plugin) |
 | NexusBrowser | plugin `nexus-browser` + bridge | [NexusBrowser](https://github.com/pironjulien/NexusBrowser) `get.ps1` | same | same (a plugin) |
-| NexusRelay (experimental) | plugin `nexus-relay` + daemon ([NexusRelay](https://github.com/pironjulien/NexusRelay) `get.ps1`) | not a relay client | same | same (a plugin) |
+| NexusRelay (experimental) | plugin `nexus-relay` + daemon ([NexusRelay](https://github.com/pironjulien/NexusRelay) native `get.ps1`) | not a relay client | same | same (a plugin) |
 | NexusAGYmail | official Gmail connector instead | official Gmail connector instead | official Gmail connector instead | [NexusAGYmail](https://github.com/pironjulien/NexusAGYmail) native `get.ps1` (a plugin) |
 
 NexusKeypad, for Logitech's MX Creative Keypad, is installed by [its own `get.ps1`](https://github.com/pironjulien/NexusKeypad)
@@ -74,12 +74,13 @@ Each product also installs alone: see its README.
 ## The plugins, one by one
 
 **Computer use in the background for Claude Code and Codex.** Four plugins provide Android, Windows, Chrome and the
-Relay between AI apps. Each includes its guide. Android, Browser and Windows for Claude start a pinned open-source
-MCP server from PyPI; Relay connects to its installed local daemon, and Windows for Codex uses its npm package.
+Relay between AI apps (and Claude Code also gets the Logitech keypad). Each includes its guide. Browser and Windows for
+Claude start a pinned open-source MCP server from PyPI until their native release; Android and Relay connect to their
+local native daemon (token read from the user variable `NEXUS_MCP_TOKEN`), and Windows for Codex uses its npm package.
 
 | Plugin | What Claude gets | Server |
 | --- | --- | --- |
-| `nexus-android` | Your Android phone over plain ADB (no root, no app): screen, gestures, SMS/RCS, notifications, files, settings | [NexusAndroid](https://github.com/pironjulien/NexusAndroid) · [PyPI](https://pypi.org/project/nexus-android/) |
+| `nexus-android` | Your Android phone over plain ADB (no root, no app): screen, gestures, SMS/RCS, notifications, files, settings | [NexusAndroid](https://github.com/pironjulien/NexusAndroid) daemon, `127.0.0.1:16180` |
 | `nexus-windows` | Windows desktop apps in the background: look, click, type, menus, shortcuts, launch, without your mouse or foreground | [NexusWindows](https://github.com/pironjulien/NexusWindows/tree/main/claude) · [PyPI](https://pypi.org/project/nexus-windows-claude/) |
 | `nexus-browser` | Your real Chrome with your sessions, in background tabs: forms, network, dialogs, iframes, exports, downloads | [NexusBrowser](https://github.com/pironjulien/NexusBrowser) · [PyPI](https://pypi.org/project/nexus-browser/) |
 | `nexus-keypad` | Live states and exact usage for the Logitech MX Creative Keypad, peers' reachability under the prompt | [NexusKeypad](https://github.com/pironjulien/NexusKeypad)'s native helper (installed by its `get.ps1`) |
@@ -121,8 +122,8 @@ plugins from another catalog; it migrates only the official installers' old dire
 plugin and its guide have been verified. It never adds a second server beside a custom one.
 
 The same repository is a Codex plugin marketplace (`.agents/plugins/marketplace.json`): `nexus-windows` (from
-[NexusWindows](https://github.com/pironjulien/NexusWindows/tree/main/codex), needs Node.js 22+), `nexus-android` and
-`nexus-browser` (pinned like their Claude twins, uv needed), and `nexus-relay` (its local daemon must be installed).
+[NexusWindows](https://github.com/pironjulien/NexusWindows/tree/main/codex), needs Node.js 22+), `nexus-browser`
+(pinned like its Claude twin, uv needed), and `nexus-android` and `nexus-relay` (their local daemon must be installed).
 In the Codex app: **Settings > Plugins > Add > Add a
 marketplace**, source `pironjulien/NexusSystem`, then install the plugins; or from a terminal:
 
@@ -145,7 +146,8 @@ More examples, and how to test each plugin without your own phone or data, are i
 Per-plugin requirements:
 
 - **nexus-android**: USB debugging on the phone and the PC's key accepted (`adb` is downloaded if missing;
-  `uvx --python 3.14 nexus-android setup` guides the first connection).
+  NexusAndroid's `get.ps1`, `irm https://raw.githubusercontent.com/pironjulien/NexusAndroid/main/get.ps1 | iex`, installs
+  the daemon and guides the first connection).
 - **nexus-windows**: Windows 10 or 11.
 - **nexus-browser**: the **NexusBrowser Chrome extension and local bridge**, installed once with one PowerShell
   command, `irm https://raw.githubusercontent.com/pironjulien/NexusBrowser/main/get.ps1 | iex`
@@ -156,7 +158,7 @@ Per-plugin requirements:
 
 ```mermaid
 flowchart LR
-    C["Claude Code"] -- "stdio (MCP)" --> A["uvx nexus-android==0.21.0"] -- ADB --> P["Android phone"]
+    C["Claude Code"] -- "HTTP 127.0.0.1 (MCP, token)" --> A["NexusAndroid daemon"] -- ADB --> P["Android phone"]
     C -- "stdio (MCP)" --> W["uvx nexus-windows-claude==3.7.4"] -- "UI Automation, Win32" --> D["Windows apps"]
     C -- "stdio (MCP)" --> B["uvx nexus-browser==2.32.0"] -- "local bridge" --> E["Chrome extension"] --> T["Chrome tabs"]
 ```

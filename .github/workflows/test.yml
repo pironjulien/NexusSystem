@@ -103,7 +103,7 @@ jobs:
           $env:PATH = "$env:USERPROFILE\.local\bin;" + [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + [Environment]::GetEnvironmentVariable('Path', 'User')
           $env:NEXUS_MCP_TOKEN = [Environment]::GetEnvironmentVariable('NEXUS_MCP_TOKEN', 'User')
           $env:NEXUS_PACK_CHECK_AIS = 'claude-code,claude-desktop,codex,antigravity'
-          $env:NEXUS_PACK_CHECK_PRODUCTS = 'windows,android,browser'
+          $env:NEXUS_PACK_CHECK_PRODUCTS = 'windows,android,browser,relay'
           dotnet test --project tests/NexusSystem.Tests --filter-class NexusSystem.Tests.InstallTests
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           $env:NEXUS_PACK_CHECK_AIS = 'antigravity'; $env:NEXUS_PACK_CHECK_PRODUCTS = 'agymail'

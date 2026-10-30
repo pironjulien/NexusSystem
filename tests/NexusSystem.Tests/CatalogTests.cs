@@ -6,9 +6,9 @@ namespace NexusSystem.Tests;
 /// <summary>
 /// The two catalogs (Claude Code: .claude-plugin + plugins/, Codex: .agents/plugins + codex/). A product moves to its
 /// native form only once its native release and get.ps1 are published (what is installed is always published before
-/// the installer that depends on it). Today: NexusAndroid, NexusWindows and NexusBrowser still start their pinned PyPI
-/// server with uvx (pyproject.toml and uv.lock beside it); NexusRelay is its local daemon; NexusKeypad calls its
-/// native helper; NexusAGYmail is installed by its native get.ps1 (Antigravity only, no plugin here).
+/// the installer that depends on it). Today: NexusWindows and NexusBrowser still start their pinned PyPI server with
+/// uvx (pyproject.toml and uv.lock beside it); NexusAndroid (native 0.22.0) and NexusRelay (native 1.10.0) are their local daemon;
+/// NexusKeypad calls its native helper; NexusAGYmail is installed by its native get.ps1 (Antigravity only).
 /// </summary>
 public class CatalogTests
 {
@@ -20,11 +20,19 @@ public class CatalogTests
     /// <summary>Plugins still served from PyPI, and their package (NexusWindows for Claude: nexus-windows-claude).</summary>
     static readonly Dictionary<string, string> PyPI = new()
     {
-        ["nexus-android"] = "nexus-android", ["nexus-windows"] = "nexus-windows-claude", ["nexus-browser"] = "nexus-browser",
+        ["nexus-windows"] = "nexus-windows-claude", ["nexus-browser"] = "nexus-browser",
     };
 
     /// <summary>Codex plugins served from another repository (its Codex edition).</summary>
     static readonly Dictionary<string, string> CodexUrls = new() { ["nexus-windows"] = "https://github.com/pironjulien/NexusWindows-Codex.git" };
+
+    /// <summary>Plugins served by their product's local daemon: exactly this declaration, the token read from the user variable.</summary>
+    static readonly Dictionary<string, (string Claude, string Codex)> Daemons = new()
+    {
+        ["nexus-relay"] = (RelayClaude, RelayCodex),
+        ["nexus-android"] = ("""{"nexus-android":{"type":"http","url":"http://127.0.0.1:16180/mcp","headers":{"Authorization":"Bearer ${NEXUS_MCP_TOKEN}"}}}""",
+            """{"nexus-android":{"url":"http://127.0.0.1:16180/mcp","bearer_token_env_var":"NEXUS_MCP_TOKEN","startup_timeout_sec":60}}"""),
+    };
 
     const string RelayClaude = """{"nexus-relay":{"type":"http","url":"http://127.0.0.1:16181/mcp?agent=claude","headers":{"Authorization":"Bearer ${NEXUS_MCP_TOKEN}"}}}""";
     const string RelayCodex = """{"nexus-relay":{"url":"http://127.0.0.1:16181/mcp?agent=codex","bearer_token_env_var":"NEXUS_MCP_TOKEN","startup_timeout_sec":60}}""";
@@ -97,11 +105,41 @@ public class CatalogTests
     }
 
     [Fact]
-    public void RelayPluginIsItsLocalDaemon()
+    public void ClaudeRelayHooksUseTheStableEngine()
     {
-        Assert.True(JsonNode.DeepEquals(JsonNode.Parse(RelayClaude), Repository.Json("plugins/nexus-relay/.mcp.json")["mcpServers"]));
-        Assert.False(File.Exists(Repository.PathOf("plugins/nexus-relay/pyproject.toml")), "a daemon plugin starts nothing");
-        Assert.False(File.Exists(Repository.PathOf("plugins/nexus-relay/uv.lock")), "a daemon plugin starts nothing");
+        // Claude Code runs hooks with bash: the engine NexusRelay's installer keeps at ~/.nexus/nexus-relay/bin. The
+        // edit guard on file edits, the release after the tool and at the end, the notice of unread messages.
+        var events = Repository.Json("plugins/nexus-relay/hooks/hooks.json")["hooks"]!.AsObject();
+        var expected = new Dictionary<string, (string? Matcher, string Arguments)>
+        {
+            ["PreToolUse"] = ("Edit|Write|MultiEdit|NotebookEdit", "--edit-guard claude"),
+            ["PostToolUse"] = ("Edit|Write|MultiEdit|NotebookEdit", "--edit-guard claude --finish-tool"),
+            ["PostToolUseFailure"] = ("Edit|Write|MultiEdit|NotebookEdit", "--edit-guard claude --finish-tool"),
+            ["Stop"] = (null, "--edit-guard claude --finish-session"),
+            ["SessionEnd"] = (null, "--edit-guard claude --finish-session"),
+            ["SessionStart"] = (null, "--notice"),
+            ["UserPromptSubmit"] = (null, "--notice"),
+        };
+        Assert.Equal(expected.Keys.Order(), events.Select(e => e.Key).Order());
+        foreach (var (name, (matcher, arguments)) in expected)
+        {
+            var group = Assert.Single(events[name]!.AsArray())!;
+            Assert.Equal(matcher, (string?)group["matcher"]);
+            var hook = Assert.Single(group["hooks"]!.AsArray())!;
+            Assert.Equal($"\"$HOME/.nexus/nexus-relay/bin/NexusRelay.exe\" {arguments} || true", (string?)hook["command"]);
+        }
+    }
+
+    public static TheoryData<string> DaemonNames => new(Daemons.Keys);
+
+    [Theory]
+    [MemberData(nameof(DaemonNames))]
+    public void DaemonPluginIsItsLocalDaemon(string name)
+    {
+        Assert.True(JsonNode.DeepEquals(JsonNode.Parse(Daemons[name].Claude), Repository.Json($"plugins/{name}/.mcp.json")["mcpServers"]), $"{name}: Claude declaration");
+        Assert.True(JsonNode.DeepEquals(JsonNode.Parse(Daemons[name].Codex), Repository.Json($"codex/{name}/.mcp.json")["mcpServers"]), $"{name}: Codex declaration");
+        Assert.False(File.Exists(Repository.PathOf($"plugins/{name}/pyproject.toml")), "a daemon plugin starts nothing");
+        Assert.False(File.Exists(Repository.PathOf($"plugins/{name}/uv.lock")), "a daemon plugin starts nothing");
     }
 
     [Fact]
@@ -181,9 +219,23 @@ public class CatalogTests
         if (name == "nexus-relay")
         {
             Assert.True(JsonNode.DeepEquals(JsonNode.Parse(RelayCodex), servers), "relay: exactly the local daemon");
-            // The edit guard runs this plugin's exact published version, synchronously.
-            var expected = $$$"""{"hooks":{"PreToolUse":[{"matcher":"apply_patch","hooks":[{"type":"command","command":"uvx --python 3.14 --from nexus-relay=={{{version}}} python -I -B -m nexus_relay.edit_guard codex","timeout":60,"async":false}]}]}}""";
-            Assert.True(JsonNode.DeepEquals(JsonNode.Parse(expected), manifest["hooks"]), "relay: edit guard of this exact version");
+            // The edit guard: the relay's native engine at the stable path its installer keeps, synchronously. Codex
+            // reads no variable in a command: cmd.exe expands %USERPROFILE%, whether Codex runs the line through a
+            // shell or splits it. NexusRelay's installer recognises it (NexusRelay.exe --edit-guard, apply_patch).
+            const string guard = """cmd.exe /d /c \"%USERPROFILE%\\.nexus\\nexus-relay\\bin\\NexusRelay.exe\" --edit-guard codex""";
+            var expected = $$$"""
+                {"hooks":{
+                  "PreToolUse":[{"matcher":"apply_patch","hooks":[{"type":"command","command":"{{{guard}}}","timeout":15,"async":false}]}],
+                  "PostToolUse":[{"matcher":"apply_patch","hooks":[{"type":"command","command":"{{{guard}}} --finish-tool","timeout":15,"async":false}]}],
+                  "Stop":[{"hooks":[{"type":"command","command":"{{{guard}}} --finish-session","timeout":15,"async":false}]}]}}
+                """;
+            Assert.True(JsonNode.DeepEquals(JsonNode.Parse(expected), manifest["hooks"]), "relay: native edit guard from its stable path");
+            return;
+        }
+        if (Daemons.ContainsKey(name))
+        {
+            Assert.True(JsonNode.DeepEquals(JsonNode.Parse(Daemons[name].Codex), servers), $"{name}: exactly the local daemon");
+            Assert.Equal(Repository.Text($"plugins/{name}/skills/{name}/SKILL.md").ReplaceLineEndings(), Repository.Text(skill).ReplaceLineEndings());
             return;
         }
         var server = Assert.Single(servers.AsObject());
@@ -198,15 +250,16 @@ public class CatalogTests
     [Fact]
     public void NativeProductsNeverGoThroughPython()
     {
-        // No Python in the repository's own code, and the products already native (NexusAGYmail, NexusKeypad) are
+        // No Python in the repository's own code, and the products already native (NexusAndroid, NexusRelay, NexusAGYmail, NexusKeypad) are
         // installed by their own get.ps1, never by uvx or PyPI.
         Assert.DoesNotContain(Repository.TrackedFiles(), f => f.EndsWith(".py", StringComparison.Ordinal));
         foreach (var file in new[] { "get-nexus.ps1", "app/src/Nexus.App/Text.cs", "README.md", "INSTALL-AI.md" })
         {
             var text = Repository.Text(file);
-            Assert.DoesNotMatch(new Regex(@"nexus-agymail@|nexus-agymail\s+(?:auth|setup)|uvx\b[^\n]*nexus-agymail|nexus-keypad==|pypi\.org/project/nexus-(?:agymail|keypad)", RegexOptions.IgnoreCase), text);
+            Assert.DoesNotMatch(new Regex(@"nexus-(?:agymail|android)@(?:latest|\d)|nexus-(?:agymail|android)(?:>=|==)|nexus-(?:agymail|android)\s+(?:auth|setup)|uvx\b[^\n]*nexus-(?:agymail|android)|nexus-keypad==|nexus-relay==|--from nexus-relay|pypi\.org/project/nexus-(?:agymail|android|relay|keypad)", RegexOptions.IgnoreCase), text);
         }
         Assert.Contains("$Raw/NexusAGYmail/main/get.ps1", Repository.Text("get-nexus.ps1"));
+        Assert.Contains("$Raw/NexusAndroid/main/get.ps1", Repository.Text("get-nexus.ps1"));
         Assert.Contains("$Raw/NexusKeypad/main/get.ps1", Repository.Text("get-nexus.ps1"));
     }
 
