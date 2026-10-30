@@ -9,7 +9,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ### Changed
 - Next Store app (1.0.13.0): request the installed public maintenance task and display dated published, installed,
-  observed and pending versions. Publishing the catalog does not deploy this separate Store package.
+  observed and pending versions. First launch establishes the same maintenance task for existing product installs,
+  without reinstalling them. Publishing the catalog does not deploy this separate Store package.
 
 ## [1.6.36] - 2026-10-30
 

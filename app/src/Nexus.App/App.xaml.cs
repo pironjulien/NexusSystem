@@ -1,4 +1,5 @@
 using Microsoft.UI.Xaml;
+using Nexus.Core;
 using Windows.Graphics;
 
 namespace Nexus.App;
@@ -41,5 +42,23 @@ public partial class App : Application
         }
         else if (argv.Contains("--quiet")) window.ShowQuietly();  // tests: never takes the user's foreground
         else window.Activate();
+        // An existing Store installation may predate the maintenance task. The embedded pack bootstraps only
+        // that worker; normal use stays responsive and capture fixtures never schedule real maintenance.
+        if (Option("--capture") is null && !argv.Contains("--quiet")) _ = BootstrapMaintenanceAsync();
+    }
+
+    static async Task BootstrapMaintenanceAsync()
+    {
+        try
+        {
+            await Task.Run(async () =>
+            {
+                if (!PackRunner.NeedsMaintenanceBootstrap(UserFolders.FromEnvironment())) return;
+                var code = await PackRunner.RunAsync([], dryRun: false,
+                    line => AppLog.Info("maintenance bootstrap: " + line), _ => { }, maintenanceOnly: true);
+                if (code != 0) AppLog.Error("maintenance bootstrap", new InvalidOperationException($"Maintenance worker installation returned {code}."));
+            });
+        }
+        catch (Exception error) { AppLog.Error("maintenance bootstrap", error); }
     }
 }

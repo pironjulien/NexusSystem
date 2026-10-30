@@ -122,13 +122,19 @@ try{
     function New-ScheduledTaskPrincipal {param($UserId,$LogonType,$RunLevel) [pscustomobject]@{UserId=$UserId;RunLevel=$RunLevel}}
     function Get-ScheduledTask {param($TaskName,$ErrorAction) return $null}
     function Register-ScheduledTask {param($TaskName,$Action,$Trigger,$Settings,$Principal,$Description,[switch]$Force) $script:task=@{Name=$TaskName;Action=$Action;Triggers=@($Trigger);Settings=$Settings;Principal=$Principal}}
+    $script:maintenanceStarts=0
+    function Start-ScheduledTask {param($TaskName) Assert ($TaskName -eq 'NexusSystem Update') 'A bootstrap started another task.'; $script:maintenanceStarts++}
     Install-NexusMaintenance $pack
     Assert ($script:task.Name -eq 'NexusSystem Update' -and $script:task.Triggers.Count -eq 2 -and $script:task.Triggers[1].Interval.TotalHours -eq 1) 'Task authority/cadence differs.'
     Assert ($script:task.Action.Arguments -match '-WindowStyle Hidden.*-Maintain' -and $script:task.Settings.MultipleInstances -eq 'IgnoreNew' -and $script:task.Principal.RunLevel -eq 'Limited') 'Task is not hidden, serial and least-privileged.'
     Assert ((Get-FileHash -LiteralPath (Join-Path (Get-NexusMaintenanceRoot) 'get-nexus.ps1')).Hash -eq (Get-FileHash -LiteralPath $pack).Hash) 'Durable copy differs.'
+    Assert ($script:maintenanceStarts -eq 0) 'Normal pack installation unexpectedly started maintenance.'
+    Install-NexusMaintenance $pack -Start
+    Assert ($script:maintenanceStarts -eq 1) 'An existing hub did not start the same maintenance worker.'
     function Get-ScheduledTask {param($TaskName,$ErrorAction) return [pscustomobject]@{Settings=[pscustomobject]@{Enabled=$false}}}
-    Install-NexusMaintenance $pack
+    Install-NexusMaintenance $pack -Start
     Assert ($script:task.Settings.Enabled -eq $false) 'Task disabled by its owner was re-enabled.'
+    Assert ($script:maintenanceStarts -eq 1) 'A disabled maintenance task was started by bootstrap.'
     Write-Host 'OK durable single updater is hidden, hourly and resumes missed runs'
 
     # Real orchestration with inert release and product implementations. A new connection is never fabricated.

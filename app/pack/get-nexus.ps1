@@ -23,6 +23,7 @@
 #                  Nexus apps that run this same script and show its progress
 #   -Maintain     update installed products and existing active Nexus routes only, preserving running sessions
 #   -MaintenanceStatus  read the last check as JSON without changing files or contacting GitHub
+#   -InstallMaintenance  establish the same updater for an already installed Store hub, without reinstalling products
 param(
     [string[]]$Only = @(),
     [string[]]$Skip = @(),
@@ -33,7 +34,8 @@ param(
     [switch]$Maintain,
     [switch]$MaintenanceStatus,
     [switch]$MaintenanceCurrent,
-    [switch]$ForceMaintenance
+    [switch]$ForceMaintenance,
+    [switch]$InstallMaintenance
 )
 
 $ErrorActionPreference = 'Stop'
@@ -946,7 +948,7 @@ function Write-NexusMaintenanceStatus($State) {
     [IO.File]::WriteAllText($temporary,($State | ConvertTo-Json -Depth 12),[Text.UTF8Encoding]::new($false))
     Move-Item -LiteralPath $temporary -Destination $path -Force
 }
-function Install-NexusMaintenance([string]$Source) {
+function Install-NexusMaintenance([string]$Source,[switch]$Start) {
     $choices=Read-Json (Join-Path $env:USERPROFILE '.nexus\nexussystem.json')
     if ($choices -and $choices.autoUpdate -eq $false) { return }
     $root=Get-NexusMaintenanceRoot
@@ -965,6 +967,7 @@ function Install-NexusMaintenance([string]$Source) {
     $previous=Get-ScheduledTask -TaskName 'NexusSystem Update' -ErrorAction SilentlyContinue
     if ($previous -and -not $previous.Settings.Enabled) { $settings.Enabled=$false }
     Register-ScheduledTask -TaskName 'NexusSystem Update' -Action $action -Trigger $triggers -Settings $settings -Principal $principal -Description 'Verified Nexus releases; installed products and existing active AI routes only. Sessions are preserved.' -Force | Out-Null
+    if ($Start -and $settings.Enabled -and (-not $previous -or $previous.State -ne 'Running')) { Start-ScheduledTask -TaskName 'NexusSystem Update' }
 }
 function Assert-NexusUpdateContract([string]$File,[string[]]$Parameters) {
     $errors=$null;$tokens=$null
@@ -1652,6 +1655,11 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
 }
 
 $script:NexusPackScript = $PSCommandPath
+if ($InstallMaintenance) {
+    if ($DryRun) { exit 0 }
+    Install-NexusMaintenance $PSCommandPath -Start
+    exit 0
+}
 if ($MaintenanceStatus) {
     Get-NexusMaintenanceStatus | ConvertTo-Json -Depth 12
     exit 0
