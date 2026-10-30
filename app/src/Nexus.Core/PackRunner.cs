@@ -120,7 +120,7 @@ public static class PackRunner
 
     /// <summary>Runs the pack; maintenanceOnly installs its worker without installing or reconfiguring products.</summary>
     public static async Task<int> RunAsync(IEnumerable<string> only, bool dryRun, Action<string> onLine, Action<PackEvent> onEvent,
-        CancellationToken cancel = default, bool maintenanceOnly = false)
+        bool maintenanceOnly = false, CancellationToken cancel = default)
     {
         var script = ExtractScript();
         try
