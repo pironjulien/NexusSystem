@@ -53,9 +53,9 @@ public static class PackRunner
     /// Existing engines need the maintenance worker once after upgrading an older hub. Reading installation
     /// files here only selects the bootstrap; it never reports a running connection or executes those engines.
     /// </summary>
-    public static bool NeedsMaintenanceBootstrap(UserFolders folders)
+    public static bool NeedsMaintenanceBootstrap(UserFolders folders, bool? taskRegistered = null)
     {
-        if (MaintenanceUpdates.IsInstalled(folders)) return false;
+        if (MaintenanceUpdates.IsInstalled(folders) && (taskRegistered ?? MaintenanceUpdates.IsRegistered())) return false;
         try
         {
             var choices = LocalSettings.FilePath(folders);

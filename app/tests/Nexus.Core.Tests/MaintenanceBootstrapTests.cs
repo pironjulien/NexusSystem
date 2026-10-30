@@ -26,7 +26,8 @@ public class MaintenanceBootstrapTests
         Assert.False(PackRunner.NeedsMaintenanceBootstrap(profile.Folders));
         ExistingBrowser(profile);
         profile.Write(@".nexus\nexussystem\maintenance\get-nexus.ps1", "# existing public worker");
-        Assert.False(PackRunner.NeedsMaintenanceBootstrap(profile.Folders));
+        Assert.False(PackRunner.NeedsMaintenanceBootstrap(profile.Folders, taskRegistered: true));
+        Assert.True(PackRunner.NeedsMaintenanceBootstrap(profile.Folders, taskRegistered: false));
     }
 
     [Theory]

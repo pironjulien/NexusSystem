@@ -12,6 +12,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
   observed and pending versions. First launch establishes the same maintenance task for existing product installs,
   without reinstalling them. Publishing the catalog does not deploy this separate Store package.
 
+## [1.6.37] - 2026-10-30
+
+### Fixed
+- The logon trigger is limited to the current user, matching its limited principal. Standard users no longer
+  request an all-users trigger requiring administrator rights. Real registration and execution were verified.
+- The next Store app retries bootstrap after a partial installation: a copied script without its registered task
+  no longer counts as a completed setup.
+
 ## [1.6.36] - 2026-10-30
 
 ### Added
