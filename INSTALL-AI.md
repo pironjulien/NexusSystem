@@ -26,8 +26,7 @@ Never assume the user wants every product if they only need one or two. The avai
 **Never run downloaded code in memory** (a download piped into PowerShell, or a script block or encoded command built from it): Microsoft
 Defender rightly blocks it as a malware loader. Always download the pack script as a **file** of the latest
 NexusSystem release, check it, then run it with `-File`. It requires no administrator rights, detects the AI apps
-installed on the PC, installs missing prerequisites (`uv` for the products still served from PyPI, `Git` or `Node.js`
-when a selected target needs them), and runs each selected product's official installer the same way (the `get.ps1`
+installed on the PC, installs Git when a selected AI app needs it to add the catalog, and runs each selected product's official native installer the same way (the `get.ps1`
 file of its release, checked against its `SHA256SUMS.txt`, run with `-File`).
 
 If the user prefers an app: the NexusSystem app of the Microsoft Store does all this

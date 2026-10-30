@@ -5,8 +5,8 @@
     "url": "https://github.com/pironjulien"
   },
   "metadata": {
-    "description": "Computer use in the background for Claude Code: your Android phone over ADB, your Windows desktop apps, your real Chrome, a direct line to Codex and Antigravity, your Logitech keypad. Windows and Chrome start their open-source MCP server from PyPI with uvx (pinned and locked with hashes) until each product publishes its native release; Android and Relay connect to their local daemon; Keypad calls NexusKeypad's native helper.",
-    "version": "1.6.31"
+    "description": "Computer use in the background for Claude Code: your Android phone, your Windows desktop apps, your real Chrome, a direct line to Codex and Antigravity, your Logitech keypad. Each plugin connects to its product's native Windows engine (no Python), installed by NexusSystem.",
+    "version": "1.6.33"
   },
   "plugins": [
     {
@@ -29,8 +29,8 @@
     {
       "name": "nexus-windows",
       "source": "./plugins/nexus-windows",
-      "description": "Windows desktop apps through native UI Automation: observe, click, type, menus, shortcuts and launch. Foreground interaction is explicit when required. Windows 10/11, needs uv.",
-      "version": "3.7.4",
+      "description": "Windows desktop apps through native UI Automation: observe, click, type, menus, shortcuts and launch. Foreground interaction is explicit when required. Starts the native NexusWindows engine installed by NexusSystem (or NexusWindows' get.ps1).",
+      "version": "3.9.1",
       "category": "productivity",
       "keywords": [
         "windows",
@@ -46,8 +46,8 @@
     {
       "name": "nexus-browser",
       "source": "./plugins/nexus-browser",
-      "description": "Your real Chrome (your sessions) driven in background tabs: forms, network, dialogs, cross-origin iframes, exports, downloads. Requires the one-time NexusBrowser install (Chrome extension + local bridge, Windows).",
-      "version": "2.32.0",
+      "description": "Your real Chrome (your sessions) driven in background tabs: forms, network, dialogs, cross-origin iframes, exports, downloads. Served by the local NexusBrowser daemon; requires its Chrome extension, both installed by NexusSystem (or NexusBrowser's get.ps1).",
+      "version": "2.33.0",
       "category": "productivity",
       "keywords": [
         "chrome",

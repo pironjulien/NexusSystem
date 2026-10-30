@@ -7,5 +7,5 @@ browser lives in each server's repository, which has its own policy:
 [NexusBrowser](https://github.com/pironjulien/NexusBrowser/security).
 
 To report a vulnerability in this marketplace (for example a launcher that runs something other than the pinned
-PyPI package), use GitHub's private vulnerability reporting on this repository ("Security" tab → "Report a
+native release), use GitHub's private vulnerability reporting on this repository ("Security" tab → "Report a
 vulnerability"). Please do not open a public issue.

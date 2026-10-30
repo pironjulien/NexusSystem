@@ -71,7 +71,8 @@ Do not create a question card just to report progress.
 **Ctrl+Alt+Shift+Esc** stops every agent for 120 s and cancels running commands. Never work around it: wait for the user.
 
 ## Not installed yet?
-Without the bridge and the extension, the server still starts and every call answers with an error giving the
-one-time install (Windows, Chrome 116+). The user installs it with the NexusSystem app, or runs the get.ps1 file of
-NexusBrowser's latest release with -File (never a command that runs downloaded code in memory), then loads the extension in
+When the tools do not answer at all, the NexusBrowser daemon is not installed or not running; without the
+extension, every call answers with an error giving the one-time install (Windows, Chrome 116+). The user installs it
+with the NexusSystem app, or downloads the get.ps1 file of NexusBrowser's latest release, checks its SHA-256 and
+runs it with -File, then loads the extension in
 `chrome://extensions` as the installer shows (https://github.com/pironjulien/NexusBrowser#install).

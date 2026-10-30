@@ -1,20 +1,19 @@
 # Nexus Windows plugin
 
-Gives Claude Code your Windows desktop applications in the background: it sees a window, clicks, types, picks,
-uses menus and shortcuts and launches apps without taking your mouse, keyboard or foreground, and reads back every
-action. Irreversible gestures need your explicit "yes"; Ctrl+Alt+Shift+Esc stops everything for two minutes.
+Gives Claude Code your Windows desktop applications through native UI Automation: it sees a window, clicks, types,
+uses menus and shortcuts and launches apps, reading back every action. It works in the background when the app
+supports it; gestures requiring the foreground are explicit. Irreversible gestures need your explicit "yes"; Ctrl+Alt+Shift+Esc stops everything for two minutes.
 
 ## What it runs
-The plugin starts the open-source MCP server [`nexus-windows-claude`](https://pypi.org/project/nexus-windows-claude/) 3.7.4 from
-PyPI with `uvx --python 3.14`, over stdio (uv downloads Python 3.14 if needed). The exact version of the server and
-of every dependency is recorded with its hash in `uv.lock`. The plugin itself contains only this launcher, the lock
-file and a skill; it sends nothing anywhere. The server's only request of its own is its update check: at most once a
-day it reads the latest version number from PyPI and writes `~/.nexus/status/windows-claude.json`
-(`NEXUS_UPDATE_CHECK=off` turns it off; details in its [Privacy section](https://github.com/pironjulien/NexusWindows/tree/main/claude#privacy)).
-
+The plugin starts the native NexusWindows engine over stdio, from the stable path its installer keeps up to date:
+`%USERPROFILE%\.nexus\nexus-windows\NexusWindows.exe --mcp --agent claude`. The plugin itself contains only this
+launcher and a skill; it sends nothing anywhere (engine privacy:
+[NexusWindows](https://github.com/pironjulien/NexusWindows/tree/main/claude#privacy)).
+Install it once with the [NexusSystem app](https://apps.microsoft.com/detail/9NSH2P3QLWT1), which runs the product's
+native installer. The file-based alternative downloads `get-nexus.ps1` from a release, checks its SHA-256 and runs it
+with `-File`: see [the installation guide](https://github.com/pironjulien/NexusSystem/blob/main/INSTALL-AI.md).
 ## Requirements
-- Windows 10 or 11.
-- [uv](https://docs.astral.sh/uv/).
+- Windows 10 or 11 with NexusWindows installed (above).
 
 ## Try it
 - "Open Notepad and write a shopping list: milk, eggs, bread."
@@ -22,7 +21,7 @@ day it reads the latest version number from PyPI and writes `~/.nexus/status/win
 - "Open my Downloads folder in File Explorer and tell me what is in it."
 
 ## Testing
-Any Windows 10 or 11 PC (or VM) with uv works: no account, no sample data. Notepad and Calculator are enough to see
-the background flow (look, act, read back) while you keep using the mouse and keyboard.
+Any Windows 10 or 11 PC (or VM) works: no account, no sample data. Notepad and Calculator are enough to see the
+background flow (look, act, read back) while you keep using the mouse and keyboard.
 
 Source, safeguards and privacy: https://github.com/pironjulien/NexusWindows (MIT).

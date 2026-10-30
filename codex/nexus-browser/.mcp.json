@@ -1,10 +1,9 @@
 {
   "mcpServers": {
     "nexus-browser": {
-      "command": "uvx",
-      "args": ["--python", "3.14", "nexus-browser==2.32.0"],
-      "env": { "NEXUS_BROWSER_AGENT": "Codex" },
-      "startup_timeout_sec": 120
+      "url": "http://127.0.0.1:16182/mcp?agent=codex",
+      "bearer_token_env_var": "NEXUS_MCP_TOKEN",
+      "startup_timeout_sec": 60
     }
   }
 }

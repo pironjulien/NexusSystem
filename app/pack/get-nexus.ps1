@@ -7,13 +7,10 @@
 #   powershell -NoProfile -ExecutionPolicy Bypass -File .\get-nexus.ps1 -Only windows,browser
 # Each product's own installer is fetched the same way: the get.ps1 file of its latest release, checked against that
 # release's SHA256SUMS.txt, run in a child powershell.exe with -File.
-# Windows PowerShell 5.1 or PowerShell 7, no administrator rights (Git for Claude Code and Node.js for Codex, when
-# missing, ask Windows once).
-# It finds Claude Code, Claude Desktop, Codex and Antigravity, shows what it will install and for whom, installs the
-# shared prerequisites once (uv; Git through winget when Claude Code is there and git is missing; Node.js LTS through
-# winget when Codex is there), then runs each product's own
-# official installer, unchanged: nothing of their logic is copied here. Claude Code gets the plugins of this
-# catalog. Then it checks what each AI app now declares and prints a summary and the steps left to a human.
+# Windows PowerShell 5.1 or PowerShell 7, no administrator rights. Git is installed through winget when an AI app
+# needs it to add this catalog. Every product runs as its native Windows engine (x64 or ARM64).
+# It finds Claude Code, Claude Desktop, Codex and Antigravity, shows the plan, gives Claude Code and Codex the plugins
+# of this catalog, then runs each product's own official installer. No installer logic is copied here.
 # Run it again at any time: every installer only does what is missing.
 #   -Only / -Skip  product names (windows, android, browser, relay, agymail, keypad) or AI names (claude-code,
 #                  claude-desktop, codex, antigravity), comma separated
@@ -40,7 +37,6 @@ $ProgressPreference = 'SilentlyContinue'  # Invoke-WebRequest is many times slow
 
 $Ok = [string][char]0x2713
 $No = [string][char]0x2717
-$Raw = 'https://raw.githubusercontent.com/pironjulien'
 $Marketplace = 'nexus-plugins'
 
 # AI apps, in display order. Claude Desktop also carries Claude Code (its Code tab reads the same ~\.claude).
@@ -55,23 +51,23 @@ $AiNames = [ordered]@{
 # installer. Targets: the AI apps a product serves (an empty list: a device, the MX Creative Keypad).
 $AllAi = @('claude-code', 'claude-desktop', 'codex', 'antigravity')
 $Products = @(
-    @{ Key = 'windows'; Name = 'NexusWindows'; Plugin = 'nexus-windows'; Agy = 'nexus-windows'; AgyLegacy = @('nexus-computer'); Server = 'nexus-windows'
+    @{ Key = 'windows'; Name = 'NexusWindows'; Repo = 'NexusWindows'; Engine = $true; Plugin = 'nexus-windows'; Agy = 'nexus-windows'; AgyLegacy = @('nexus-computer'); Server = 'nexus-windows'
        Targets = $AllAi },
     # Native since 0.22.0: its get.ps1 installs the shared daemon (127.0.0.1:16180, token NEXUS_MCP_TOKEN) the Claude
-    # Code and Codex plugins reach, so its installer is told every chosen AI app (Daemon) and sees the plugins.
-    @{ Key = 'android'; Name = 'NexusAndroid'; Plugin = 'nexus-android'; Daemon = $true; Agy = 'nexus-android'; Server = 'nexus-android'
+    # Code and Codex plugins reach, so its installer is told every chosen AI app and sees the plugins.
+    @{ Key = 'android'; Name = 'NexusAndroid'; Repo = 'NexusAndroid'; Engine = $true; Plugin = 'nexus-android'; Agy = 'nexus-android'; Server = 'nexus-android'
        Targets = $AllAi },
-    @{ Key = 'browser'; Name = 'NexusBrowser'; Plugin = 'nexus-browser'; Agy = 'nexus-browser'; Server = 'nexus-browser'
+    @{ Key = 'browser'; Name = 'NexusBrowser'; Repo = 'NexusBrowser'; Engine = $true; Plugin = 'nexus-browser'; Agy = 'nexus-browser'; Server = 'nexus-browser'
        Targets = $AllAi },
     # Two AI apps talking: one host opens the exchanges (NexusRelay 1.4.0: the first of Claude Code, Codex,
     # Antigravity among those configured), the others answer. Claude Desktop's chat is not a relay client.
     # Claude Code gets its plugin from this catalog (1.6.26); the daemon, Codex and Antigravity come from its installer,
-    # which sees the plugin and adds no second server. Daemon: the installer still serves Claude Code (it is told every
+    # which sees the plugin and adds no second server. The installer still serves Claude Code (it is told every
     # chosen client, so the host stays Claude when present, and a daemon that failed marks Claude Code failed too).
-    @{ Key = 'relay'; Name = 'NexusRelay'; Plugin = 'nexus-relay'; Daemon = $true; Agy = 'nexus-relay'; Server = 'nexus-relay'
+    @{ Key = 'relay'; Name = 'NexusRelay'; Repo = 'NexusRelay'; Engine = $true; Plugin = 'nexus-relay'; Agy = 'nexus-relay'; Server = 'nexus-relay'
        Targets = @('claude-code', 'codex', 'antigravity'); MinAis = 2 },
     # Claude and Codex have their own official Gmail connector.
-    @{ Key = 'agymail'; Name = 'NexusAGYmail'; Agy = 'nexus-agymail'; Server = 'nexus-agymail'; Targets = @('antigravity') },
+    @{ Key = 'agymail'; Name = 'NexusAGYmail'; Repo = 'NexusAGYmail'; Engine = $true; Agy = 'nexus-agymail'; Server = 'nexus-agymail'; Targets = @('antigravity') },
     @{ Key = 'keypad'; Name = 'NexusKeypad'; Targets = @(); Device = 'Logi Options+' }
 )
 
@@ -288,49 +284,14 @@ function Invoke-Installer([string]$What, [string]$Repo, [string]$Work) {
     return Invoke-ScriptFile "$What $tag" $file
 }
 
-function Invoke-PinnedInstaller([string]$What, [string]$Url, [string]$Sha256, [string]$Work) {
-    # Provisional route of a product whose release does not carry its installer yet: one exact file, pinned by commit
-    # and by its SHA-256 recorded here, run with -File.
-    $file = Join-Path $Work ("$([guid]::NewGuid().ToString('N').Substring(0, 8))-" + [IO.Path]::GetFileName(([Uri]$Url).AbsolutePath))
-    try { Save-VerifiedFile $Url $file $Sha256 } catch {
-        Say ''
-        Say "== $What" Cyan
-        Say "$What`: $($_.Exception.Message)" Red
-        return 1
-    }
-    return Invoke-ScriptFile $What $file
-}
-
-function Sync-SessionPath([switch]$Registry) {
-    # uv's folder first (where its installer puts it). -Registry: a program just installed (Node.js) is on the
-    # registry PATH, which this window only gets this way.
+function Sync-SessionPath {
+    # A program just installed (Git) is on the registry PATH, which this window only gets this way.
     $known = @($env:PATH -split ';' | Where-Object { $_ })
-    if ($Registry) {
-        foreach ($scope in 'Machine', 'User') {
-            foreach ($entry in ([Environment]::GetEnvironmentVariable('Path', $scope) -split ';')) {
-                if ($entry -and $known -notcontains $entry) { $env:PATH = "$env:PATH;$entry"; $known += $entry }
-            }
+    foreach ($scope in 'Machine', 'User') {
+        foreach ($entry in ([Environment]::GetEnvironmentVariable('Path', $scope) -split ';')) {
+            if ($entry -and $known -notcontains $entry) { $env:PATH = "$env:PATH;$entry"; $known += $entry }
         }
     }
-    $uvBin = Join-Path $env:USERPROFILE '.local\bin'
-    if ($known -notcontains $uvBin) { $env:PATH = "$uvBin;$env:PATH" }
-}
-
-function Get-Uvx {
-    # Its installer's folder first: PowerShell keeps a failed lookup of a program installed meanwhile.
-    $local = Join-Path $env:USERPROFILE '.local\bin\uvx.exe'
-    if (Test-Path -LiteralPath $local) { return $local }
-    $uvx = Get-Command uvx -ErrorAction SilentlyContinue
-    if ($uvx) { return $uvx.Source }
-    return $null
-}
-
-function Get-NodeMajor {
-    $node = Get-Command node.exe -ErrorAction SilentlyContinue
-    if (-not $node) { return 0 }
-    $version = & $node.Source --version
-    if ($version -match '^v(\d+)\.') { return [int]$Matches[1] }
-    return 0
 }
 
 function Test-Git { return [bool](Get-Command git.exe -ErrorAction SilentlyContinue) }
@@ -542,21 +503,32 @@ function Test-CodexOwnedServer([string]$Text, [string]$Name) {
             }
         }
     } catch { return $false }
+    # The forms the official installers write today (native engine, local daemon) and wrote before (npm and PyPI
+    # launchers, recognised only to be replaced by the plugin, never started).
     $allowed = @('command', 'args', 'startup_timeout_sec', 'enabled')
-    # The local daemons (NexusRelay; NexusAndroid since its native 0.22.0, which no longer writes a uvx command).
-    if ($Name -eq 'nexus-relay' -or ($Name -eq 'nexus-android' -and $root.ContainsKey('url'))) { $allowed = @('url', 'bearer_token_env_var', 'startup_timeout_sec', 'enabled') }
+    $daemon = @{ 'nexus-relay' = 'http://127.0.0.1:16181/mcp?agent=codex'; 'nexus-android' = 'http://127.0.0.1:16180/mcp'
+                 'nexus-browser' = 'http://127.0.0.1:16182/mcp?agent=codex' }
+    if ($root.ContainsKey('url')) {
+        $allowed = @('url', 'bearer_token_env_var', 'startup_timeout_sec', 'enabled')
+        if (@($root.Keys | Where-Object { $allowed -notcontains $_ }).Count) { return $false }
+        return -not $environment.Count -and $daemon.ContainsKey($Name) -and $root['url'] -eq $daemon[$Name] -and
+            $root['bearer_token_env_var'] -eq 'NEXUS_MCP_TOKEN'
+    }
     if (@($root.Keys | Where-Object { $allowed -notcontains $_ }).Count) { return $false }
     $command = [IO.Path]::GetFileName([string]$root['command']).ToLowerInvariant()
     $args_ = @($root['args'])
     switch ($Name) {
         'nexus-windows' {
-            return -not $environment.Count -and $command -in @('npx', 'npx.cmd', 'npx.exe') -and $args_.Count -eq 2 -and
+            if ($environment.Count) { return $false }
+            $native = Join-Path $env:USERPROFILE '.nexus\nexus-windows'
+            if ($command -eq 'nexuswindows.exe') {
+                $folder = [IO.Path]::GetFullPath((Split-Path ([string]$root['command'])))
+                return ($folder -ieq $native -or (Split-Path $folder) -ieq (Join-Path $native 'native')) -and ($args_ -join ' ') -ceq '--mcp --agent codex'
+            }
+            return $command -in @('npx', 'npx.cmd', 'npx.exe') -and $args_.Count -eq 2 -and
                 $args_[0] -in @('-y', '--yes') -and $args_[1] -match '^nexus-windows-codex(@latest)?$'
         }
         'nexus-android' {
-            if ($root.ContainsKey('url')) {
-                return -not $environment.Count -and $root['url'] -eq 'http://127.0.0.1:16180/mcp' -and $root['bearer_token_env_var'] -eq 'NEXUS_MCP_TOKEN'
-            }
             $package = $args_ -join ' '
             return -not $environment.Count -and $command -in @('uvx', 'uvx.exe') -and
                 $package -match '^(--python 3\.14 )?nexus-android(==\d+\.\d+\.\d+)?$'
@@ -569,10 +541,6 @@ function Test-CodexOwnedServer([string]$Text, [string]$Name) {
             )
             foreach ($location in $locations) { if ($root['command'] -ieq $location[0] -and $args_[1] -ieq $location[1]) { return $true } }
             return $false
-        }
-        'nexus-relay' {
-            return -not $environment.Count -and $root['url'] -eq 'http://127.0.0.1:16181/mcp?agent=codex' -and
-                $root['bearer_token_env_var'] -eq 'NEXUS_MCP_TOKEN'
         }
     }
     return $false
@@ -696,7 +664,6 @@ function Test-CommandName([string]$Command) {
     if (-not $Command) { return $false }
     $expanded = [Environment]::ExpandEnvironmentVariables($Command)
     if ([IO.Path]::IsPathRooted($expanded)) { return Test-Path -LiteralPath $expanded }
-    if ($expanded -eq 'uvx' -and (Get-Uvx)) { return $true }
     return [bool](Get-Command $expanded -ErrorAction SilentlyContinue)
 }
 
@@ -822,8 +789,8 @@ $Checks = @{
 # Products whose installer configures every AI app found in one run. It gets the AI apps to configure in
 # NEXUS_PACK_TARGETS (pack names, comma separated). Until a product honors it (listed here), the pack does not run it
 # when that would go beyond the selection: -Only/-Skip, or an AI app where the user turned the product off.
-$OneRunForAll = @('android', 'browser', 'relay')
-$HonorsTargets = @('android', 'relay', 'browser')  # NexusAndroid 0.22.0 (native get.ps1); NexusRelay 1.3.2, NexusBrowser 2.26.1 (their get.ps1 is always the latest)
+$OneRunForAll = @('windows', 'android', 'browser', 'relay', 'agymail')
+$HonorsTargets = $OneRunForAll
 
 # Why a product does not apply on this PC, or $null when it does.
 function Get-Unfit($Product, [string[]]$Ais) {
@@ -855,7 +822,7 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
     $skipList = Split-NameList $Skip
     $productKeys = @($Products | ForEach-Object { $_.Key })
     $aiKeys = @($AiNames.Keys)
-    $localSkip = Get-LocalSkip  # assigned first: a list returned with "," stays one item in foreach
+    $localSkip = Get-LocalSkip
     foreach ($name in $localSkip) {
         if ($productKeys -notcontains $name -and $aiKeys -notcontains $name) { Say "nexussystem.json: unknown name '$name' ignored." Yellow; continue }
         if ($skipList -notcontains $name) { $skipList += $name }
@@ -922,7 +889,7 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
     foreach ($product in $selected) {
         if ($OneRunForAll -notcontains $product.Key) { continue }
         $touched = @($found | Where-Object {
-            $product.Targets -contains $_ -and -not ($product.Plugin -and -not $product.Daemon -and $_ -eq 'claude-code') })
+            $product.Targets -contains $_ -and -not ($product.Plugin -and -not $product.Engine -and $_ -eq 'claude-code') })
         $chosen = @($touched | Where-Object { $ais -contains $_ -and -not $kept["$($product.Key)|$_"] })
         $targets[$product.Key] = $chosen
         $beyond = @($touched | Where-Object { $chosen -notcontains $_ })
@@ -946,17 +913,13 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
     foreach ($product in $selected) { if (-not $refused[$product.Key]) { $wants[$product.Key] = $true } }
     $for = @{}
     foreach ($ai in $ais) { $for[$ai] = $true }
-    $needsNode = $wants['windows'] -and $for['codex'] -and -not $kept['windows|codex'] -and (Get-NodeMajor) -lt 22
-    # Claude Code adds a catalog by cloning it with git, which a new Windows lacks.
+    # Claude Code and Codex add a catalog by cloning it with git, which a new Windows lacks.
     $needsGit = (($for['claude-code'] -and @($selected | Where-Object { $_.Plugin -and -not $kept["$($_.Key)|claude-code"] }).Count) -or
         ($for['codex'] -and @($selected | Where-Object { $_.Plugin -and -not $kept["$($_.Key)|codex"] }).Count)) -and -not (Test-Git)
     Say ''
     $gitFor = @('claude-code', 'codex' | Where-Object { $for[$_] } | ForEach-Object { $AiNames[$_] }) -join ' and '
-    # uv for the products still served from PyPI; NexusAndroid, NexusRelay, NexusAGYmail and NexusKeypad are native (their get.ps1).
-    $needsUv = [bool]@('windows', 'browser' | Where-Object { $wants[$_] }).Count
-    $prerequisites = @($(if ($needsUv) { 'uv' }), $(if ($needsGit) { "Git (for $gitFor)" }), $(if ($needsNode) { 'Node.js LTS (for Codex)' })) | Where-Object { $_ }
-    Say "Prerequisites, once: $(if ($prerequisites) { $prerequisites -join ', ' } else { 'none' })"
-    Send-Event @{ type = 'plan'; ais = @($ais); products = @($selected | Where-Object { $wants[$_.Key] } | ForEach-Object { $_.Key }); node = [bool]$needsNode; git = [bool]$needsGit
+    Say "Prerequisites, once: $(if ($needsGit) { "Git (for $gitFor)" } else { 'none' })"
+    Send-Event @{ type = 'plan'; ais = @($ais); products = @($selected | Where-Object { $wants[$_.Key] } | ForEach-Object { $_.Key }); git = [bool]$needsGit
                   installer_targets = $targets }  # AI apps told to each one-run installer (NEXUS_PACK_TARGETS)
     if ($DryRun) { Say 'Dry run: nothing installed.' Yellow; return 0 }
 
@@ -965,31 +928,8 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
     $savedPack = $env:NEXUS_PACK
     $env:NEXUS_PACK = '1'  # the product installers' non-interactive mode: no question, no wait, no window
     $results = @{}  # "product|ai" -> exit code of the route that serves it
-    $own = @{}      # product -> exit code of its own installer, which declares Claude Code itself when no plugin does
     $prereq = @{}
     try {
-        Sync-SessionPath
-        if ($needsUv -and -not (Get-Uvx)) {
-            # Astral's official release binaries, checked against their published SHA-256, then unpacked into
-            # ~\.local\bin (where uv's own installer puts them): no installer script is run at all.
-            $prereq['uv'] = Invoke-Native 'uv (official release binaries, SHA-256 checked)' {
-                $arch = if (($env:PROCESSOR_ARCHITEW6432, $env:PROCESSOR_ARCHITECTURE) -contains 'ARM64') { 'aarch64' } else { 'x86_64' }
-                $asset = "uv-$arch-pc-windows-msvc.zip"
-                $base = 'https://github.com/astral-sh/uv/releases/latest/download'
-                $zip = Join-Path $work $asset
-                $expected = Get-ExpectedSha256 ([Text.Encoding]::ASCII.GetString((Invoke-WebRequest -UseBasicParsing "$base/$asset.sha256").Content)) $asset
-                Save-VerifiedFile "$base/$asset" $zip $expected
-                $unpacked = Join-Path $work 'uv'
-                Add-Type -AssemblyName System.IO.Compression.FileSystem
-                [IO.Compression.ZipFile]::ExtractToDirectory($zip, $unpacked)
-                $bin = Join-Path $env:USERPROFILE '.local\bin'
-                New-Item -ItemType Directory -Force -Path $bin | Out-Null
-                Get-ChildItem -LiteralPath $unpacked -Recurse -Include 'uv.exe', 'uvx.exe', 'uvw.exe' | Copy-Item -Destination $bin -Force
-                $global:LASTEXITCODE = 0
-            }
-            Sync-SessionPath
-            if (-not $prereq['uv'] -and -not (Get-Uvx)) { $prereq['uv'] = 1 }
-        } else { $prereq['uv'] = 0 }
         if ($needsGit) {
             if (-not (Get-Command winget.exe -ErrorAction SilentlyContinue)) {
                 Say 'Git is needed to add the Nexus plugin catalog and winget is missing: install Git from https://git-scm.com/downloads/win, then run this again.' Red
@@ -998,90 +938,44 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
                 $prereq['git'] = Invoke-Native 'Git (official package, through winget)' {
                     Invoke-Console (Get-Command winget.exe).Source @('install', '--exact', '--id', 'Git.Git', '--source', 'winget', '--accept-source-agreements', '--accept-package-agreements')
                 }
-                Sync-SessionPath -Registry
+                Sync-SessionPath
                 if (Test-Git) { $prereq['git'] = 0 } elseif (-not $prereq['git']) { $prereq['git'] = 1 }
             }
         }
-        if ($needsNode) {
-            if ((Get-NodeMajor) -ge 22) { $prereq['node'] = 0 }
-            elseif (-not (Get-Command winget.exe -ErrorAction SilentlyContinue)) {
-                Say 'Node.js 22 or later is needed by Codex and winget is missing: install the LTS from https://nodejs.org, then run this again.' Red
-                $prereq['node'] = 1
-            } else {
-                $prereq['node'] = Invoke-Native 'Node.js LTS (official package, through winget)' {
-                    Invoke-Console (Get-Command winget.exe).Source @('install', '--exact', '--id', 'OpenJS.NodeJS.LTS', '--source', 'winget', '--accept-source-agreements', '--accept-package-agreements')
-                }
-                Sync-SessionPath -Registry
-                if ((Get-NodeMajor) -ge 22) { $prereq['node'] = 0 } elseif (-not $prereq['node']) { $prereq['node'] = 1 }
-            }
-        }
 
-        # 1. Claude Code first: the product installers see its plugins and add no second server.
+        # 1. The plugins first: the product installers see them and add no second server for Claude Code or Codex.
         if ($for['claude-code']) {
-            $withPlugin = @($selected | Where-Object { $_.Plugin -and -not $kept["$($_.Key)|claude-code"] })
+            $withPlugin = @($selected | Where-Object { $_.Plugin -and $wants[$_.Key] -and -not $kept["$($_.Key)|claude-code"] })
             if ($withPlugin.Count) {
-                $code = if ($prereq['uv'] -or $prereq['git']) { 1 } else { Install-ClaudePlugin @($withPlugin | ForEach-Object { $_.Plugin }) }
+                $code = if ($prereq['git']) { 1 } else { Install-ClaudePlugin @($withPlugin | ForEach-Object { $_.Plugin }) }
                 foreach ($product in $withPlugin) { $results["$($product.Key)|claude-code"] = $code }
             }
         }
-        # Codex first gets the real plugin (MCP plus its guide). Product installers still prepare ADB, Chrome and
-        # the relay daemon; the final pass below removes only their exact old MCP declarations after success.
-        $codexPlugins = @($selected | Where-Object { $_.Plugin -and $for['codex'] -and -not $kept["$($_.Key)|codex"] })
+        # Codex gets the real plugin (MCP plus its guide); the final pass below removes only the exact direct
+        # declarations an official installer wrote (today's or a former one), once the plugin is verified.
+        $codexPlugins = @($selected | Where-Object { $_.Plugin -and $wants[$_.Key] -and $for['codex'] -and -not $kept["$($_.Key)|codex"] })
         $codexCli = $null
         if ($codexPlugins.Count) {
             $codexCli = Get-CodexCli
             $catalogCode = if (-not $codexCli -or $prereq['git']) { 1 } else { Install-CodexMarketplace $codexCli $Catalog }
             if (-not $codexCli) { Say 'The installed Codex engine with a valid OpenAI signature was not found. Open or update Codex, then run this again.' Red }
             foreach ($product in $codexPlugins) {
-                $code = if ($catalogCode -or ($product.Key -eq 'windows' -and $prereq['node'])) { 1 } else { Install-CodexPlugin $codexCli $product.Plugin }
+                $code = if ($catalogCode) { 1 } else { Install-CodexPlugin $codexCli $product.Plugin }
                 $results["$($product.Key)|codex"] = $code
             }
         }
-        # 2. NexusWindows: one edition per AI app.
-        if ($wants['windows']) {
-            if ($for['claude-desktop'] -and -not $kept['windows|claude-desktop']) {
-                $results['windows|claude-desktop'] = Invoke-PinnedInstaller 'NexusWindows for Claude (Claude Desktop)' "$Raw/NexusWindows/202e6933e290bcf86ae95646530af8a6a4dadb69/claude/setup.ps1" '78b16446e7a6b102a3d97542d450b87302595cae39784c2ad5d9f2c0335e58eb' $work  # v3.8.0 (PyPI), until its native release carries get.ps1
-            }
-            # Codex's Windows plugin already contains its runtime and guide; do not add a direct MCP declaration.
-            if ($for['antigravity'] -and -not $kept['windows|antigravity']) {
-                $results['windows|antigravity'] = if ($prereq['uv']) { 1 } else {
-                    Invoke-Native 'NexusWindows for Antigravity' {
-                        Invoke-Console (Get-Uvx) @('--python', '3.14', 'nexus-windows-antigravity@latest', 'install')
-                    }
-                }
-            }
+        # 2. Each product's own native installer, in this order: NexusWindows (engine at its stable path), NexusAndroid
+        #    (daemon and adb, without waiting for the phone), NexusBrowser (daemon and Chrome's native host), NexusRelay
+        #    (daemon), NexusAGYmail (its Antigravity plugin; the Google sign-in is the user's own step, below). Each one
+        #    is told the AI apps chosen here; a failed installer fails every cell it serves, plugin cells included.
+        foreach ($key in 'windows', 'android', 'browser', 'relay', 'agymail') {
+            $product = Get-Product $key
+            if (-not $wants[$key] -or -not $targets[$key].Count) { continue }
+            $env:NEXUS_PACK_TARGETS = $targets[$key] -join ','
+            $code = Invoke-Installer $product.Name $product.Repo $work
+            foreach ($ai in $targets[$key]) { if (-not $results["$key|$ai"]) { $results["$key|$ai"] = $code } }
         }
-        # 3. NexusAndroid: its native get.ps1 (latest release, SHA-256 checked): the shared daemon, adb and the
-        #    declarations of the AI apps told here, without waiting for the phone (NEXUS_PACK=1).
-        if ($wants['android'] -and $targets['android'].Count) {
-            $env:NEXUS_PACK_TARGETS = $targets['android'] -join ','
-            $code = Invoke-Installer 'NexusAndroid' 'NexusAndroid' $work
-            # The daemon is what the plugins reach: a failed installer fails their cells too.
-            foreach ($ai in $targets['android']) { if (-not $results["android|$ai"]) { $results["android|$ai"] = $code } }
-            $own['android'] = $code
-        }
-        # 4. NexusBrowser: local bridge and native host for Chrome, declared to every AI app.
-        if ($wants['browser'] -and $targets['browser'].Count) {
-            $env:NEXUS_PACK_TARGETS = $targets['browser'] -join ','
-            $code = Invoke-Installer 'NexusBrowser' 'NexusBrowser' $work
-            foreach ($ai in $targets['browser']) { if (-not $results["browser|$ai"]) { $results["browser|$ai"] = $code } }
-            $own['browser'] = $code
-            if ($code -and $for['claude-code']) { $results['browser|claude-code'] = $code }  # bridge missing: plugin useless
-        }
-        # 5. NexusRelay: its native get.ps1 (1.10.0+): local relay daemon, engine at its stable path (the plugins' edit
-        #    guard), declared to Claude Code, Codex and Antigravity.
-        if ($wants['relay'] -and $targets['relay'].Count) {
-            $env:NEXUS_PACK_TARGETS = $targets['relay'] -join ','
-            $code = Invoke-Installer 'NexusRelay' 'NexusRelay' $work
-            # Claude Code: its plugin result (step 1) is kept if it failed, else the daemon's decides
-            foreach ($ai in $targets['relay']) { if (-not $results["relay|$ai"]) { $results["relay|$ai"] = $code } }
-        }
-        # 6. NexusAGYmail: its native installer (latest release, SHA-256 checked) and Antigravity plugin; the Google
-        #    sign-in is the user's own step, below.
-        if ($wants['agymail'] -and -not $kept['agymail|antigravity']) {
-            $results['agymail|antigravity'] = Invoke-Installer 'NexusAGYmail' 'NexusAGYmail' $work
-        }
-        # 7. NexusKeypad: the full plugin for Logi Options+ (keys placed by a guide, below).
+        # 3. NexusKeypad: the full plugin for Logi Options+ (keys placed by a guide, below).
         if ($wants['keypad']) {
             $results['keypad|pc'] = Invoke-Installer 'NexusKeypad' 'NexusKeypad' $work
         }
@@ -1103,7 +997,7 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
     Say ''
     Say 'Summary' Cyan
     $failed = 0
-    foreach ($name in 'uv', 'git', 'node') {
+    foreach ($name in @('git')) {
         if ($prereq.ContainsKey($name) -and $prereq[$name]) { Say "  $No $name (the steps that need it were not run)" Red; $failed++ }
     }
     $width = 16
@@ -1133,8 +1027,6 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
                 continue
             }
             $state = & $Checks[$ai] $product
-            # The plugin route failed, but the product's own installer, run after it, declared Claude Code itself.
-            if ($ai -eq 'claude-code' -and $code -and $own.ContainsKey($product.Key) -and $own[$product.Key] -eq 0) { $code = 0 }
             $good = ($null -ne $code) -and ($code -eq 0) -and ($state -eq 'ok')
             if (-not $good) { $failed++ }
             $events += @{ type = 'cell'; product = $product.Key; ai = $ai; ok = [bool]$good; state = $(if ($good) { 'ok' } else { $state }) }
@@ -1162,9 +1054,8 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
     if ($wants['android']) {
         $step++
         Say "  $step. Phone: Settings > About phone, tap Build number 7 times; Developer options > turn on USB debugging."
-        Say '     Plug it in with a USB data cable, then run (guided, waits for the phone):'
-        Say '     the get.ps1 of its latest release, run as a file (https://github.com/pironjulien/NexusAndroid#install)'
-        Say '     (https://github.com/pironjulien/NexusAndroid#quick-start)'
+        Say '     Plug it in with a USB data cable and accept this PC on the phone; the first connection is guided by'
+        Say '     https://github.com/pironjulien/NexusAndroid#quick-start'
     }
     # The Codex project, only when Codex answers (Claude Code is the host); as the host, Codex needs none.
     if ($wants['relay'] -and $targets['relay'] -contains 'codex' -and $targets['relay'] -contains 'claude-code') {
@@ -1174,9 +1065,8 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
     }
     if ($wants['agymail']) {
         $step++
-        Say "  $step. Gmail: sign in once with your own Google OAuth client (Desktop app), guided:"
-        Say '     the get.ps1 of its latest release, run as a file with -Auth (https://github.com/pironjulien/NexusAGYmail#install)'
-        Say '     (https://github.com/pironjulien/NexusAGYmail#quick-start)'
+        Say "  $step. Gmail: create your own Google OAuth client (Desktop app), then sign in with it as shown by"
+        Say '     https://github.com/pironjulien/NexusAGYmail#quick-start'
     }
     if ($wants['keypad']) {
         $step++

@@ -7,6 +7,19 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.6.33] - 2026-10-30
+
+### Changed
+- Complete native Windows catalog: NexusWindows 3.9.1 starts its stable C# engine for Claude Code and Codex;
+  NexusBrowser 2.33.0 reaches the shared local daemon. Their engines are installed by each product's published
+  `get.ps1`, checked against release SHA-256 sums and run as files. No Python, uv or Node.js prerequisite remains.
+- Every native installer receives exactly the chosen AI apps through `NEXUS_PACK_TARGETS`; disabled products and
+  per-PC preferences remain respected. Failed engine installation fails the plugin's status too.
+- The Codex NexusWindows plugin is part of this catalog, removing the dependency on the archived per-profile
+  repository. Existing native and legacy direct declarations migrate only when their exact signature is known.
+- Removed obsolete PyPI locks, uv CI setup and PyPI smoke checks. Clean-machine CI reaches each native server
+  through its AI app's installed declaration and repeats the installation to verify it stays green.
+
 ## [1.6.32] - 2026-10-30
 
 ### Added
