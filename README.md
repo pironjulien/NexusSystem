@@ -42,18 +42,17 @@ release (its SHA-256 is in `SHA256SUMS.txt`, its origin can be checked with
 (on Windows 11: **Show more options** first). Windows asks whether to run a script from the internet: answer **R**
 (Run once). The window stays open at the end until you press Enter.
 
-It shows which AI apps it found and what it will install for each, installs Git when Claude Code or Codex needs it to
-add this catalog (Windows asks once), gives Claude Code and Codex the plugins of this catalog, then runs each product's
-own official native installer (`get.ps1` of its repository). No Python, no uv: every product is a native Windows
-engine (win-x64 and win-arm64), downloaded from its GitHub release and checked against its `SHA256SUMS.txt`.
+It shows which AI apps it found and what it will install for each, installs [uv](https://docs.astral.sh/uv/) (and
+Git when a Claude Code or Codex plugin needs it, Node.js LTS when Codex is there; Windows asks once), then runs each product's own official installer:
 
 | Product | Claude Code | Claude Desktop | Codex | Antigravity |
 | --- | --- | --- | --- | --- |
-| NexusWindows | plugin `nexus-windows` (this catalog) | [NexusWindows](https://github.com/pironjulien/NexusWindows) `get.ps1` | plugin `nexus-windows` (this catalog) | NexusWindows `get.ps1` (a plugin) |
-| NexusAndroid | plugin `nexus-android` + daemon ([NexusAndroid](https://github.com/pironjulien/NexusAndroid) `get.ps1`) | NexusAndroid `get.ps1` | plugin `nexus-android` | NexusAndroid `get.ps1` (a plugin) |
-| NexusBrowser | plugin `nexus-browser` + daemon ([NexusBrowser](https://github.com/pironjulien/NexusBrowser) `get.ps1`) | NexusBrowser `get.ps1` | plugin `nexus-browser` | NexusBrowser `get.ps1` (a plugin) |
-| NexusRelay (experimental) | plugin `nexus-relay` + daemon ([NexusRelay](https://github.com/pironjulien/NexusRelay) `get.ps1`) | not a relay client | plugin `nexus-relay` | NexusRelay `get.ps1` (a plugin) |
-| NexusAGYmail | official Gmail connector instead | official Gmail connector instead | official Gmail connector instead | [NexusAGYmail](https://github.com/pironjulien/NexusAGYmail) `get.ps1` (a plugin) |
+| NexusWindows | plugin `nexus-windows` (this catalog) | [NexusWindows](https://github.com/pironjulien/NexusWindows/tree/main/claude) `setup.ps1` | plugin `nexus-windows` ([NexusWindows](https://github.com/pironjulien/NexusWindows/tree/main/codex)) | [NexusWindows](https://github.com/pironjulien/NexusWindows/tree/main/agy) plugin |
+| NexusAndroid | plugin `nexus-android` | [NexusAndroid](https://github.com/pironjulien/NexusAndroid) `setup` | same | same (a plugin) |
+| NexusBrowser | plugin `nexus-browser` + bridge | [NexusBrowser](https://github.com/pironjulien/NexusBrowser) `get.ps1` | same | same (a plugin) |
+| NexusRelay (experimental) | plugin `nexus-relay` + daemon ([NexusRelay](https://github.com/pironjulien/NexusRelay) `get.ps1`) | not a relay client | same | same (a plugin) |
+| NexusAGYmail | official Gmail connector instead | official Gmail connector instead | official Gmail connector instead | [NexusAGYmail](https://github.com/pironjulien/NexusAGYmail) native `get.ps1` (a plugin) |
+
 NexusKeypad, for Logitech's MX Creative Keypad, is installed by [its own `get.ps1`](https://github.com/pironjulien/NexusKeypad)
 when Logi Options+ is there (also on the Logitech Marketplace, in review).
 
@@ -63,8 +62,8 @@ add the relay's project in Codex once, connect your own Google account to NexusA
 restart your AI apps. A product that does not fit this PC (no Antigravity, no Logi Options+…) is shown, with why. Run the same line again to update or repair: every installer only does what is missing.
 
 Options: `-Only` and `-Skip` take product names (`windows`, `android`, `browser`, `relay`, `agymail`, `keypad`) or AI app names (`claude-code`,
-`claude-desktop`, `codex`, `antigravity`); `-DryRun` shows the plan and installs nothing. Each product has one installer for every AI app: it is told the AI apps
-chosen here and adds no second server beside a plugin. For example:
+`claude-desktop`, `codex`, `antigravity`); `-DryRun` shows the plan and installs nothing. NexusAndroid and NexusBrowser
+have one installer for every AI app: when they run, they declare themselves to each app they find. For example:
 
 ```powershell
 & ([scriptblock]::Create((irm https://raw.githubusercontent.com/pironjulien/NexusSystem/main/get-nexus.ps1))) -Only windows,browser
@@ -74,26 +73,28 @@ Each product also installs alone: see its README.
 
 ## The plugins, one by one
 
-**Computer use in the background for Claude Code and Codex.** Five plugins for Claude Code (Android, Windows, Chrome,
-the Relay between AI apps, the Logitech keypad) and four for Codex. Each includes its guide and reaches its product's
-native engine, installed by NexusSystem (the app or the line above) or by the product's own `get.ps1`:
+**Computer use in the background for Claude Code and Codex.** Four plugins provide Android, Windows, Chrome and the
+Relay between AI apps. Each includes its guide. Android, Browser and Windows for Claude start a pinned open-source
+MCP server from PyPI; Relay connects to its installed local daemon, and Windows for Codex uses its npm package.
 
-| Plugin | What the AI gets | Reaches |
+| Plugin | What Claude gets | Server |
 | --- | --- | --- |
-| `nexus-android` | Your Android phone over plain ADB (no root, no app): screen, gestures, SMS/RCS, notifications, files, settings | the [NexusAndroid](https://github.com/pironjulien/NexusAndroid) daemon, `127.0.0.1:16180` |
-| `nexus-windows` | Windows desktop apps in the background: look, click, type, menus, shortcuts, launch, without your mouse or foreground | the [NexusWindows](https://github.com/pironjulien/NexusWindows) engine, `%USERPROFILE%\.nexus\nexus-windows\NexusWindows.exe` |
-| `nexus-browser` | Your real Chrome with your sessions, in background tabs: forms, network, dialogs, iframes, exports, downloads | the [NexusBrowser](https://github.com/pironjulien/NexusBrowser) daemon, `127.0.0.1:16182` |
-| `nexus-relay` | A direct line between Claude, Codex and Antigravity: topic rooms, reviews, delegated tasks | the [NexusRelay](https://github.com/pironjulien/NexusRelay) daemon, `127.0.0.1:16181` |
-| `nexus-keypad` (Claude Code) | Live states and exact usage for the Logitech MX Creative Keypad, peers' reachability under the prompt | [NexusKeypad](https://github.com/pironjulien/NexusKeypad)'s native helper |
-
-The daemons accept only local connections carrying the access token their installer creates; the plugins read it from
-your user variable `NEXUS_MCP_TOKEN` and never contain it.
+| `nexus-android` | Your Android phone over plain ADB (no root, no app): screen, gestures, SMS/RCS, notifications, files, settings | [NexusAndroid](https://github.com/pironjulien/NexusAndroid) · [PyPI](https://pypi.org/project/nexus-android/) |
+| `nexus-windows` | Windows desktop apps in the background: look, click, type, menus, shortcuts, launch, without your mouse or foreground | [NexusWindows](https://github.com/pironjulien/NexusWindows/tree/main/claude) · [PyPI](https://pypi.org/project/nexus-windows-claude/) |
+| `nexus-browser` | Your real Chrome with your sessions, in background tabs: forms, network, dialogs, iframes, exports, downloads | [NexusBrowser](https://github.com/pironjulien/NexusBrowser) · [PyPI](https://pypi.org/project/nexus-browser/) |
+| `nexus-keypad` | Live states and exact usage for the Logitech MX Creative Keypad, peers' reachability under the prompt | [NexusKeypad](https://github.com/pironjulien/NexusKeypad)'s native helper (installed by its `get.ps1`) |
 
 ## Quick start
 
-1. Install the products with NexusSystem (the app, or the PowerShell line above): it installs the engines and adds the
-   plugins for you. To add the plugins by hand instead, Claude Code and Codex add a marketplace with Git: on a PC
-   without it, `winget install --id Git.Git -e` first.
+1. Install [uv](https://docs.astral.sh/uv/) (it fetches Python 3.14 and the servers on first use). In PowerShell:
+
+   ```powershell
+   winget install --id=astral-sh.uv -e
+   ```
+
+   Without winget, use uv's own installer:
+   `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"`. Claude Code adds a
+   marketplace with Git: on a PC without it, `winget install --id Git.Git -e` first. Then restart Claude Code.
 2. In Claude Code, add the marketplace and install the plugins you want:
 
    ```text
@@ -102,7 +103,6 @@ your user variable `NEXUS_MCP_TOKEN` and never contain it.
    /plugin install nexus-windows@nexus-plugins
    /plugin install nexus-browser@nexus-plugins
    /plugin install nexus-relay@nexus-plugins
-   /plugin install nexus-keypad@nexus-plugins
    ```
 
 3. Start a new conversation and ask, for example: *"Look at my phone and tell me what is on the screen."* or
@@ -117,14 +117,14 @@ their tools appear in the conversation after that. Enabling them for one project
 
 The installer adds the Codex plugins from this marketplace, with their tools and guides. It uses Codex's installed,
 OpenAI-signed desktop engine when the CLI is not on PATH. It keeps disabled products, custom MCP declarations and
-plugins from another catalog; it migrates only the official installers' direct declarations (today's or a former
-one) after the installed plugin and its guide have been verified. It never adds a second server beside a custom one.
+plugins from another catalog; it migrates only the official installers' old direct declarations after the installed
+plugin and its guide have been verified. It never adds a second server beside a custom one.
 
-The same repository is a Codex plugin marketplace (`.agents/plugins/marketplace.json`): `nexus-windows`,
-`nexus-android`, `nexus-browser` and `nexus-relay`, the same native forms as for Claude Code (Codex reads no variable
-in a plugin's command, so `nexus-windows` starts the engine from its stable folder through `cmd.exe`). In the Codex
-app: **Settings > Plugins > Add > Add a marketplace**, source `pironjulien/NexusSystem`, then install the plugins; or
-from a terminal:
+The same repository is a Codex plugin marketplace (`.agents/plugins/marketplace.json`): `nexus-windows` (from
+[NexusWindows](https://github.com/pironjulien/NexusWindows/tree/main/codex), needs Node.js 22+), `nexus-android` and
+`nexus-browser` (pinned like their Claude twins, uv needed), and `nexus-relay` (its local daemon must be installed).
+In the Codex app: **Settings > Plugins > Add > Add a
+marketplace**, source `pironjulien/NexusSystem`, then install the plugins; or from a terminal:
 
 ```text
 codex plugin marketplace add pironjulien/NexusSystem
@@ -134,25 +134,37 @@ codex plugin add nexus-browser@nexus-plugins
 codex plugin add nexus-relay@nexus-plugins
 ```
 
-Antigravity's plugins are written by each product's own installer, in Antigravity's plugin folder.
+The one-line install uses these same plugins and also prepares each product's local requirements. Starting with a
+plugin is supported too: the pack installs any missing runtime and checks for duplicate official declarations.
 
 More examples, and how to test each plugin without your own phone or data, are in each plugin's README
 ([nexus-android](https://github.com/pironjulien/NexusSystem/tree/main/plugins/nexus-android#try-it),
 [nexus-windows](https://github.com/pironjulien/NexusSystem/tree/main/plugins/nexus-windows#try-it),
 [nexus-browser](https://github.com/pironjulien/NexusSystem/tree/main/plugins/nexus-browser#try-it)).
 
+Per-plugin requirements:
+
+- **nexus-android**: USB debugging on the phone and the PC's key accepted (`adb` is downloaded if missing;
+  `uvx --python 3.14 nexus-android setup` guides the first connection).
+- **nexus-windows**: Windows 10 or 11.
+- **nexus-browser**: the **NexusBrowser Chrome extension and local bridge**, installed once with one PowerShell
+  command, `irm https://raw.githubusercontent.com/pironjulien/NexusBrowser/main/get.ps1 | iex`
+  ([details](https://github.com/pironjulien/NexusBrowser#install); Windows, Chrome 116+). Without them the server
+  starts but every call answers with an error giving that command.
+
 ## How it works
 
 ```mermaid
 flowchart LR
-    C["Claude Code / Codex"] -- "HTTP 127.0.0.1 (MCP, token)" --> A["NexusAndroid daemon"] -- ADB --> P["Android phone"]
-    C -- "stdio (MCP)" --> W["NexusWindows.exe --mcp"] -- "UI Automation, Win32" --> D["Windows apps"]
-    C -- "HTTP 127.0.0.1 (MCP, token)" --> B["NexusBrowser daemon"] -- "native messaging" --> E["Chrome extension"] --> T["Chrome tabs"]
-    C -- "HTTP 127.0.0.1 (MCP, token)" --> R["NexusRelay daemon"] --> O["Codex, Antigravity"]
+    C["Claude Code"] -- "stdio (MCP)" --> A["uvx nexus-android==0.21.0"] -- ADB --> P["Android phone"]
+    C -- "stdio (MCP)" --> W["uvx nexus-windows-claude==3.7.4"] -- "UI Automation, Win32" --> D["Windows apps"]
+    C -- "stdio (MCP)" --> B["uvx nexus-browser==2.32.0"] -- "local bridge" --> E["Chrome extension"] --> T["Chrome tabs"]
 ```
 
-Each plugin is a folder with a manifest, an icon, a `.mcp.json` declaration (or hooks, for the keypad) and a skill.
-`test.ps1` checks every declaration against the exact native form.
+Each plugin is a folder with a manifest, an icon, a `.mcp.json` launcher, a `pyproject.toml` with its `uv.lock`, and a
+skill. Updating a plugin moves its pin to the
+new server version, checked in CI (the server is started from PyPI and lists its tools).
+
 ## Safeguards
 
 Held by the servers, not by the prompt: paying, sending, publishing, deleting for good and other irreversible
@@ -162,24 +174,25 @@ tools for two minutes. Details in each server's README.
 
 ## Privacy
 
-- This repository contains no code that runs on your PC besides the declarations of each plugin and the keypad's
-  modules: the engines and daemons are each product's own native release, installed by its `get.ps1`.
+- This repository contains no code that runs on your PC besides the launchers: `uvx --python 3.14
+  <package>==<version>`, with the versions and hashes of the package and its dependencies recorded in the plugin's
+  `uv.lock`. uv downloads Python 3.14 and the package from PyPI and caches them in uv's cache.
 - The plugins send nothing anywhere. The servers run locally and return what they read (screen, messages, pages) to
-  your AI app only; what each server reads, stores (logs, screenshots) and how to remove it is in its README's Privacy
-  section: [NexusAndroid](https://github.com/pironjulien/NexusAndroid#privacy),
+  your Claude client only; what each server reads, stores (logs, screenshots) and how to remove it is in its
+  README's Privacy section: [NexusAndroid](https://github.com/pironjulien/NexusAndroid#privacy),
   [NexusWindows](https://github.com/pironjulien/NexusWindows#privacy),
   [NexusBrowser](https://github.com/pironjulien/NexusBrowser#privacy).
 - Removing everything: uninstall the plugins (`/plugin uninstall <name>@nexus-plugins`), remove the marketplace
-  (`/plugin marketplace remove nexus-plugins`), then each product as its README explains.
+  (`/plugin marketplace remove nexus-plugins`), then `uv cache clean`.
 
 ## Development
 
 ```powershell
-pwsh -NoProfile -File test.ps1   # PowerShell lint, then dotnet test: catalogs, pack dry runs (Windows PowerShell 5.1), app
+pwsh -NoProfile -File test.ps1                              # lint, then dotnet test: manifests, pins, skills, pack dry runs, app
+$env:NEXUS_CATALOG_SMOKE = '1'; pwsh -NoProfile -File test.ps1   # plus: every catalog server started from PyPI with uvx
+$env:NEXUS_PACK_CHECK_AIS = 'claude-code,codex'; dotnet test --project tests/NexusSystem.Tests --filter-class NexusSystem.Tests.InstallTests   # after a real pack run
 ```
 
-`dotnet test --solution NexusSystem.slnx` from the repository root runs the same tests (xUnit v3); build and test output
-go to `~\.nexus\build\NexusSystem`, never into the repository.
 ## License
 
 [MIT](https://github.com/pironjulien/NexusSystem/blob/main/LICENSE) © Julien Piron

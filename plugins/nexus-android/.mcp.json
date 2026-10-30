@@ -1,10 +1,16 @@
 {
   "mcpServers": {
     "nexus-android": {
-      "type": "http",
-      "url": "http://127.0.0.1:16180/mcp",
-      "headers": {
-        "Authorization": "Bearer ${NEXUS_MCP_TOKEN}"
+      "command": "uvx",
+      "args": [
+        "--python",
+        "3.14",
+        "nexus-android==0.21.0"
+      ],
+      "env": {
+        "NEXUS_ANDROID_ADB": "${NEXUS_ANDROID_ADB:-}",
+        "NEXUS_ANDROID_SERIAL": "${NEXUS_ANDROID_SERIAL:-}",
+        "NEXUS_ANDROID_MANAGED": "nexus-plugins catalog"
       }
     }
   }

@@ -16,13 +16,13 @@ $script:realCli = if ($LivePluginInstall) { Get-CodexCli } else { $null }
 $Marketplace = 'nexus-plugins'; $EmitEvents = $false; $Ok = 'ok'; $No = 'failed'; $Raw = 'https://test.invalid'
 $AiNames = [ordered]@{ 'claude-code' = 'Claude Code'; 'codex' = 'Codex' }
 $Products = @(
-    @{Key='windows'; Name='NexusWindows'; Repo='NexusWindows'; Plugin='nexus-windows'; Engine=$true; Server='nexus-windows'; Targets=@('codex')},
-    @{Key='android'; Name='NexusAndroid'; Repo='NexusAndroid'; Plugin='nexus-android'; Engine=$true; Server='nexus-android'; Targets=@('codex')},
-    @{Key='browser'; Name='NexusBrowser'; Repo='NexusBrowser'; Plugin='nexus-browser'; Engine=$true; Server='nexus-browser'; Targets=@('codex')},
-    @{Key='relay'; Name='NexusRelay'; Repo='NexusRelay'; Plugin='nexus-relay'; Engine=$true; Server='nexus-relay'; Targets=@('codex')}
+    @{Key='windows'; Name='NexusWindows'; Plugin='nexus-windows'; Server='nexus-windows'; Targets=@('codex')},
+    @{Key='android'; Name='NexusAndroid'; Plugin='nexus-android'; Server='nexus-android'; Targets=@('codex')},
+    @{Key='browser'; Name='NexusBrowser'; Plugin='nexus-browser'; Server='nexus-browser'; Targets=@('codex')},
+    @{Key='relay'; Name='NexusRelay'; Plugin='nexus-relay'; Server='nexus-relay'; Daemon=$true; Targets=@('codex')}
 )
 $Checks = @{ 'codex' = ${function:Get-CodexState}; 'claude-code' = { return 'missing' } }
-$OneRunForAll = @('windows', 'android', 'browser', 'relay'); $HonorsTargets = $OneRunForAll
+$OneRunForAll = @('android', 'browser', 'relay'); $HonorsTargets = $OneRunForAll
 $script:operations = @(); $script:failPlugin = ''; $script:omitGuide = ''; $script:installerFailure = ''
 function Assert-True([bool]$Condition, [string]$Message) { if (-not $Condition) { throw $Message } }
 function Initialize-Test([string]$Name, [string]$Config = '') {
@@ -44,7 +44,9 @@ function Install-Fixture([string]$Name) {
     if ($script:omitGuide -ne $Name) { Set-Content -LiteralPath (Join-Path $root "skills\$Name\SKILL.md") -Value "# $Name guide" }
 }
 function Find-AiApp { return , @('codex') }
-function Sync-SessionPath { }
+function Sync-SessionPath { param([switch]$Registry) [void]$Registry }
+function Get-Uvx { return 'uvx.exe' }
+function Get-NodeMajor { return 24 }
 function Test-Git { return $true }
 function Get-CodexCli { return 'signed-codex.exe' }
 function Install-CodexMarketplace([string]$Cli, [string]$Catalog) { $script:operations += "catalog:$Cli|$Catalog"; return 0 }
@@ -54,30 +56,30 @@ function Install-CodexPlugin([string]$Cli, [string]$Name) {
     Install-Fixture $Name
     return 0
 }
+function Invoke-Console([string]$File, [string[]]$Arguments) {
+    $script:operations += "runtime:android|$env:NEXUS_PACK_TARGETS"
+    if (($env:NEXUS_PACK_TARGETS -split ',') -contains 'codex' -and (Get-CodexPluginState (Read-Config) 'nexus-android') -ne 'enabled') {
+        Add-Config "[mcp_servers.nexus-android]`ncommand = `"uvx`"`nargs = [`"nexus-android`"]"
+    }
+    $global:LASTEXITCODE = 0
+}
 function Invoke-Installer([string]$What, [string]$Url, [string]$Work) {
-    $product = $Products | Where-Object { $_.Name -eq $What } | Select-Object -First 1
-    if (-not $product -or $Url -ne "$Raw/$($product.Repo)/main/get.ps1") { throw "Unexpected installer $What ($Url)" }
-    $name = $product.Key
+    $name = if ($What -eq 'NexusBrowser') { 'browser' } elseif ($What -eq 'NexusRelay') { 'relay' } else { throw "Unexpected installer $What" }
     $script:operations += "runtime:$name|$env:NEXUS_PACK_TARGETS"
     if ($script:installerFailure -eq $name) { return 1 }
     if (($env:NEXUS_PACK_TARGETS -split ',') -contains 'codex') {
-        # An installer that does not detect the installed plugin writes its own direct declaration (native forms).
-        switch ($name) {
-            'windows' {
-                $exe = (Join-Path $env:USERPROFILE '.nexus\nexus-windows\NexusWindows.exe') | ConvertTo-Json -Compress
-                Add-Config "[mcp_servers.nexus-windows]`ncommand = $exe`nargs = [`"--mcp`", `"--agent`", `"codex`"]"
-            }
-            'android' { Add-Config "[mcp_servers.nexus-android]`nurl = `"http://127.0.0.1:16180/mcp`"`nbearer_token_env_var = `"NEXUS_MCP_TOKEN`"" }
-            'browser' { Add-Config "[mcp_servers.nexus-browser]`nurl = `"http://127.0.0.1:16182/mcp?agent=codex`"`nbearer_token_env_var = `"NEXUS_MCP_TOKEN`"" }
-            'relay' {
-                if ((Get-CodexPluginState (Read-Config) 'nexus-relay') -ne 'enabled') {
-                    Add-Config "[mcp_servers.nexus-relay]`nurl = `"http://127.0.0.1:16181/mcp?agent=codex`"`nbearer_token_env_var = `"NEXUS_MCP_TOKEN`""
-                }
-            }
+        # Browser's older installer does not detect an installed plugin and writes a duplicate direct MCP table.
+        if ($name -eq 'browser') {
+            $python = (Join-Path $env:USERPROFILE '.nexus\nexus-browser\venv\Scripts\python.exe') | ConvertTo-Json -Compress
+            $server = (Join-Path $env:LOCALAPPDATA 'NexusBrowser\app\client\mcp_server.py') | ConvertTo-Json -Compress
+            Add-Config "[mcp_servers.nexus-browser]`ncommand = $python`nargs = [`"-B`", $server]`n[mcp_servers.nexus-browser.env]`nNEXUS_BROWSER_AGENT = `"Codex`""
+        } elseif ((Get-CodexPluginState (Read-Config) 'nexus-relay') -ne 'enabled') {
+            Add-Config "[mcp_servers.nexus-relay]`nurl = `"http://127.0.0.1:16181/mcp?agent=codex`"`nbearer_token_env_var = `"NEXUS_MCP_TOKEN`""
         }
     }
     return 0
-}New-Item -ItemType Directory -Force $work | Out-Null
+}
+New-Item -ItemType Directory -Force $work | Out-Null
 try {
     Initialize-Test 'fresh'
     $code = Invoke-NexusPack @() @() $false $true 'test/local-catalog'
@@ -86,8 +88,8 @@ try {
         Assert-True (Test-CodexPluginInstalled $name) "$name guide not installed."
         Assert-True (@(Get-CodexServerTable (Read-Config) $name).Count -eq 0) "$name duplicate direct server remains."
     }
-    Assert-True (($script:operations -join ';') -match '^catalog:.*;plugin:nexus-windows;plugin:nexus-android;plugin:nexus-browser;plugin:nexus-relay;runtime:windows\|codex;runtime:android\|codex;runtime:browser\|codex;runtime:relay\|codex') 'Plugins must precede the native installers, in product order.'
-    Write-Host 'OK Codex: all four plugins include guides; native installers'' duplicates removed'
+    Assert-True (($script:operations -join ';') -match '^catalog:.*;plugin:nexus-windows;plugin:nexus-android;plugin:nexus-browser;plugin:nexus-relay;runtime:android\|codex') 'Plugins must precede runtime installation.'
+    Write-Host 'OK Codex: all four plugins include guides; runtime duplicates removed'
 
     Initialize-Test 'failed-plugin'
     $script:failPlugin = 'nexus-android'
@@ -100,7 +102,7 @@ try {
     $script:omitGuide = 'nexus-browser'
     $code = Invoke-NexusPack @('browser') @() $false $true 'test/local-catalog'
     Assert-True ($code -eq 1) 'Missing guide must fail the complete installation.'
-    Assert-True (@(Get-CodexServerTable (Read-Config) 'nexus-browser').Count -eq 1) 'Missing guide must keep the direct server.'
+    Assert-True (@(Get-CodexServerTable (Read-Config) 'nexus-browser').Count -eq 2) 'Missing guide must keep the direct server and env table.'
     Write-Host 'OK Codex: a missing installed guide is never reported as complete'
 
     $disabled = "[plugins.`"nexus-android@nexus-plugins`"]`nenabled = false`n[mcp_servers.nexus-android]`ncommand = `"uvx`"`nargs = [`"nexus-android`"]"
@@ -172,17 +174,6 @@ other = [
     Assert-True (-not (Test-CodexOwnedServer ($android.Replace('nexus-android==0.20.3','--from nexus-android-dev')) 'nexus-android')) 'Custom package must prevent removal.'
     Assert-True (-not (Test-CodexOwnedServer "[mcp_servers.nexus-relay]`nurl = `"http://127.0.0.1:9999/mcp?agent=codex`"`nbearer_token_env_var = `"NEXUS_MCP_TOKEN`"`n" 'nexus-relay')) 'Nonstandard relay port must prevent removal.'
     Assert-True (-not (Test-CodexOwnedServer ($android+"[mcp_servers.nexus-android.env]`nMY_SETTING = `"yes`"`n") 'nexus-android')) 'Custom env must prevent removal.'
-    $stable = (Join-Path $env:USERPROFILE '.nexus\nexus-windows\NexusWindows.exe') | ConvertTo-Json -Compress
-    $versioned = (Join-Path $env:USERPROFILE ".nexus\nexus-windows\native\$('a' * 64)\NexusWindows.exe") | ConvertTo-Json -Compress
-    foreach ($exe in $stable, $versioned) {
-        Assert-True (Test-CodexOwnedServer "[mcp_servers.nexus-windows]`ncommand = $exe`nargs = [`"--mcp`", `"--agent`", `"codex`"]`n" 'nexus-windows') 'Native NexusWindows signature not recognized.'
-    }
-    Assert-True (-not (Test-CodexOwnedServer "[mcp_servers.nexus-windows]`ncommand = $stable`nargs = [`"--mcp`", `"--agent`", `"claude`"]`n" 'nexus-windows')) 'Another profile must prevent removal.'
-    Assert-True (-not (Test-CodexOwnedServer "[mcp_servers.nexus-windows]`ncommand = `"C:\\Tools\\NexusWindows.exe`"`nargs = [`"--mcp`", `"--agent`", `"codex`"]`n" 'nexus-windows')) 'A NexusWindows.exe elsewhere must prevent removal.'
-    foreach ($daemon in @(@('nexus-android', 'http://127.0.0.1:16180/mcp'), @('nexus-browser', 'http://127.0.0.1:16182/mcp?agent=codex'))) {
-        Assert-True (Test-CodexOwnedServer "[mcp_servers.$($daemon[0])]`nurl = `"$($daemon[1])`"`nbearer_token_env_var = `"NEXUS_MCP_TOKEN`"`n" $daemon[0]) "$($daemon[0]) daemon signature not recognized."
-        Assert-True (-not (Test-CodexOwnedServer "[mcp_servers.$($daemon[0])]`nurl = `"$($daemon[1])`"`nbearer_token_env_var = `"MY_TOKEN`"`n" $daemon[0])) "$($daemon[0]): another token variable must prevent removal."
-    }
     Write-Host 'OK Codex: only exact official command/args/environment/URL signatures migrate'
 
     $spacedOwned = "[ mcp_servers . 'nexus-android' ] # original`ncommand = 'uvx'`nargs = ['--python','3.14','nexus-android']`n[other]`ntext = 'kept'`n[ plugins . 'nexus-android@nexus-plugins' ]`nenabled = true`n"

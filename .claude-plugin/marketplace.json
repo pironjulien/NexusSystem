@@ -5,15 +5,15 @@
     "url": "https://github.com/pironjulien"
   },
   "metadata": {
-    "description": "Computer use in the background for Claude Code: your Android phone, your Windows desktop apps, your real Chrome, a direct line to Codex and Antigravity, your Logitech keypad. Each plugin connects to its product's native Windows engine (no Python), installed by NexusSystem.",
-    "version": "1.7.0"
+    "description": "Computer use in the background for Claude Code: your Android phone over ADB, your Windows desktop apps, your real Chrome, a direct line to Codex and Antigravity, your Logitech keypad. Android, Windows and Chrome start their open-source MCP server from PyPI with uvx (pinned and locked with hashes) until each product publishes its native release; Relay connects to its local daemon; Keypad calls NexusKeypad's native helper.",
+    "version": "1.6.31"
   },
   "plugins": [
     {
       "name": "nexus-android",
       "source": "./plugins/nexus-android",
-      "description": "Android phone over plain ADB (no root, no app): screen, gestures, SMS/RCS, notifications, files, settings. Served by the local NexusAndroid daemon, installed by NexusSystem (or NexusAndroid's get.ps1); needs USB debugging on the phone.",
-      "version": "0.22.0",
+      "description": "Android phone over plain ADB (no root, no app): screen, gestures, SMS/RCS, notifications, files, settings. Needs uv and USB debugging; adb is downloaded if missing.",
+      "version": "0.21.0",
       "category": "productivity",
       "keywords": [
         "android",
@@ -29,8 +29,8 @@
     {
       "name": "nexus-windows",
       "source": "./plugins/nexus-windows",
-      "description": "Windows desktop apps in the background (look, click, type, menus, shortcuts, launch) without taking your mouse, keyboard or foreground. Starts the native NexusWindows engine installed by NexusSystem (or NexusWindows' get.ps1).",
-      "version": "3.8.0",
+      "description": "Windows desktop apps through native UI Automation: observe, click, type, menus, shortcuts and launch. Foreground interaction is explicit when required. Windows 10/11, needs uv.",
+      "version": "3.7.4",
       "category": "productivity",
       "keywords": [
         "windows",
@@ -46,8 +46,8 @@
     {
       "name": "nexus-browser",
       "source": "./plugins/nexus-browser",
-      "description": "Your real Chrome (your sessions) driven in background tabs: forms, network, dialogs, cross-origin iframes, exports, downloads. Served by the local NexusBrowser daemon; requires its Chrome extension, both installed by NexusSystem (or NexusBrowser's get.ps1).",
-      "version": "2.33.0",
+      "description": "Your real Chrome (your sessions) driven in background tabs: forms, network, dialogs, cross-origin iframes, exports, downloads. Requires the one-time NexusBrowser install (Chrome extension + local bridge, Windows).",
+      "version": "2.32.0",
       "category": "productivity",
       "keywords": [
         "chrome",
@@ -63,8 +63,8 @@
     {
       "name": "nexus-relay",
       "source": "./plugins/nexus-relay",
-      "description": "Direct link between Claude, Codex and Antigravity on one Windows PC: topic rooms, multi-agent review, delegated tasks. Served by the local NexusRelay daemon, installed by NexusSystem (or NexusRelay's get.ps1).",
-      "version": "1.10.0",
+      "description": "Direct link between Claude, Codex and Antigravity on one Windows PC: topic rooms, multi-agent review, delegated tasks. Needs the NexusRelay daemon, installed by the one-line install (or NexusRelay's get.ps1).",
+      "version": "1.9.0",
       "category": "productivity",
       "keywords": [
         "multi-agent",

@@ -1,9 +1,10 @@
 {
   "mcpServers": {
     "nexus-android": {
-      "url": "http://127.0.0.1:16180/mcp",
-      "bearer_token_env_var": "NEXUS_MCP_TOKEN",
-      "startup_timeout_sec": 60
+      "command": "uvx",
+      "args": ["--python", "3.14", "nexus-android==0.21.0"],
+      "env": { "NEXUS_ANDROID_MANAGED": "nexus-plugins catalog" },
+      "startup_timeout_sec": 120
     }
   }
 }

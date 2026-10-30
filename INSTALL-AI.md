@@ -23,7 +23,7 @@ Never assume the user wants every product if they only need one or two. The avai
 
 ## 2. Run the official installer
 
-Run the official PowerShell pack script (`get-nexus.ps1`). It requires no administrator rights, detects the AI apps installed on the PC, installs `Git` when Claude Code or Codex needs it to add the plugin catalog, gives Claude Code and Codex the plugins of this catalog, and runs each selected product's official native installer (no Python, no uv: every product is a native Windows engine).
+Run the official PowerShell pack script (`get-nexus.ps1`). It requires no administrator rights, detects the AI apps installed on the PC, installs missing prerequisites (`uv`, and `Git` or `Node.js` when a selected target needs them), and runs each selected product's official installer.
 
 ### Selected products (recommended)
 

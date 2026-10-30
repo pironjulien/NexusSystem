@@ -50,9 +50,51 @@ public class InstallTests
                     var (name, version, tools) = await Reach(declared);
                     TestContext.Current.TestOutputHelper?.WriteLine($"OK {label}: {name} {version}, {tools} tools");
                 }
-                catch (Exception error) when (error is IOException or InvalidDataException or HttpRequestException or TimeoutException or InvalidOperationException)
+                catch (Exception error) when (error is IOException or InvalidDataException or HttpRequestException or TimeoutException or InvalidOperationException or System.ComponentModel.Win32Exception)
                 {
                     failures.Add($"{label}: {error.Message}");
+                }
+            }
+        }
+        Assert.True(failures.Count == 0, string.Join("\n", failures));
+    }
+
+    /// <summary>
+    /// Every server a catalog plugin starts itself (Claude Code and Codex, the PyPI ones today) is started exactly as
+    /// its .mcp.json says (uvx from PyPI, fetched again, not cached) and lists its tools. Daemon plugins are reached by
+    /// EveryDeclaredServerAnswers after a real install. Runs when NEXUS_CATALOG_SMOKE=1 (CI, with uv).
+    /// </summary>
+    [Fact]
+    public async Task CatalogServersStartAsDeclared()
+    {
+        Assert.SkipUnless(Environment.GetEnvironmentVariable("NEXUS_CATALOG_SMOKE") == "1", "Set NEXUS_CATALOG_SMOKE=1 (needs uv and the network).");
+        var failures = new List<string>();
+        var manifests = Directory.GetFiles(Repository.PathOf("plugins"), ".mcp.json", SearchOption.AllDirectories)
+            .Concat(Directory.GetFiles(Repository.PathOf("codex"), ".mcp.json", SearchOption.AllDirectories)).Order();
+        foreach (var manifest in manifests)
+        {
+            foreach (var (name, node) in ReadJson(manifest)!["mcpServers"]!.AsObject())
+            {
+                var label = $"{Path.GetFileName(Path.GetDirectoryName(Path.GetDirectoryName(manifest)))}/{name}";
+                var server = node!.DeepClone().AsObject();
+                if (server["command"] is null) continue;  // a daemon: reached after a real install
+                if ((string?)server["command"] == "uvx") server["args"]!.AsArray().Insert(0, "--refresh");
+                Environment.SetEnvironmentVariable("CLAUDE_PLUGIN_ROOT", Path.GetDirectoryName(manifest));
+                // Right after a PyPI release the index can lack the new version for a few minutes: tried again.
+                for (var attempt = 1; ; attempt++)
+                {
+                    try
+                    {
+                        var (serverName, version, tools) = await Reach(server);
+                        TestContext.Current.TestOutputHelper?.WriteLine($"OK {label}: {serverName} {version}, {tools} tools");
+                        break;
+                    }
+                    catch (Exception error) when (error is IOException or InvalidDataException or TimeoutException or InvalidOperationException or System.ComponentModel.Win32Exception)
+                    {
+                        if (attempt < 4 && error.Message.Contains("exited", StringComparison.Ordinal)) { await Task.Delay(TimeSpan.FromSeconds(60), TestContext.Current.CancellationToken); continue; }
+                        failures.Add($"{label}: {error.Message}");
+                        break;
+                    }
                 }
             }
         }

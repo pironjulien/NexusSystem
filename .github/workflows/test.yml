@@ -35,28 +35,31 @@ jobs:
         with:
           advanced-security: false
   # Exactly what test.ps1 runs on the PC: PowerShell lint, then dotnet test (catalogs, pack dry runs under Windows
-  # PowerShell 5.1, the app's build and tests).
+  # PowerShell 5.1, the app's build and tests), plus every PyPI server of the catalogs started as its .mcp.json says.
   test:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68  # v6.0.0
         with:
           global-json-file: global.json
       - name: PSScriptAnalyzer
         shell: pwsh
         run: if (-not (Get-Module -ListAvailable PSScriptAnalyzer)) { Install-Module PSScriptAnalyzer -Scope CurrentUser -Force }
-      - name: test.ps1
+      - name: test.ps1, catalog servers started from PyPI
         shell: pwsh
+        env:
+          NEXUS_CATALOG_SMOKE: '1'
         run: ./test.ps1
 
   # The one-liner on a clean runner: the official Claude Code installer, the pinned signed Codex engine, and the
   # folders by which Claude Desktop and Antigravity are found. Codex must install real plugins; an empty .codex folder
-  # cannot stand in for its engine. Each product's native get.ps1 (its latest release) installs its engine; then every
-  # server that each AI app declares is reached as that app would reach it (InstallTests). Run by hand: it depends on
-  # the products' published releases, not on this commit alone.
+  # cannot stand in for its engine. Each product's own installer runs (its latest release); then every server that
+  # each AI app declares is reached as that app would reach it (InstallTests). Run by hand: it depends on the products'
+  # published releases, not on this commit alone.
   pack:
     if: github.event_name == 'workflow_dispatch'
     runs-on: windows-latest
@@ -100,7 +103,7 @@ jobs:
           $env:PATH = "$env:USERPROFILE\.local\bin;" + [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + [Environment]::GetEnvironmentVariable('Path', 'User')
           $env:NEXUS_MCP_TOKEN = [Environment]::GetEnvironmentVariable('NEXUS_MCP_TOKEN', 'User')
           $env:NEXUS_PACK_CHECK_AIS = 'claude-code,claude-desktop,codex,antigravity'
-          $env:NEXUS_PACK_CHECK_PRODUCTS = 'windows,android,browser,relay'
+          $env:NEXUS_PACK_CHECK_PRODUCTS = 'windows,android,browser'
           dotnet test --project tests/NexusSystem.Tests --filter-class NexusSystem.Tests.InstallTests
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           $env:NEXUS_PACK_CHECK_AIS = 'antigravity'; $env:NEXUS_PACK_CHECK_PRODUCTS = 'agymail'

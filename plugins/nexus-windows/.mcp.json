@@ -1,13 +1,15 @@
 {
   "mcpServers": {
     "nexus-windows": {
-      "type": "stdio",
-      "command": "${USERPROFILE}\\.nexus\\nexus-windows\\NexusWindows.exe",
+      "command": "uvx",
       "args": [
-        "--mcp",
-        "--agent",
-        "claude"
-      ]
+        "--python",
+        "3.14",
+        "nexus-windows-claude==3.7.4"
+      ],
+      "env": {
+        "PYTHONUTF8": "1"
+      }
     }
   }
 }

@@ -19,8 +19,8 @@
     {
       "name": "nexus-windows",
       "source": {
-        "source": "local",
-        "path": "./codex/nexus-windows"
+        "source": "url",
+        "url": "https://github.com/pironjulien/NexusWindows-Codex.git"
       },
       "policy": {
         "installation": "AVAILABLE",

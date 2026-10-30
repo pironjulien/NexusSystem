@@ -80,6 +80,7 @@ public static class PackRunner
                 start.ArgumentList.Add("claude-desktop");
             }
             if (dryRun) start.ArgumentList.Add("-DryRun");
+            start.Environment["PYTHONIOENCODING"] = "utf-8";
             // Started from a PowerShell 7 terminal, the app inherits its module path, on which Windows PowerShell 5.1
             // loads PowerShell 7's modules and fails: removed, each PowerShell computes its own.
             start.Environment.Remove("PSModulePath");

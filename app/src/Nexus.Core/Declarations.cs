@@ -126,13 +126,14 @@ public static partial class Declarations
             ? DeclarationState.Disabled : DeclarationState.Declared;
     }
 
-    /// <summary>A command as an AI app starts it: a full path that exists, or a program found on PATH.</summary>
+    /// <summary>A command as an AI app starts it: a full path that exists, or a program found on PATH (uvx in ~\.local\bin too).</summary>
     public static bool CommandExists(string? command)
     {
         if (string.IsNullOrWhiteSpace(command)) return false;
         var expanded = Environment.ExpandEnvironmentVariables(command);
         if (Path.IsPathRooted(expanded)) return File.Exists(expanded);
         if (Path.HasExtension(expanded)) expanded = Path.GetFileNameWithoutExtension(expanded);  // node.exe: PATHEXT adds it back
+        if (expanded == "uvx" && File.Exists(Path.Combine(UserFolders.FromEnvironment().Home, ".local", "bin", "uvx.exe"))) return true;
         return AiApps.OnPath(expanded) is not null;
     }
 
