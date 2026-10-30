@@ -21,6 +21,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
   connection retains its previous runtime. A new qualification client never substitutes for a host connection.
 
 ### Fixed
+- Existing Codex marketplace entries refresh in place when HTTPS, SSH and GitHub shorthand refer to the same Nexus
+  repository; custom sources remain untouched. Maintenance passes the current user credential to installer children
+  even when the launching AI predates installation, then restores its original process environment.
 - Existing Claude plugins are explicitly updated after their marketplace is refreshed. A refreshed listing or
   enabled setting alone is no longer treated as proof of an updated installed plugin.
 - Deferred work remains pending and is retried instead of being reported as a completed update.

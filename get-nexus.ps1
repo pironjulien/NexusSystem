@@ -679,8 +679,24 @@ function Install-CodexMarketplace([string]$Cli, [string]$Catalog) {
     return Invoke-Native 'Codex: Nexus plugin catalog' {
         # The CLI owns its configuration. Existing Git snapshots need an explicit refresh; local catalogs are read
         # in place (also how the offline recipe verifies the exact catalog about to be published).
-        & $Cli plugin marketplace add $Catalog --json
-        if ($LASTEXITCODE -eq 0 -and -not (Test-Path -LiteralPath $Catalog -PathType Container)) {
+        $listed = & $Cli plugin marketplace list --json | Out-String
+        if ($LASTEXITCODE) { throw 'Codex could not inspect its existing marketplaces.' }
+        $existing = @(($listed | ConvertFrom-Json).marketplaces | Where-Object { $_.name -eq $Marketplace })
+        if ($existing.Count -gt 1) { throw 'Codex reported an ambiguous Nexus marketplace; no source was replaced.' }
+        $localCatalog = Test-Path -LiteralPath $Catalog -PathType Container
+        if ($existing.Count) {
+            $sameLocal = $localCatalog -and $existing[0].root -and
+                [IO.Path]::GetFullPath($Catalog).TrimEnd('\','/') -ieq [IO.Path]::GetFullPath($existing[0].root).TrimEnd('\','/')
+            # GitHub shorthand, HTTPS and SSH identify this same repository; changing spelling is not a new source.
+            $official = '^(?:https://github\.com/|git@github\.com:|ssh://git@github\.com/)?pironjulien/NexusSystem(?:\.git)?/?$'
+            $sameGit = -not $localCatalog -and $Catalog -match $official -and
+                $existing[0].marketplaceSource.sourceType -eq 'git' -and $existing[0].marketplaceSource.source -match $official
+            if (-not $sameLocal -and -not $sameGit) { throw 'The existing Nexus marketplace uses another source; it was preserved.' }
+        } else {
+            & $Cli plugin marketplace add $Catalog --json
+            if ($LASTEXITCODE) { throw 'Codex could not add the Nexus marketplace.' }
+        }
+        if (-not $localCatalog) {
             & $Cli plugin marketplace upgrade $Marketplace --json
         }
     }
@@ -1023,6 +1039,7 @@ function Get-NexusInstalledVersion($Product) {
         }
     }
 }
+function Get-NexusMaintenanceToken { return [Environment]::GetEnvironmentVariable('NEXUS_MCP_TOKEN','User') }
 function Test-NexusOwnedJsonRoute($Product,$Server,[string]$Agent) {
     if (-not $Server -or $Server.disabled -eq $true -or $Server.enabled -eq $false) { return $false }
     if ($Product.Key -eq 'browser') {
@@ -1039,7 +1056,7 @@ function Test-NexusOwnedJsonRoute($Product,$Server,[string]$Agent) {
         }
         $urlKey=@($names | Where-Object {$_ -in @('url','serverUrl','httpUrl')})
         $authorization=if($Server.headers){[string]$Server.headers.Authorization}else{''}
-        $token=[Environment]::GetEnvironmentVariable('NEXUS_MCP_TOKEN','User')
+        $token=Get-NexusMaintenanceToken
         $ownedHeader=$authorization -ceq 'Bearer ${NEXUS_MCP_TOKEN}' -or ($token -and $authorization -ceq "Bearer $token")
         return $names.Count -eq 2 -and $urlKey.Count -eq 1 -and $Server.($urlKey[0]) -ceq "http://127.0.0.1:16182/mcp?agent=$Agent" -and $Server.headers -and @($Server.headers.PSObject.Properties).Count -eq 1 -and $ownedHeader
     }
@@ -1128,11 +1145,15 @@ function Get-NexusLoadedVersion($Product) {
                 $birth=[DateTimeOffset]::MinValue
                 $_ -and $_.schema -eq 1 -and $_.product -eq 'windows' -and $_.state -in @('idle','busy') -and $_.agent -eq $agent -and $_.pid -eq $process.ProcessId -and $_.executable -ieq $process.ExecutablePath -and [DateTimeOffset]::TryParse([string]$_.processStartUtc,[ref]$birth) -and [Math]::Abs(($birth.UtcDateTime-$process.CreationDate.ToUniversalTime()).TotalSeconds) -lt 0.01 -and [string]$_.processStartTicks -ceq $birth.UtcDateTime.Ticks.ToString() -and $_.assembly -ieq (Join-Path (Split-Path $process.ExecutablePath) 'NexusWindows.dll') -and $_.assemblySha256 -match '^[a-f0-9]{64}$' -and (Test-Path -LiteralPath $_.assembly) -and (Get-FileHash -LiteralPath $_.assembly -Algorithm SHA256).Hash -ieq $_.assemblySha256
             } | Select-Object -First 1
+            $activeVersion=$null
             if ($receipt -and $receipt.version -match '^\d+\.\d+\.\d+$') {
                 $versions += [string]$receipt.version
                 if (-not $installed -or $receipt.executable -ine $installed.NativeExecutable -or $receipt.assemblySha256 -ine $installed.NativeArtifacts.'NexusWindows.dll') {$unknown=$true}
-                else {$agents += [pscustomobject]@{agent=$agent;version=[string]$receipt.version;processStartUtc=$receipt.processStartUtc}}
+                else {$activeVersion=[string]$receipt.version}
             } else { $unknown=$true }
+            # Keep every host-owned connection in its AI's verdict: a newer client does not hide an older,
+            # unattested connection belonging to that same host.
+            $agents += [pscustomobject]@{agent=$agent;version=$activeVersion;processStartUtc=$receipt.processStartUtc}
         }
     } elseif ($Product.Key -eq 'browser') {
         $installed=Read-Json (Join-Path $env:LOCALAPPDATA 'NexusBrowser\current.json')
@@ -1200,7 +1221,7 @@ function Invoke-NexusMaintenance([switch]$Current,[switch]$Force) {
     catch [IO.IOException] { return 2 }
     $work=Join-Path $root "run-$PID"
     $state=[ordered]@{schema=1;state='checking';checked_at=[DateTimeOffset]::UtcNow.ToString('O');nextCheckAt=[DateTimeOffset]::UtcNow.AddHours(1).ToString('O');activationPending=$false;retryable=$false;latest=$null;catalogue=$null;products=@();message='Checking published releases and installed routes.'}
-    $savedPack=$env:NEXUS_PACK; $savedTargets=$env:NEXUS_PACK_TARGETS
+    $savedPack=$env:NEXUS_PACK; $savedTargets=$env:NEXUS_PACK_TARGETS; $savedMcpToken=$env:NEXUS_MCP_TOKEN
     $bootstrap=$null;$preserveStatus=$false
     try {
         $choices=Read-Json (Join-Path $env:USERPROFILE '.nexus\nexussystem.json')
@@ -1236,6 +1257,10 @@ function Invoke-NexusMaintenance([switch]$Current,[switch]$Force) {
             $bootstrap=$durable
         } else {
             $env:NEXUS_PACK='1'
+            # An AI launched before installation can lack the user's token in its inherited environment. Pass the
+            # same current user credential used to identify existing routes to the official installer child.
+            $maintenanceToken=Get-NexusMaintenanceToken
+            if ($maintenanceToken) { $env:NEXUS_MCP_TOKEN=$maintenanceToken }
             # These existing detection functions deliberately return one array object. Assign before piping so
             # multi-AI profiles and multi-entry skip lists are not accidentally nested and then overlooked.
             $skip=Get-LocalSkip; $found=Find-AiApp
@@ -1326,6 +1351,7 @@ function Invoke-NexusMaintenance([switch]$Current,[switch]$Force) {
         }
         if ($null -eq $savedPack) {Remove-Item Env:NEXUS_PACK -ErrorAction SilentlyContinue}else{$env:NEXUS_PACK=$savedPack}
         if ($null -eq $savedTargets) {Remove-Item Env:NEXUS_PACK_TARGETS -ErrorAction SilentlyContinue}else{$env:NEXUS_PACK_TARGETS=$savedTargets}
+        if ($null -eq $savedMcpToken) {Remove-Item Env:NEXUS_MCP_TOKEN -ErrorAction SilentlyContinue}else{$env:NEXUS_MCP_TOKEN=$savedMcpToken}
         # Only this run's absolute child directory is disposable. Never clean product payloads or runtime folders.
         $absolute=[IO.Path]::GetFullPath($work);$parentRoot=[IO.Path]::GetFullPath($root).TrimEnd('\')+'\'
         if ($absolute.StartsWith($parentRoot,[StringComparison]::OrdinalIgnoreCase) -and (Split-Path $absolute -Leaf) -ceq "run-$PID" -and (Test-Path -LiteralPath $absolute) -and -not ((Get-Item -LiteralPath $absolute).Attributes -band [IO.FileAttributes]::ReparsePoint)) {

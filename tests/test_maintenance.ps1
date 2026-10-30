@@ -9,7 +9,7 @@ $ErrorActionPreference='Stop'
 $pack=Join-Path (Split-Path $PSScriptRoot) 'get-nexus.ps1'
 $ast=[Management.Automation.Language.Parser]::ParseFile($pack,[ref]$null,[ref]$null)
 foreach($definition in $ast.FindAll({param($node) $node -is [Management.Automation.Language.FunctionDefinitionAst]},$true)) {. ([scriptblock]::Create($definition.Extent.Text))}
-$original=@{}; foreach($key in @('USERPROFILE','LOCALAPPDATA','APPDATA','CODEX_HOME','NEXUS_PACK','NEXUS_PACK_TARGETS')){$original[$key]=[Environment]::GetEnvironmentVariable($key,'Process')}
+$original=@{}; foreach($key in @('USERPROFILE','LOCALAPPDATA','APPDATA','CODEX_HOME','NEXUS_PACK','NEXUS_PACK_TARGETS','NEXUS_MCP_TOKEN')){$original[$key]=[Environment]::GetEnvironmentVariable($key,'Process')}
 $work=Join-Path ([IO.Path]::GetTempPath()) "nexus-maintenance-test-$PID"
 $Marketplace='nexus-plugins'; $EmitEvents=$false; $script:NexusPackScript=$pack
 $AiNames=[ordered]@{'claude-code'='Claude Code';'claude-desktop'='Claude Desktop';'codex'='Codex';'antigravity'='Antigravity'}
@@ -84,6 +84,7 @@ try{
     $script:processFixture[0].CreationDate=$birth.AddSeconds(1)
     $live=Get-NexusLoadedVersion $windows
     Assert (-not $live.versions.Count -and $live.unknown) 'A receipt from a reused PID was accepted.'
+    Assert ($live.agents.Count -eq 1 -and $null -eq $live.agents[0].version) 'An unattested connection disappeared from its AI profile verdict.'
     $script:processFixture[0].CreationDate=$birth
     $script:processFixture[1].Name='powershell.exe';$script:processFixture[1].ExecutablePath='C:\Windows\powershell.exe'
     $live=Get-NexusLoadedVersion $windows
@@ -131,6 +132,8 @@ try{
     Write-Host 'OK durable single updater is hidden, hourly and resumes missed runs'
 
     # Real orchestration with inert release and product implementations. A new connection is never fabricated.
+    function Get-NexusMaintenanceToken {return 'fixture credential'}
+    Assert (Test-NexusOwnedJsonRoute $browser ([pscustomobject]@{serverUrl='http://127.0.0.1:16182/mcp?agent=antigravity';headers=[pscustomobject]@{Authorization='Bearer fixture credential'}}) 'antigravity') 'Route inspection did not use the same current user credential as maintenance.'
     function Find-AiApp {return ,@('codex','claude-code')}
     function Get-LatestTag([string]$Repo){if($script:networkFailure){throw 'network unavailable'};if($Repo -eq 'NexusSystem'){return 'v1.6.35'};if($Repo -eq 'NexusWindows'){return 'v3.9.5'}return 'v2.33.5'}
     function Assert-NexusUpdateContract([string]$File,[string[]]$Parameters){Assert ($Parameters -contains 'UpdateOnly') 'No update-only contract was checked.'}
@@ -144,12 +147,16 @@ try{
     function Invoke-ScriptFile([string]$What,[string]$File,[string[]]$Arguments=@()){
         Assert (($Arguments -join ',') -eq '-UpdateOnly') 'Maintenance used a broad installer.'
         Assert ($env:NEXUS_PACK_TARGETS -eq 'codex') 'Maintenance widened the active profile selection.'
+        Assert ($env:NEXUS_MCP_TOKEN -ceq 'fixture credential') 'The installer did not inherit the same current credential used by route inspection.'
+        if($script:installerThrows){throw 'fixture installer exception'}
         $script:installs++; if($script:installerFailure){return 1}; $script:installed='3.9.5'; return 0
     }
     function Invoke-NexusPluginMaintenance($Product,$Profiles){$script:pluginRefresh++;Assert ($Profiles.Count -eq 1 -and $Profiles[0].key -eq 'codex') 'Plugin refresh widened selection.'; $Profiles[0].pluginVersion=$script:pluginVersion}
     function Get-NexusLoadedVersion($Product){return [pscustomobject]@{versions=@($script:loaded);unknown=$false;agents=@([pscustomobject]@{agent='codex';version=$script:loaded})}}
-    $script:pluginVersion='3.9.5';$script:installed='3.9.4';$script:loaded='3.9.4';$script:installs=0;$script:pluginRefresh=0;$script:downloads=@();$script:networkFailure=$false;$script:installerFailure=$false
+    $script:pluginVersion='3.9.5';$script:installed='3.9.4';$script:loaded='3.9.4';$script:installs=0;$script:pluginRefresh=0;$script:downloads=@();$script:networkFailure=$false;$script:installerFailure=$false;$script:installerThrows=$false
+    $env:NEXUS_MCP_TOKEN='inherited-before-installation'
     Assert ((Invoke-NexusMaintenance -Current) -eq 2) 'Old loaded connection was falsely reported current.'
+    Assert ($env:NEXUS_MCP_TOKEN -ceq 'inherited-before-installation') 'Successful maintenance did not restore its caller environment.'
     $status=Get-NexusMaintenanceStatus
     Assert ($status.products.Count -eq 1 -and $status.products[0].installedVersion -eq '3.9.5' -and $status.products[0].loadedVersions[0] -eq '3.9.4') 'Published/installed/loaded were conflated.'
     Assert ($script:installs -eq 1 -and $script:pluginRefresh -eq 1) 'Expected update did not run once.'
@@ -178,6 +185,11 @@ try{
     Assert ((Invoke-NexusMaintenance -Current) -eq 1 -and (Get-NexusMaintenanceStatus).state -eq 'failed') 'Network error was swallowed.'
     $script:networkFailure=$false;$script:installed='3.9.4';$script:installerFailure=$true
     Assert ((Invoke-NexusMaintenance -Current) -eq 1) 'Installer failure was swallowed.'
+    Assert ($env:NEXUS_MCP_TOKEN -ceq 'inherited-before-installation') 'Installer failure did not restore its caller environment.'
+    Remove-Item Env:NEXUS_MCP_TOKEN
+    $script:installerFailure=$false;$script:installerThrows=$true
+    Assert ((Invoke-NexusMaintenance -Current) -eq 1 -and $null -eq [Environment]::GetEnvironmentVariable('NEXUS_MCP_TOKEN','Process')) 'Installer exception left a credential in an originally absent caller environment.'
+    $script:installerThrows=$false
     $settingsPath=Join-Path $env:USERPROFILE '.nexus\nexussystem.json';[IO.File]::WriteAllText($settingsPath,'{"autoUpdate":false}')
     $beforeDownloads=$script:downloads.Count
     Assert ((Invoke-NexusMaintenance -Current) -eq 0 -and (Get-NexusMaintenanceStatus).state -eq 'disabled' -and $script:downloads.Count -eq $beforeDownloads) 'Automatic-update opt-out was not respected at run time.'
