@@ -21,7 +21,10 @@ static class Steps
             yield return Extension(product, folders);
             yield return Pairing(product, folders);
         }
-        // Nexus lives in Claude Code, Codex and Antigravity: no Claude Desktop extension is offered (a second engine).
+        // Claude Desktop (its chat): the product's extension (.mcpb) of its latest release, which the user drops on Claude
+        // Desktop; not offered when this PC's settings skip Claude Desktop or the product (~\.nexus\nexussystem.json).
+        if (DesktopExtension.For(product) is { } extension && extension.Offered(folders, LocalSettings.Read(folders)))
+            yield return Desktop(product, extension, folders);
         var step = product.Key switch
         {
             "android" => Card(product, Text.Get("Phone"), Text.Get("PhoneSteps")),
@@ -215,6 +218,39 @@ static class Steps
     }
 
     const string ChromeDownload = "https://www.google.com/chrome/";
+
+    // Claude Desktop's extension: downloaded (checked against its release's SHA256SUMS.txt when listed) into
+    // ~\.nexus\claude-desktop, then shown in File Explorer; the user drops it on Claude Desktop (Settings > Extensions),
+    // which asks for its own confirmation. The button always answers.
+    static Border Desktop(Product product, DesktopExtension extension, UserFolders folders)
+    {
+        var installed = extension.IsInstalled(folders);
+        var note = new TextBlock { TextWrapping = TextWrapping.WrapWholeWords, Visibility = Visibility.Collapsed };
+        var download = new Button { Content = Text.Get(installed ? "Desktop.Update" : "Desktop.Download") };
+        download.Click += async (_, _) =>
+        {
+            download.IsEnabled = false;
+            try
+            {
+                var file = await extension.DownloadAsync(folders, Http);
+                Process.Start(new ProcessStartInfo(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "explorer.exe"), $"/select,\"{file}\"") { UseShellExecute = false });
+                note.Text = Text.Format("Desktop.Saved", file);
+            }
+            catch (Exception error) when (error is HttpRequestException or IOException or InvalidDataException or InvalidOperationException or
+                UnauthorizedAccessException or TaskCanceledException or System.ComponentModel.Win32Exception)
+            {
+                AppLog.Error("desktop-extension", error);
+                note.Text = Text.Get("Desktop.Failed");
+            }
+            finally
+            {
+                download.IsEnabled = true;
+                note.Visibility = Visibility.Visible;
+            }
+        };
+        return Ui.Card(Ui.Column(8, Ui.Strong(Text.Get("Desktop.Step")),
+            Ui.Body(Text.Get(installed ? "Desktop.Installed" : "Desktop.StepText")), Row(download), note), product.Accent);
+    }
 
     static string? GuideScript(UserFolders folders)
     {

@@ -7,6 +7,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.6.32] - 2026-10-30
+
+### Added
+- This PC's own choices, outside the code: `%USERPROFILE%\.nexus\nexussystem.json`, for example
+  `{"skip": ["claude-desktop"]}` (names of `-Skip`: products or AI apps). `get-nexus.ps1` adds them to `-Skip`; the app
+  never offers what they skip. A missing or unreadable file means no choice.
+- App: Claude Desktop's chat gets each product's extension (`.mcpb` of its latest release, checked against its
+  `SHA256SUMS.txt` when listed), downloaded into `~\.nexus\claude-desktop` and shown in File Explorer, to drop on Claude
+  Desktop; offered for NexusWindows, NexusAndroid and NexusBrowser when Claude Desktop is on the PC, unless skipped.
+
 ### Changed
 - Install documentation follows the file-based method of release 1.6.31: the NexusSystem app of the Microsoft Store
   first (`winget install --id 9NSH2P3QLWT1 --source msstore`), then the `get-nexus.ps1` file of the latest release,

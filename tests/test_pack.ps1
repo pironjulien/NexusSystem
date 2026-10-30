@@ -76,6 +76,14 @@ try {
     # NexusAGYmail and NexusKeypad are native (their own get.ps1): no uv for them.
     $result = Invoke-Pack $all "& '$pack' -DryRun -Only agymail"
     Test-Case 'NexusAGYmail alone needs no uv' $result 0 @('NexusAGYmail  for Antigravity', 'Prerequisites, once: none') @(' uv')
+    # This PC's own choices, outside the code: ~\.nexus\nexussystem.json adds its names to -Skip.
+    $local = Initialize-Profile 'local-skip' @('.claude', '.codex', '.gemini\antigravity', 'AppData\Roaming\Claude', '.nexus')
+    [IO.File]::WriteAllText((Join-Path $local '.nexus\nexussystem.json'), '{"skip": ["claude-desktop", "nonsense"]}')
+    $result = Invoke-Pack $local "& '$pack' -DryRun -Only windows"
+    Test-Case 'nexussystem.json skips Claude Desktop' $result 0 @('NexusWindows  for Claude Code, Codex, Antigravity', "unknown name 'nonsense' ignored") @('NexusWindows  for Claude Code, Claude Desktop')
+    [IO.File]::WriteAllText((Join-Path $local '.nexus\nexussystem.json'), '{ not json')
+    $result = Invoke-Pack $local "& '$pack' -DryRun -Only windows"
+    Test-Case 'unreadable nexussystem.json ignored' $result 0 @('is not readable JSON: ignored', 'NexusWindows  for Claude Code, Claude Desktop, Codex, Antigravity')
     # A product turned off by the user in an AI app stays off there; the others are installed.
     $off = Initialize-Profile 'off' @('.claude', '.codex')
     [IO.File]::WriteAllText((Join-Path $off '.codex\config.toml'), "[mcp_servers.nexus-windows]`ncommand = `"npx`"`nenabled = false`n`n[mcp_servers.nexus-browser]`ncommand = `"uvx`"`nenabled = false`n")

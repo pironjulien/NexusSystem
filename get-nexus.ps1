@@ -20,6 +20,8 @@
 #   -DryRun        show the plan and do nothing
 #   -NoGuide       do not open Chrome on its extensions page at the end (the guide is printed instead)
 #   -Catalog       marketplace given to Claude Code (default pironjulien/NexusSystem; a local folder for tests)
+#   This PC's own choices: %USERPROFILE%\.nexus\nexussystem.json, {"skip": ["claude-desktop"]}, adds its names to -Skip
+#                  (the NexusSystem app reads the same file).
 #   -Json          also print one "NEXUS_PACK_EVENT {json}" line per event (found, plan, step, cell, done), for the
 #                  Nexus apps that run this same script and show its progress
 param(
@@ -140,6 +142,20 @@ function Split-NameList([string[]]$Names) {
     $out = @()
     foreach ($name in $Names) { foreach ($part in ($name -split '[,\s]+')) { if ($part) { $out += $part.ToLowerInvariant() } } }
     return , $out
+}
+
+function Get-LocalSkip {
+    # This PC's own choices (the NexusSystem app reads the same file): %USERPROFILE%\.nexus\nexussystem.json,
+    # {"skip": ["claude-desktop"]}. A missing file means none; an unreadable one is reported and ignored.
+    $file = Join-Path $env:USERPROFILE '.nexus\nexussystem.json'
+    if (-not (Test-Path -LiteralPath $file)) { return , @() }
+    try {
+        $settings = [IO.File]::ReadAllText($file) | ConvertFrom-Json
+        return , @(@($settings.skip) | Where-Object { $_ -is [string] -and $_.Trim() } | ForEach-Object { $_.Trim().ToLowerInvariant() })
+    } catch {
+        Say "$file is not readable JSON: ignored ($($_.Exception.Message))." Yellow
+        return , @()
+    }
 }
 
 function Get-Product([string]$Key) { return $Products | Where-Object { $_.Key -eq $Key } | Select-Object -First 1 }
@@ -839,6 +855,11 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
     $skipList = Split-NameList $Skip
     $productKeys = @($Products | ForEach-Object { $_.Key })
     $aiKeys = @($AiNames.Keys)
+    $localSkip = Get-LocalSkip  # assigned first: a list returned with "," stays one item in foreach
+    foreach ($name in $localSkip) {
+        if ($productKeys -notcontains $name -and $aiKeys -notcontains $name) { Say "nexussystem.json: unknown name '$name' ignored." Yellow; continue }
+        if ($skipList -notcontains $name) { $skipList += $name }
+    }
     foreach ($name in $onlyList + $skipList) {
         if ($productKeys -notcontains $name -and $aiKeys -notcontains $name) {
             Say "Unknown name '$name'. Products: $($productKeys -join ', '). AI apps: $($aiKeys -join ', ')." Red

@@ -620,3 +620,44 @@ public class ErrorLogTests
         Assert.DoesNotContain("scriptblock", en + fr);
     }
 }
+
+public class LocalSettingsTests
+{
+    [Fact]
+    public void TheLocalFileSkipsClaudeDesktopOrAProductOnThisPcOnly()
+    {
+        using var profile = new FakeProfile(@"AppData\Roaming\Claude");
+        var android = DesktopExtension.For(Products.Android)!;
+        Assert.Same(LocalSettings.None, LocalSettings.Read(profile.Folders));
+        Assert.True(android.Offered(profile.Folders, LocalSettings.Read(profile.Folders)));  // the public route: offered
+
+        profile.Write(@".nexus\nexussystem.json", """{"skip": ["Claude-Desktop", 3, ""]}""");
+        var settings = LocalSettings.Read(profile.Folders);
+        Assert.Equal(["claude-desktop"], settings.Skip);
+        Assert.False(android.Offered(profile.Folders, settings));
+
+        profile.Write(@".nexus\nexussystem.json", """{"skip": ["android"]}""");
+        Assert.False(android.Offered(profile.Folders, LocalSettings.Read(profile.Folders)));
+        Assert.True(DesktopExtension.For(Products.Browser)!.Offered(profile.Folders, LocalSettings.Read(profile.Folders)));
+
+        profile.Write(@".nexus\nexussystem.json", "{ not json");
+        Assert.Same(LocalSettings.None, LocalSettings.Read(profile.Folders));
+        Assert.Equal(Path.Combine(profile.Root, ".nexus", "nexussystem.json"), LocalSettings.FilePath(profile.Folders));
+    }
+
+    [Fact]
+    public void WithoutClaudeDesktopNoExtensionIsOffered()
+    {
+        using var profile = new FakeProfile();
+        Assert.False(DesktopExtension.For(Products.Windows)!.Offered(profile.Folders, LocalSettings.None));
+        Assert.Null(DesktopExtension.For(Products.Relay));
+    }
+
+    [Fact]
+    public void ExtensionChecksumComesFromItsReleaseList()
+    {
+        var sums = $"{new string('a', 64)}  nexus-android.mcpb\n{new string('b', 64)}  get.ps1\n";
+        Assert.Equal(new string('a', 64), DesktopExtension.ExpectedSha256(sums, "nexus-android.mcpb"));
+        Assert.Null(DesktopExtension.ExpectedSha256(sums, "nexus-browser.mcpb"));
+    }
+}
