@@ -1,7 +1,12 @@
-# Nexus pack: the whole Nexus ecosystem on a Windows 10/11 PC, for the AI apps found on it, in one line:
-#   irm https://raw.githubusercontent.com/pironjulien/NexusSystem/main/get-nexus.ps1 | iex
-# With options:
-#   & ([scriptblock]::Create((irm https://raw.githubusercontent.com/pironjulien/NexusSystem/main/get-nexus.ps1))) -Only windows,browser
+# Nexus pack: the whole Nexus ecosystem on a Windows 10/11 PC, for the AI apps found on it. The NexusSystem app of the
+# Microsoft Store runs it for you. By hand, always as a FILE of a NexusSystem release, checked, then run with -File
+# (never run in memory from the network: antivirus heuristics rightly flag that):
+#   $r = 'https://github.com/pironjulien/NexusSystem/releases/latest/download'
+#   Invoke-WebRequest "$r/get-nexus.ps1" -OutFile get-nexus.ps1; Invoke-WebRequest "$r/SHA256SUMS.txt" -OutFile SHA256SUMS.txt
+#   (Get-FileHash get-nexus.ps1).Hash   # the get-nexus.ps1 line of SHA256SUMS.txt
+#   powershell -NoProfile -ExecutionPolicy Bypass -File .\get-nexus.ps1 -Only windows,browser
+# Each product's own installer is fetched the same way: the get.ps1 file of its latest release, checked against that
+# release's SHA256SUMS.txt, run in a child powershell.exe with -File.
 # Windows PowerShell 5.1 or PowerShell 7, no administrator rights (Git for Claude Code and Node.js for Codex, when
 # missing, ask Windows once).
 # It finds Claude Code, Claude Desktop, Codex and Antigravity, shows what it will install and for whom, installs the
@@ -199,18 +204,85 @@ function Invoke-Native([string]$What, [scriptblock]$Command) {
     return [int]$code
 }
 
-function Invoke-Installer([string]$What, [string]$Url, [string]$Work) {
-    $file = Join-Path $Work ("$([guid]::NewGuid().ToString('N').Substring(0, 8))-" + [IO.Path]::GetFileName(([Uri]$Url).AbsolutePath))
+function Get-LatestTag([string]$Repo) {
+    # The latest release's tag from the redirect of github.com/<repo>/releases/latest: no GitHub API (60 anonymous
+    # requests an hour per IP); the API stays as a fallback.
     try {
-        Invoke-WebRequest -UseBasicParsing $Url -OutFile $file
+        $request = [Net.HttpWebRequest]::Create("https://github.com/pironjulien/$Repo/releases/latest")
+        $request.AllowAutoRedirect = $false
+        $request.UserAgent = 'NexusSystem-get-nexus'
+        $response = $request.GetResponse()
+        try { $location = $response.Headers['Location'] } finally { $response.Close() }
+        if ($location -match '/releases/tag/(v[0-9][^/?#]*)$') { return $Matches[1] }
+    } catch { Write-Verbose "Redirect lookup failed: $($_.Exception.Message)" }
+    return (Invoke-RestMethod -UseBasicParsing "https://api.github.com/repos/pironjulien/$Repo/releases/latest").tag_name
+}
+
+function Get-ExpectedSha256([string]$Manifest, [string]$Name) {
+    # The line for $Name in a SHA256SUMS.txt (or a lone "<hash>  <name>" .sha256 file); a malformed or ambiguous
+    # manifest is refused.
+    $expected = $null
+    foreach ($line in ($Manifest -split '\r?\n' | Where-Object { $_.Trim() })) {
+        if ($line -notmatch '^([0-9a-fA-F]{64})\s+\*?(\S+)\s*$') { throw 'Malformed checksum file.' }
+        if ($Matches[2] -ceq $Name) {
+            if ($expected) { throw "$Name is listed twice in the checksum file." }
+            $expected = $Matches[1].ToLowerInvariant()
+        }
+    }
+    if (-not $expected) { throw "$Name is absent from the checksum file." }
+    return $expected
+}
+
+function Save-VerifiedFile([string]$Url, [string]$File, [string]$Expected) {
+    Invoke-WebRequest -UseBasicParsing $Url -OutFile $File
+    $actual = (Get-FileHash -LiteralPath $File -Algorithm SHA256).Hash.ToLowerInvariant()
+    if ($actual -ne $Expected) {
+        Remove-Item -LiteralPath $File -Force -ErrorAction SilentlyContinue
+        throw "SHA-256 mismatch for $Url`: the download is not the published file."
+    }
+}
+
+function Invoke-ScriptFile([string]$What, [string]$File, [string[]]$Arguments = @()) {
+    # A child Windows PowerShell running the checked file, never code in memory; its output in this console.
+    $shell = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
+    return Invoke-Native $What { Invoke-Console $shell (@('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $File) + $Arguments) }
+}
+
+function Invoke-Installer([string]$What, [string]$Repo, [string]$Work) {
+    # A product's official installer: the get.ps1 FILE of its latest release (versioned URL), checked against that
+    # release's SHA256SUMS.txt (or the get.ps1.sha256 published beside it), then run with -File.
+    $folder = Join-Path $Work $Repo
+    try {
+        New-Item -ItemType Directory -Force -Path $folder | Out-Null
+        $tag = Get-LatestTag $Repo
+        $base = "https://github.com/pironjulien/$Repo/releases/download/$tag"
+        try { $manifest = [Text.Encoding]::UTF8.GetString((Invoke-WebRequest -UseBasicParsing "$base/SHA256SUMS.txt").Content) }
+        catch { $manifest = $null }
+        if (-not $manifest -or $manifest -notmatch '(?m)\s\*?get\.ps1\s*$') {
+            $manifest = [Text.Encoding]::UTF8.GetString((Invoke-WebRequest -UseBasicParsing "$base/get.ps1.sha256").Content)
+        }
+        $file = Join-Path $folder 'get.ps1'
+        Save-VerifiedFile "$base/get.ps1" $file (Get-ExpectedSha256 $manifest 'get.ps1')
     } catch {
         Say ''
         Say "== $What" Cyan
-        Say "Download failed: $Url ($($_.Exception.Message))" Red
+        Say "$What`: its release installer could not be fetched and checked ($($_.Exception.Message))." Red
         return 1
     }
-    $shell = (Get-Process -Id $PID).Path  # the same PowerShell that runs the pack
-    return Invoke-Native $What { Invoke-Console $shell @('-NoProfile', '-ExecutionPolicy', 'RemoteSigned', '-File', $file) }
+    return Invoke-ScriptFile "$What $tag" $file
+}
+
+function Invoke-PinnedInstaller([string]$What, [string]$Url, [string]$Sha256, [string]$Work) {
+    # Provisional route of a product whose release does not carry its installer yet: one exact file, pinned by commit
+    # and by its SHA-256 recorded here, run with -File.
+    $file = Join-Path $Work ("$([guid]::NewGuid().ToString('N').Substring(0, 8))-" + [IO.Path]::GetFileName(([Uri]$Url).AbsolutePath))
+    try { Save-VerifiedFile $Url $file $Sha256 } catch {
+        Say ''
+        Say "== $What" Cyan
+        Say "$What`: $($_.Exception.Message)" Red
+        return 1
+    }
+    return Invoke-ScriptFile $What $file
 }
 
 function Sync-SessionPath([switch]$Registry) {
@@ -877,12 +949,22 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
     try {
         Sync-SessionPath
         if ($needsUv -and -not (Get-Uvx)) {
-            # The official installer saved to a file and run from it: a PowerShell started with "-Command irm ... | iex"
-            # is what antivirus heuristics take for a malware loader (Microsoft Defender: Trojan:Win32/Commando.A!ml).
-            $prereq['uv'] = Invoke-Native 'uv (Astral official installer)' {
-                $installer = Join-Path $work 'uv-install.ps1'
-                Invoke-WebRequest -UseBasicParsing 'https://astral.sh/uv/install.ps1' -OutFile $installer
-                Invoke-Console 'powershell.exe' @('-NoProfile', '-ExecutionPolicy', 'RemoteSigned', '-File', $installer)
+            # Astral's official release binaries, checked against their published SHA-256, then unpacked into
+            # ~\.local\bin (where uv's own installer puts them): no installer script is run at all.
+            $prereq['uv'] = Invoke-Native 'uv (official release binaries, SHA-256 checked)' {
+                $arch = if (($env:PROCESSOR_ARCHITEW6432, $env:PROCESSOR_ARCHITECTURE) -contains 'ARM64') { 'aarch64' } else { 'x86_64' }
+                $asset = "uv-$arch-pc-windows-msvc.zip"
+                $base = 'https://github.com/astral-sh/uv/releases/latest/download'
+                $zip = Join-Path $work $asset
+                $expected = Get-ExpectedSha256 ([Text.Encoding]::ASCII.GetString((Invoke-WebRequest -UseBasicParsing "$base/$asset.sha256").Content)) $asset
+                Save-VerifiedFile "$base/$asset" $zip $expected
+                $unpacked = Join-Path $work 'uv'
+                Add-Type -AssemblyName System.IO.Compression.FileSystem
+                [IO.Compression.ZipFile]::ExtractToDirectory($zip, $unpacked)
+                $bin = Join-Path $env:USERPROFILE '.local\bin'
+                New-Item -ItemType Directory -Force -Path $bin | Out-Null
+                Get-ChildItem -LiteralPath $unpacked -Recurse -Include 'uv.exe', 'uvx.exe', 'uvw.exe' | Copy-Item -Destination $bin -Force
+                $global:LASTEXITCODE = 0
             }
             Sync-SessionPath
             if (-not $prereq['uv'] -and -not (Get-Uvx)) { $prereq['uv'] = 1 }
@@ -937,7 +1019,7 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
         # 2. NexusWindows: one edition per AI app.
         if ($wants['windows']) {
             if ($for['claude-desktop'] -and -not $kept['windows|claude-desktop']) {
-                $results['windows|claude-desktop'] = Invoke-Installer 'NexusWindows for Claude (Claude Desktop)' "$Raw/NexusWindows/main/claude/setup.ps1" $work
+                $results['windows|claude-desktop'] = Invoke-PinnedInstaller 'NexusWindows for Claude (Claude Desktop)' "$Raw/NexusWindows/202e6933e290bcf86ae95646530af8a6a4dadb69/claude/setup.ps1" '78b16446e7a6b102a3d97542d450b87302595cae39784c2ad5d9f2c0335e58eb' $work  # v3.8.0 (PyPI), until its native release carries get.ps1
             }
             # Codex's Windows plugin already contains its runtime and guide; do not add a direct MCP declaration.
             if ($for['antigravity'] -and -not $kept['windows|antigravity']) {
@@ -952,7 +1034,7 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
         #    declarations of the AI apps told here, without waiting for the phone (NEXUS_PACK=1).
         if ($wants['android'] -and $targets['android'].Count) {
             $env:NEXUS_PACK_TARGETS = $targets['android'] -join ','
-            $code = Invoke-Installer 'NexusAndroid' "$Raw/NexusAndroid/main/get.ps1" $work
+            $code = Invoke-Installer 'NexusAndroid' 'NexusAndroid' $work
             # The daemon is what the plugins reach: a failed installer fails their cells too.
             foreach ($ai in $targets['android']) { if (-not $results["android|$ai"]) { $results["android|$ai"] = $code } }
             $own['android'] = $code
@@ -960,7 +1042,7 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
         # 4. NexusBrowser: local bridge and native host for Chrome, declared to every AI app.
         if ($wants['browser'] -and $targets['browser'].Count) {
             $env:NEXUS_PACK_TARGETS = $targets['browser'] -join ','
-            $code = Invoke-Installer 'NexusBrowser' "$Raw/NexusBrowser/main/get.ps1" $work
+            $code = Invoke-Installer 'NexusBrowser' 'NexusBrowser' $work
             foreach ($ai in $targets['browser']) { if (-not $results["browser|$ai"]) { $results["browser|$ai"] = $code } }
             $own['browser'] = $code
             if ($code -and $for['claude-code']) { $results['browser|claude-code'] = $code }  # bridge missing: plugin useless
@@ -969,18 +1051,18 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
         #    guard), declared to Claude Code, Codex and Antigravity.
         if ($wants['relay'] -and $targets['relay'].Count) {
             $env:NEXUS_PACK_TARGETS = $targets['relay'] -join ','
-            $code = Invoke-Installer 'NexusRelay' "$Raw/NexusRelay/main/get.ps1" $work
+            $code = Invoke-Installer 'NexusRelay' 'NexusRelay' $work
             # Claude Code: its plugin result (step 1) is kept if it failed, else the daemon's decides
             foreach ($ai in $targets['relay']) { if (-not $results["relay|$ai"]) { $results["relay|$ai"] = $code } }
         }
         # 6. NexusAGYmail: its native installer (latest release, SHA-256 checked) and Antigravity plugin; the Google
         #    sign-in is the user's own step, below.
         if ($wants['agymail'] -and -not $kept['agymail|antigravity']) {
-            $results['agymail|antigravity'] = Invoke-Installer 'NexusAGYmail' "$Raw/NexusAGYmail/main/get.ps1" $work
+            $results['agymail|antigravity'] = Invoke-Installer 'NexusAGYmail' 'NexusAGYmail' $work
         }
         # 7. NexusKeypad: the full plugin for Logi Options+ (keys placed by a guide, below).
         if ($wants['keypad']) {
-            $results['keypad|pc'] = Invoke-Installer 'NexusKeypad' "$Raw/NexusKeypad/main/get.ps1" $work
+            $results['keypad|pc'] = Invoke-Installer 'NexusKeypad' 'NexusKeypad' $work
         }
         foreach ($product in $codexPlugins) {
             if ($results["$($product.Key)|codex"]) { continue }
@@ -1060,7 +1142,7 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
         $step++
         Say "  $step. Phone: Settings > About phone, tap Build number 7 times; Developer options > turn on USB debugging."
         Say '     Plug it in with a USB data cable, then run (guided, waits for the phone):'
-        Say "     irm $Raw/NexusAndroid/main/get.ps1 | iex"
+        Say '     the get.ps1 of its latest release, run as a file (https://github.com/pironjulien/NexusAndroid#install)'
         Say '     (https://github.com/pironjulien/NexusAndroid#quick-start)'
     }
     # The Codex project, only when Codex answers (Claude Code is the host); as the host, Codex needs none.
@@ -1072,7 +1154,7 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
     if ($wants['agymail']) {
         $step++
         Say "  $step. Gmail: sign in once with your own Google OAuth client (Desktop app), guided:"
-        Say "     & ([scriptblock]::Create((irm $Raw/NexusAGYmail/main/get.ps1))) -Auth"
+        Say '     the get.ps1 of its latest release, run as a file with -Auth (https://github.com/pironjulien/NexusAGYmail#install)'
         Say '     (https://github.com/pironjulien/NexusAGYmail#quick-start)'
     }
     if ($wants['keypad']) {
@@ -1110,5 +1192,5 @@ if ($PSCommandPath) {
     if ($parent -and (Get-Process -Id $parent -ErrorAction SilentlyContinue).ProcessName -eq 'explorer') {
         Read-Host 'Press Enter to close this window' | Out-Null
     }
-    exit $code  # run as a file (release download, CI, tests); never close the window of an `irm | iex` run
+    exit $code  # run as a file (release download, CI, tests); never close the window of a session that dot-sourced it
 }

@@ -3,7 +3,7 @@
 # the detections it raised are read back (Get-MpThreatDetection). Never on a real PC: it changes Defender's settings.
 $ErrorActionPreference = 'Stop'
 if ($env:GITHUB_ACTIONS -ne 'true') { throw 'defender_probe.ps1 runs on a disposable CI runner only.' }
-$pack = 'https://raw.githubusercontent.com/pironjulien/NexusSystem/main/get-nexus.ps1'
+$release = 'https://github.com/pironjulien/NexusSystem/releases/latest/download'
 $work = Join-Path $env:RUNNER_TEMP 'defender-probe'
 New-Item -ItemType Directory -Force $work | Out-Null
 
@@ -27,18 +27,12 @@ function Initialize-CaseProfile([string]$Name) {
     return $root
 }
 
+# The only way the Nexus pack is started now: the file of the latest NexusSystem release, checked against its
+# SHA256SUMS.txt, then run with -File (the forms that run downloaded code in memory are what Defender
+# rightly flags as Trojan:Win32/Commando.A!ml and are no longer offered anywhere).
 $cases = [ordered]@{
-    # What a beginner does: types (pastes) the line into an open PowerShell window. Emulated by feeding it to a
-    # PowerShell that reads its commands from the keyboard input (-Command -): the process command line has no URL.
-    'paste-irm-iex'        = @{ Args = '-NoProfile -Command -'; Input = "irm $pack | iex" }
-    # The same, with the -DryRun options form.
-    'paste-scriptblock'    = @{ Args = '-NoProfile -Command -'; Input = "& ([scriptblock]::Create((irm $pack))) -DryRun" }
-    # What our automated tests did on the PC (flagged there): the URL on the PowerShell command line.
-    'commandline-irm-iex'  = @{ Args = "-NoProfile -Command `"& ([scriptblock]::Create((irm $pack))) -DryRun`""; Input = $null }
-    # The pack downloaded to a file, then run from it (the recommended alternative).
-    'file'                 = @{ Args = $null; Input = $null; File = $true }
+    'release-file' = @{ Args = $null; Input = $null; File = $true }
 }
-
 $rows = @()
 foreach ($name in $cases.Keys) {
     $case = $cases[$name]
@@ -51,7 +45,10 @@ foreach ($name in $cases.Keys) {
     $start.RedirectStandardError = $true
     if ($case.File) {
         $file = Join-Path $work 'get-nexus.ps1'
-        Invoke-WebRequest -UseBasicParsing $pack -OutFile $file
+        Invoke-WebRequest -UseBasicParsing "$release/get-nexus.ps1" -OutFile $file
+        $sums = [Text.Encoding]::ASCII.GetString((Invoke-WebRequest -UseBasicParsing "$release/SHA256SUMS.txt").Content)
+        $expected = ($sums -split '\r?\n' | Where-Object { $_ -match '^([0-9a-f]{64})\s+\*?get-nexus\.ps1\s*$' } | ForEach-Object { $Matches[1] }) | Select-Object -First 1
+        if ((Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash -ne $expected) { throw 'get-nexus.ps1 does not match its SHA256SUMS.txt line.' }
         $start.Arguments = "-NoProfile -ExecutionPolicy RemoteSigned -File `"$file`" -DryRun"
     } else {
         $start.Arguments = $case.Args

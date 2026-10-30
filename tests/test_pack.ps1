@@ -1,5 +1,5 @@
 # Offline tests of get-nexus.ps1 under Windows PowerShell 5.1: detection of the AI apps, plan, -Only/-Skip, both ways
-# of starting it (file, `irm | iex`), on throwaway profiles. Nothing is installed (-DryRun, or no AI app found).
+# of starting it as a file, on throwaway profiles. Nothing is installed (-DryRun, or no AI app found).
 $ErrorActionPreference = 'Stop'
 $pack = Join-Path (Split-Path $PSScriptRoot) 'get-nexus.ps1'
 $work = Join-Path ([IO.Path]::GetTempPath()) "nexus-pack-test-$PID"
@@ -179,14 +179,18 @@ try {
         '"type":"found"', '"ais":["claude-code","claude-desktop","codex","antigravity"]', '"type":"plan"',
         '"products":["windows"]', '"ais":["codex"]', '"type":"done"', '"code":0')
 
-    # `irm | iex`: the script text run in the user's own session, which must stay open whatever happens.
     $empty = Initialize-Profile 'empty' @()
-    $result = Invoke-Pack $empty "Get-Content -Raw -LiteralPath '$pack' | Invoke-Expression; 'session still open'"
-    Test-Case 'irm | iex with no AI app: message, window kept' $result 0 @('No AI app found', 'session still open')
-
-    $result = Invoke-Pack $all "& ([scriptblock]::Create((Get-Content -Raw -LiteralPath '$pack'))) -DryRun -Only android; 'session still open'"
-    Test-Case 'scriptblock form with options' $result 0 @('NexusAndroid  for Claude Code', 'session still open') @('NexusWindows  for')
-
+    # Product installers are files of their release, checked against its SHA256SUMS.txt before running (-File).
+    $sums = Join-Path $work 'sums.txt'
+    [IO.File]::WriteAllText($sums, ("{0}  get.ps1`n{1}  other.zip`n" -f ('a' * 64), ('b' * 64)))
+    $probe = "$functions`n" + (([System.Management.Automation.Language.Parser]::ParseFile($pack, [ref]$null, [ref]$null)).FindAll({ param($a)
+                $a -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $a.Name -eq 'Get-ExpectedSha256' }, $true) | Select-Object -First 1).Extent.Text +
+        "`n`$m = [IO.File]::ReadAllText('$sums')`n'ok=' + (Get-ExpectedSha256 `$m 'get.ps1')`n" +
+        "try { Get-ExpectedSha256 (`$m + `$m) 'get.ps1' } catch { 'twice=refused' }`n" +
+        "try { Get-ExpectedSha256 'not a checksum' 'get.ps1' } catch { 'malformed=refused' }`n" +
+        "try { Get-ExpectedSha256 `$m 'missing.ps1' } catch { 'absent=refused' }"
+    $result = Invoke-Pack $empty $probe
+    Test-Case 'installer checksums: exact line, duplicates, malformed and absent refused' $result 0 @("ok=$('a' * 64)", 'twice=refused', 'malformed=refused', 'absent=refused')
     # NexusKeypad counts as installed from its state file or any of its editions (Test-Device, taken from the script).
     $device = ([System.Management.Automation.Language.Parser]::ParseFile($pack, [ref]$null, [ref]$null)).FindAll({
             param($ast) $ast -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $ast.Name -eq 'Test-Device' }, $true) | Select-Object -First 1
@@ -204,5 +208,5 @@ try {
     Remove-Item -LiteralPath $work -Recurse -Force -ErrorAction SilentlyContinue
 }
 if ($failures) { Write-Host "test_pack.ps1: $failures failure(s)"; exit 1 }
-Write-Host 'OK pack: detection, plan, options, file and iex forms'
+Write-Host 'OK pack: detection, plan, options, checked installer files'
 exit 0

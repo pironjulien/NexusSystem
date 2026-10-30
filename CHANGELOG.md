@@ -7,11 +7,21 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.6.31] - 2026-10-30
+
 A product moves to its native form only once its native release and `get.ps1` are published: what is installed is
 always published before the installer that depends on it. The native catalogs pushed earlier today (b170a22) came
 before those releases and broke the public install; they are back to the forms that work, and the native work waits
 on a local branch to be applied product by product.
 
+### Security
+- No installer code is ever run in memory from the network: Microsoft Defender flagged the one-line forms
+  (`irm … | iex`, a script block of a download) as Trojan:Win32/Commando.A!ml. `get-nexus.ps1` now fetches each
+  product's `get.ps1` as a FILE of its latest release (versioned URL), checks it against that release's
+  `SHA256SUMS.txt` (or the `get.ps1.sha256` beside it), and runs it in a child `powershell.exe -File`. NexusWindows
+  for Claude Desktop, whose release does not carry an installer yet, uses its v3.8.0 `claude/setup.ps1` pinned by
+  commit and SHA-256. uv comes from Astral's release binaries, SHA-256 checked (no installer script).
+- CI installs Claude Code from its installer saved to a file; the Defender probe tries only the release file.
 ### Changed
 - NexusAndroid is native (0.22.0): the `nexus-android` plugins (Claude Code 0.22.0, Codex) reach its daemon
   (`127.0.0.1:16180/mcp`, token read from the user variable `NEXUS_MCP_TOKEN`), installed by its `get.ps1`, which the

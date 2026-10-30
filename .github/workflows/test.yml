@@ -89,7 +89,11 @@ jobs:
       - name: AI apps present (Claude Code installed, Claude Desktop and Antigravity found by their folders)
         shell: powershell
         run: |
-          irm https://claude.ai/install.ps1 | iex
+          # Anthropic's official installer as a file, run with -File (never code run in memory from the network).
+          $installer = Join-Path $env:RUNNER_TEMP 'claude-install.ps1'
+          Invoke-WebRequest -UseBasicParsing https://claude.ai/install.ps1 -OutFile $installer
+          powershell.exe -NoProfile -ExecutionPolicy Bypass -File $installer
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
           New-Item -ItemType Directory -Force "$env:APPDATA\Claude", "$env:USERPROFILE\.gemini\antigravity" | Out-Null
       - name: get-nexus.ps1 (Windows PowerShell 5.1), this commit's catalog
         shell: powershell

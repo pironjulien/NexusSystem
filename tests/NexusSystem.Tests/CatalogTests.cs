@@ -258,9 +258,8 @@ public class CatalogTests
             var text = Repository.Text(file);
             Assert.DoesNotMatch(new Regex(@"nexus-(?:agymail|android)@(?:latest|\d)|nexus-(?:agymail|android)(?:>=|==)|nexus-(?:agymail|android)\s+(?:auth|setup)|uvx\b[^\n]*nexus-(?:agymail|android)|nexus-keypad==|nexus-relay==|--from nexus-relay|pypi\.org/project/nexus-(?:agymail|android|relay|keypad)", RegexOptions.IgnoreCase), text);
         }
-        Assert.Contains("$Raw/NexusAGYmail/main/get.ps1", Repository.Text("get-nexus.ps1"));
-        Assert.Contains("$Raw/NexusAndroid/main/get.ps1", Repository.Text("get-nexus.ps1"));
-        Assert.Contains("$Raw/NexusKeypad/main/get.ps1", Repository.Text("get-nexus.ps1"));
+        foreach (var product in new[] { "NexusAndroid", "NexusRelay", "NexusAGYmail", "NexusKeypad" })
+            Assert.Contains($"Invoke-Installer '{product}' '{product}' $work", Repository.Text("get-nexus.ps1"));
     }
 
     [Fact]
