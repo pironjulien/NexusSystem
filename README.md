@@ -47,7 +47,7 @@ Git when a Claude Code or Codex plugin needs it, Node.js LTS when Codex is there
 
 | Product | Claude Code | Claude Desktop | Codex | Antigravity |
 | --- | --- | --- | --- | --- |
-| NexusWindows | plugin `nexus-windows` (this catalog) | [NexusWindows-Claude](https://github.com/pironjulien/NexusWindows-Claude) `setup.ps1` | plugin `nexus-windows` ([NexusWindows-Codex](https://github.com/pironjulien/NexusWindows-Codex)) | [NexusWindows-Antigravity](https://github.com/pironjulien/NexusWindows-Antigravity) plugin |
+| NexusWindows | plugin `nexus-windows` (this catalog) | [NexusWindows](https://github.com/pironjulien/NexusWindows/tree/main/claude) `setup.ps1` | plugin `nexus-windows` ([NexusWindows](https://github.com/pironjulien/NexusWindows/tree/main/codex)) | [NexusWindows](https://github.com/pironjulien/NexusWindows/tree/main/agy) plugin |
 | NexusAndroid | plugin `nexus-android` | [NexusAndroid](https://github.com/pironjulien/NexusAndroid) `setup` | same | same (a plugin) |
 | NexusBrowser | plugin `nexus-browser` + bridge | [NexusBrowser](https://github.com/pironjulien/NexusBrowser) `get.ps1` | same | same (a plugin) |
 | NexusRelay (experimental) | plugin `nexus-relay` + daemon ([NexusRelay](https://github.com/pironjulien/NexusRelay) `get.ps1`) | not a relay client | same | same (a plugin) |
@@ -80,7 +80,7 @@ MCP server from PyPI; Relay connects to its installed local daemon, and Windows 
 | Plugin | What Claude gets | Server |
 | --- | --- | --- |
 | `nexus-android` | Your Android phone over plain ADB (no root, no app): screen, gestures, SMS/RCS, notifications, files, settings | [NexusAndroid](https://github.com/pironjulien/NexusAndroid) · [PyPI](https://pypi.org/project/nexus-android/) |
-| `nexus-windows` | Windows desktop apps in the background: look, click, type, menus, shortcuts, launch, without your mouse or foreground | [NexusWindows-Claude](https://github.com/pironjulien/NexusWindows-Claude) · [PyPI](https://pypi.org/project/nexus-windows-claude/) |
+| `nexus-windows` | Windows desktop apps in the background: look, click, type, menus, shortcuts, launch, without your mouse or foreground | [NexusWindows](https://github.com/pironjulien/NexusWindows/tree/main/claude) · [PyPI](https://pypi.org/project/nexus-windows-claude/) |
 | `nexus-browser` | Your real Chrome with your sessions, in background tabs: forms, network, dialogs, iframes, exports, downloads | [NexusBrowser](https://github.com/pironjulien/NexusBrowser) · [PyPI](https://pypi.org/project/nexus-browser/) |
 
 ## Quick start
@@ -120,7 +120,7 @@ plugins from another catalog; it migrates only the official installers' old dire
 plugin and its guide have been verified. It never adds a second server beside a custom one.
 
 The same repository is a Codex plugin marketplace (`.agents/plugins/marketplace.json`): `nexus-windows` (from
-[NexusWindows-Codex](https://github.com/pironjulien/NexusWindows-Codex), needs Node.js 22+), `nexus-android` and
+[NexusWindows](https://github.com/pironjulien/NexusWindows/tree/main/codex), needs Node.js 22+), `nexus-android` and
 `nexus-browser` (pinned like their Claude twins, uv needed), and `nexus-relay` (its local daemon must be installed).
 In the Codex app: **Settings > Plugins > Add > Add a
 marketplace**, source `pironjulien/NexusSystem`, then install the plugins; or from a terminal:
@@ -155,9 +155,9 @@ Per-plugin requirements:
 
 ```mermaid
 flowchart LR
-    C["Claude Code"] -- "stdio (MCP)" --> A["uvx nexus-android==0.20.3"] -- ADB --> P["Android phone"]
+    C["Claude Code"] -- "stdio (MCP)" --> A["uvx nexus-android==0.21.0"] -- ADB --> P["Android phone"]
     C -- "stdio (MCP)" --> W["uvx nexus-windows-claude==3.7.4"] -- "UI Automation, Win32" --> D["Windows apps"]
-    C -- "stdio (MCP)" --> B["uvx nexus-browser==2.31.6"] -- "local bridge" --> E["Chrome extension"] --> T["Chrome tabs"]
+    C -- "stdio (MCP)" --> B["uvx nexus-browser==2.32.0"] -- "local bridge" --> E["Chrome extension"] --> T["Chrome tabs"]
 ```
 
 Each plugin is a folder with a manifest, an icon, a `.mcp.json` launcher, a `pyproject.toml` with its `uv.lock`, and a
@@ -179,7 +179,7 @@ tools for two minutes. Details in each server's README.
 - The plugins send nothing anywhere. The servers run locally and return what they read (screen, messages, pages) to
   your Claude client only; what each server reads, stores (logs, screenshots) and how to remove it is in its
   README's Privacy section: [NexusAndroid](https://github.com/pironjulien/NexusAndroid#privacy),
-  [NexusWindows-Claude](https://github.com/pironjulien/NexusWindows-Claude#privacy),
+  [NexusWindows](https://github.com/pironjulien/NexusWindows#privacy),
   [NexusBrowser](https://github.com/pironjulien/NexusBrowser#privacy).
 - Removing everything: uninstall the plugins (`/plugin uninstall <name>@nexus-plugins`), remove the marketplace
   (`/plugin marketplace remove nexus-plugins`), then `uv cache clean`.

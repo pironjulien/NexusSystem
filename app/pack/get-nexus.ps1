@@ -928,7 +928,7 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
         # 2. NexusWindows: one edition per AI app.
         if ($wants['windows']) {
             if ($for['claude-desktop'] -and -not $kept['windows|claude-desktop']) {
-                $results['windows|claude-desktop'] = Invoke-Installer 'NexusWindows for Claude (Claude Desktop)' "$Raw/NexusWindows-Claude/main/setup.ps1" $work
+                $results['windows|claude-desktop'] = Invoke-Installer 'NexusWindows for Claude (Claude Desktop)' "$Raw/NexusWindows/main/claude/setup.ps1" $work
             }
             # Codex's Windows plugin already contains its runtime and guide; do not add a direct MCP declaration.
             if ($for['antigravity'] -and -not $kept['windows|antigravity']) {

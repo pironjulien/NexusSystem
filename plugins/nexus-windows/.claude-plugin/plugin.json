@@ -8,7 +8,7 @@
     "url": "https://github.com/pironjulien"
   },
   "homepage": "https://julienpiron.fr/nexuswindows/claude/",
-  "repository": "https://github.com/pironjulien/NexusWindows-Claude",
+  "repository": "https://github.com/pironjulien/NexusWindows",
   "license": "MIT",
   "keywords": [
     "windows",
@@ -18,7 +18,7 @@
     "mcp"
   ],
   "icon": "./.claude-plugin/icon.png",
-  "documentationUrl": "https://github.com/pironjulien/NexusWindows-Claude#readme",
-  "privacyPolicyUrl": "https://github.com/pironjulien/NexusWindows-Claude#privacy",
-  "supportUrl": "https://github.com/pironjulien/NexusWindows-Claude/issues"
+  "documentationUrl": "https://github.com/pironjulien/NexusWindows/tree/main/claude#readme",
+  "privacyPolicyUrl": "https://github.com/pironjulien/NexusWindows/tree/main/claude#privacy",
+  "supportUrl": "https://github.com/pironjulien/NexusWindows/issues"
 }

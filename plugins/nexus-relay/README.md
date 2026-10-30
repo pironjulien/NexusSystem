@@ -5,7 +5,7 @@ both peers with independent opinions, delegated tasks. The other agent is woken 
 
 ## What it runs
 Nothing by itself: the plugin declares the NexusRelay server running on this PC (its access key is read from your user environment, never written in the plugin) and adds its skill. The server is the NexusRelay daemon
-[1.8.7](https://github.com/pironjulien/NexusRelay/releases), installed and kept running by the one-line install of
+[1.9.0](https://github.com/pironjulien/NexusRelay/releases), installed and kept running by the one-line install of
 this repository (or NexusRelay's own `get.ps1`), which also sets up Codex and Antigravity.
 
 ## Requirements

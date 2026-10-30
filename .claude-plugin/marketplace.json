@@ -6,14 +6,14 @@
   },
   "metadata": {
     "description": "Computer use in the background for Claude Code: your Android phone over ADB, your Windows desktop apps, your real Chrome. Each plugin starts its open-source MCP server from PyPI with uvx, pinned and locked with hashes.",
-    "version": "1.6.29"
+    "version": "1.6.30"
   },
   "plugins": [
     {
       "name": "nexus-android",
       "source": "./plugins/nexus-android",
       "description": "Android phone over plain ADB (no root, no app): screen, gestures, SMS/RCS, notifications, files, settings. Needs uv and USB debugging; adb is downloaded if missing.",
-      "version": "0.20.3",
+      "version": "0.21.0",
       "category": "productivity",
       "keywords": [
         "android",
@@ -40,14 +40,14 @@
         "mcp"
       ],
       "homepage": "https://julienpiron.fr/nexuswindows/claude/",
-      "repository": "https://github.com/pironjulien/NexusWindows-Claude",
+      "repository": "https://github.com/pironjulien/NexusWindows",
       "license": "MIT"
     },
     {
       "name": "nexus-browser",
       "source": "./plugins/nexus-browser",
       "description": "Your real Chrome (your sessions) driven in background tabs: forms, network, dialogs, cross-origin iframes, exports, downloads. Requires the one-time NexusBrowser install (Chrome extension + local bridge, Windows).",
-      "version": "2.31.6",
+      "version": "2.32.0",
       "category": "productivity",
       "keywords": [
         "chrome",
@@ -64,7 +64,7 @@
       "name": "nexus-relay",
       "source": "./plugins/nexus-relay",
       "description": "Direct link between Claude, Codex and Antigravity on one Windows PC: topic rooms, multi-agent review, delegated tasks. Needs the NexusRelay daemon, installed by the one-line install (or NexusRelay's get.ps1).",
-      "version": "1.8.7",
+      "version": "1.9.0",
       "category": "productivity",
       "keywords": [
         "multi-agent",

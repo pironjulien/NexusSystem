@@ -7,6 +7,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.6.30] - 2026-10-30
+
+### Changed
+- One repository for NexusSystem: the Microsoft Store app's source (`app/`) now lives beside the catalogs and the
+  one-line install, with one changelog.
+- NexusWindows links point to its single repository, `pironjulien/NexusWindows` (the per-profile repositories are
+  archived; the Codex plugin and the Claude Desktop bundle are still fetched from them until NexusWindows releases them).
+- Plugins pinned to nexus-android 0.21.0, nexus-browser 2.32.0 and nexus-relay 1.9.0.
+
 ### Added
 - `INSTALL-AI.md`: structured installation and verification guide for AI coding agents (Claude Code, Codex, Antigravity), supporting à-la-carte product selection (`-Only ... -NoGuide`).
 - Updated `README.md` to put AI-driven installation first alongside the `NexusSystem` app and the one-line PowerShell installer.

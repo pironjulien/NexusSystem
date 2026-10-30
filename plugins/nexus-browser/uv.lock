@@ -287,28 +287,28 @@ wheels = [
 
 [[package]]
 name = "nexus-browser"
-version = "2.31.6"
+version = "2.32.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "mcp" },
     { name = "pillow" },
     { name = "websockets" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/39/6d/5ba12b220fc724e839cfb7a4bfc83fd6eb757df4ff51fce4cc1d715b3919/nexus_browser-2.31.6.tar.gz", hash = "sha256:39b7b8a5af2cbfd9a1b2c6da68dac4736992940288fb6c397cd74e24d34caf68", size = 172433, upload-time = "2026-10-28T17:39:53.621Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/3f/67/28fa0ffe261c7ad256b57fb1a1ab96eaad157995a027cdfd64ad6cb2b825/nexus_browser-2.32.0.tar.gz", hash = "sha256:486510deacaf39e5d313be0cdd3bc2fe9be7ef9354b1fc7f5b9d1c32e2da6c2a", size = 175429, upload-time = "2026-10-30T13:47:56.738Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ae/0c/0118a966f2e670f4469eb0e3a1c88e83484bc915e79090bfa002607be48a/nexus_browser-2.31.6-py3-none-any.whl", hash = "sha256:f1f1810d6a159dbd74c8d25c2f7a885b825f05ff6847d3c03ed7d8309c7fd153", size = 139218, upload-time = "2026-10-28T17:39:52.031Z" },
+    { url = "https://files.pythonhosted.org/packages/10/8f/de9202c6ba912eea98819bc0a81312fd2bef0378b938857f8266b83a8470/nexus_browser-2.32.0-py3-none-any.whl", hash = "sha256:f00e5680d11e051ef9e132155b2955ce98b9fa45850d1fb64cf1f55b27fbe181", size = 139725, upload-time = "2026-10-30T13:47:55.276Z" },
 ]
 
 [[package]]
 name = "nexus-browser-plugin"
-version = "2.31.6"
+version = "2.32.0"
 source = { virtual = "." }
 dependencies = [
     { name = "nexus-browser" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "nexus-browser", specifier = "==2.31.6" }]
+requires-dist = [{ name = "nexus-browser", specifier = "==2.32.0" }]
 
 [[package]]
 name = "opentelemetry-api"

@@ -10,7 +10,7 @@ PyPI with `uvx --python 3.14`, over stdio (uv downloads Python 3.14 if needed). 
 of every dependency is recorded with its hash in `uv.lock`. The plugin itself contains only this launcher, the lock
 file and a skill; it sends nothing anywhere. The server's only request of its own is its update check: at most once a
 day it reads the latest version number from PyPI and writes `~/.nexus/status/windows-claude.json`
-(`NEXUS_UPDATE_CHECK=off` turns it off; details in its [Privacy section](https://github.com/pironjulien/NexusWindows-Claude#privacy)).
+(`NEXUS_UPDATE_CHECK=off` turns it off; details in its [Privacy section](https://github.com/pironjulien/NexusWindows/tree/main/claude#privacy)).
 
 ## Requirements
 - Windows 10 or 11.
@@ -25,4 +25,4 @@ day it reads the latest version number from PyPI and writes `~/.nexus/status/win
 Any Windows 10 or 11 PC (or VM) with uv works: no account, no sample data. Notepad and Calculator are enough to see
 the background flow (look, act, read back) while you keep using the mouse and keyboard.
 
-Source, safeguards and privacy: https://github.com/pironjulien/NexusWindows-Claude (MIT).
+Source, safeguards and privacy: https://github.com/pironjulien/NexusWindows (MIT).
