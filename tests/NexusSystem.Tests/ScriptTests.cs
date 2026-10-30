@@ -47,6 +47,9 @@ public class ScriptTests
     public void PackCodexContract() => Run(WindowsPowerShell, "tests/test_codex_pack.ps1");
 
     [Fact]
+    public void PackMaintenanceContract() => Run(WindowsPowerShell, "tests/test_maintenance.ps1");
+
+    [Fact]
     public void CertificationPreservesTheUsersInstallation() => Run(PowerShell7, "app/tests/test_wack.ps1");
 
     [Fact]

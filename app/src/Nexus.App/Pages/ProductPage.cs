@@ -45,7 +45,7 @@ public sealed partial class ProductPage : UserControl
 
         foreach (var step in Steps.For(product, folders, ais)) page.Children.Add(step);
 
-        // Version: what the product itself reports; an update asked only through the product's own interface.
+        // Published, installed and observed versions remain separate; maintenance never interrupts an AI session.
         var versions = Ui.Column(4);
         var updateNote = new TextBlock { TextWrapping = TextWrapping.WrapWholeWords, Visibility = Visibility.Collapsed };
         var version = Ui.Column(10, Ui.Strong(Text.Get("Version.Title")), versions);
@@ -55,7 +55,7 @@ public sealed partial class ProductPage : UserControl
             update.Click += async (_, _) =>
             {
                 update.IsEnabled = false;
-                var answer = await ProductUpdates.RequestAsync(product, Http);
+                var answer = await ProductUpdates.RequestManagedAsync(product, folders, Http, lifetime.Token);
                 updateNote.Text = Text.Get("Update." + answer);
                 updateNote.Visibility = Visibility.Visible;
                 update.IsEnabled = true;
@@ -67,6 +67,8 @@ public sealed partial class ProductPage : UserControl
         {
             version.Children.Add(Ui.Body(Text.Get("Version.Auto"), secondary: true));
         }
+        if (MaintenanceUpdates.Supports(product) && MaintenanceUpdates.IsInstalled(folders))
+            version.Children.Add(Ui.Body(Text.Get("Version.Managed"), secondary: true));
         version.Children.Add(updateNote);
         RefreshVersions(product, versions);
         page.Children.Add(Ui.Card(version));
@@ -198,6 +200,38 @@ public sealed partial class ProductPage : UserControl
     void RefreshVersions(Product product, StackPanel versions)
     {
         versions.Children.Clear();
+        var maintenance = MaintenanceUpdates.Read(folders);
+        var maintained = maintenance?.Products.FirstOrDefault(item => item.Key == product.Key);
+        if (maintained is null && maintenance?.State == "failed")
+            versions.Children.Add(Ui.Mark(false, Text.Get("Version.Failed")));
+        else if (maintenance?.State == "checking")
+            versions.Children.Add(Ui.Body(Text.Get("Version.Checking"), secondary: true));
+        if (maintained is not null)
+        {
+            if (maintained.PublishedVersion is { } published)
+                versions.Children.Add(Ui.Body(Text.Format("Version.Published", published)));
+            if (product != Products.Windows && maintained.InstalledVersion is { } installed)
+                versions.Children.Add(Ui.Body(Text.Format("Version.Installed", installed)));
+            if (maintenance!.CheckedAt is { } checkedAt)
+                versions.Children.Add(Ui.Body(Text.Format(maintenance.IsFresh(DateTimeOffset.UtcNow)
+                    ? "Version.Checked" : "Version.Stale", checkedAt.ToLocalTime().ToString("g")), secondary: true));
+            else versions.Children.Add(Ui.Body(Text.Get("Version.Unverified"), secondary: true));
+            // This is explicitly a dated observation, not a cache promoted to a live connection.
+            if (maintained.LoadedVersions.Count > 0 && maintenance.IsFresh(DateTimeOffset.UtcNow))
+                versions.Children.Add(Ui.Body(Text.Format("Version.Observed", string.Join(", ", maintained.LoadedVersions))));
+            if (maintained.State == "failed") versions.Children.Add(Ui.Mark(false, Text.Get("Version.Failed")));
+            else if (maintained.State == "pending" || maintained.Profiles.Any(profile => profile.ActivationPending))
+                versions.Children.Add(Ui.Body(Text.Get("Version.Pending"), secondary: true));
+            else if (maintained.State == "unsupported")
+                versions.Children.Add(Ui.Body(Text.Get("Version.Unsupported"), secondary: true));
+            foreach (var profile in maintained.Profiles.Where(profile => profile.ActivationPending))
+            {
+                var name = profile.Key switch { "claude-code" or "claude" => "Claude", "codex" => "Codex", "antigravity" => "Antigravity", _ => profile.Key };
+                versions.Children.Add(Ui.Body(Text.Format("Version.ProfilePending", name), secondary: true));
+            }
+            if (maintained.Profiles.Any(profile => profile.State is "unknown" or "runtime-verified"))
+                versions.Children.Add(Ui.Body(Text.Get("Version.GuidesUnknown"), secondary: true));
+        }
         if (product == Products.Windows)
         {
             var installation = WindowsRuntime.ReadInstallation(folders);
@@ -205,6 +239,7 @@ public sealed partial class ProductPage : UserControl
                 : Ui.Body(Text.Format("Windows.CoreVersion", installation.Version)));
             return;
         }
+        if (maintained is not null) return;
         var states = ProductUpdates.Read(product, folders);
         if (states.Count == 0) versions.Children.Add(Ui.Body(Text.Get("Version.None"), secondary: true));
         foreach (var state in states)

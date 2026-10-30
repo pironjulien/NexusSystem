@@ -44,10 +44,8 @@ public enum UpdateRequest
 }
 
 /// <summary>
-/// Updates done by each product itself, outside the app (decision of 26/10/2026): the app reads the state each
-/// product writes, and asks for an update only through the product's own local interface: NexusRelay's daemon
-/// (POST /api/update), NexusBrowser's bridge (the same, 2.26.0) and NexusKeypad's complete edition (its pipe, command "update"). The products an AI app starts
-/// update themselves at that AI app's next start. The app never runs an installer to update a product.
+/// The hub requests the installed NexusSystem maintenance task when available for Browser and Windows.
+/// Older installations retain the product-owned update interfaces. The hub never executes an installer.
 /// </summary>
 public static class ProductUpdates
 {
@@ -85,14 +83,20 @@ public static class ProductUpdates
         Read(product, folders).Count > 0 || Declarations.DeviceInstalled(product, folders) ||
         found.Where(product.Targets.Contains).Any(app => Declarations.IsDeclared(product, app, folders));
 
-    /// <summary>Whether the app can ask this product for an update (otherwise it updates at its AI app's next start).</summary>
-    public static bool CanRequest(Product product, UserFolders folders) => product.Key switch
+    /// <summary>Whether an installed maintenance worker or a product-owned interface can accept a request.</summary>
+    public static bool CanRequest(Product product, UserFolders folders) =>
+        MaintenanceUpdates.Supports(product) && MaintenanceUpdates.IsInstalled(folders) || product.Key switch
     {
         "relay" => Environment.GetEnvironmentVariable("NEXUS_MCP_TOKEN") is { Length: > 0 } || UserToken() is not null,
         "browser" => File.Exists(BrowserBridge.TokenFile(folders)),
         "keypad" => Directory.Exists(Path.Combine(folders.LocalAppData, "Logi", "LogiPluginService", "Plugins", "NexusKeypad")),
         _ => false,
     };
+
+    /// <summary>Prefer coordinated maintenance without changing the compatibility API used by older products.</summary>
+    public static Task<UpdateRequest> RequestManagedAsync(Product product, UserFolders folders, HttpClient http, CancellationToken cancel = default) =>
+        MaintenanceUpdates.Supports(product) && MaintenanceUpdates.IsInstalled(folders)
+            ? MaintenanceUpdates.RequestAsync(cancel) : RequestAsync(product, http, cancel);
 
     public static Task<UpdateRequest> RequestAsync(Product product, HttpClient http, CancellationToken cancel = default) => product.Key switch
     {

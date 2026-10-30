@@ -7,6 +7,28 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Changed
+- Next Store app (1.0.13.0): request the installed public maintenance task and display dated published, installed,
+  observed and pending versions. Publishing the catalog does not deploy this separate Store package.
+
+## [1.6.36] - 2026-10-30
+
+### Added
+- One public maintenance coordinator for installed NexusWindows and NexusBrowser engines and existing AI
+  integrations: verified published installers, a durable per-user task, mutual exclusion and retries for deferred
+  activation. Source checkouts and user-disabled or custom integrations remain outside automatic maintenance.
+- Separate published, installed and observed running versions, including pending activation when an existing AI
+  connection retains its previous runtime. A new qualification client never substitutes for a host connection.
+
+### Fixed
+- Existing Claude plugins are explicitly updated after their marketplace is refreshed. A refreshed listing or
+  enabled setting alone is no longer treated as proof of an updated installed plugin.
+- Deferred work remains pending and is retried instead of being reported as a completed update.
+
+### Changed
+- Windows and Browser catalog plugins follow native releases 3.9.5 and 2.33.5, whose update-only installers preserve
+  existing integrations while staging immutable runtime files. See UPDATES.md for activation and Store boundaries.
+
 ## [1.6.35] - 2026-10-30
 
 ### Fixed
