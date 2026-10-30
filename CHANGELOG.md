@@ -103,6 +103,15 @@ on a local branch to be applied product by product.
 - `INSTALL-AI.md`: structured installation and verification guide for AI coding agents (Claude Code, Codex, Antigravity), supporting à-la-carte product selection (`-Only ... -NoGuide`).
 - Updated `README.md` to put AI-driven installation first alongside the `NexusSystem` app and the one-line PowerShell installer.
 
+## [app 1.0.11.0] - 2026-10-30
+
+Prepared for the Microsoft Store; not submitted yet.
+
+### Changed
+- Embeds catalog 1.6.33 so the app's Install button uses the complete native Windows installation, including
+  the shared daemon token, chosen AI apps and this PC's preferences. Updating the catalog alone does not update
+  the script already embedded in an installed Store app.
+
 ## [app 1.0.10.0] - 2026-10-30
 
 Submitted to the Store on 2026-10-30 (submission 8).
