@@ -272,7 +272,9 @@ public class DesktopExtensionTests
     [Fact]
     public void OnlyProductsWithAnExtension()
     {
-        Assert.True(DesktopExtension.For(Products.Windows)!.Versioned);
+        var windows = DesktopExtension.For(Products.Windows)!;
+        Assert.Equal("NexusWindows", windows.Repo);  // the single repository, not the archived NexusWindows-Claude
+        Assert.False(windows.Versioned);
         Assert.Null(DesktopExtension.For(Products.Relay));
         Assert.Null(DesktopExtension.For(Products.Keypad));
         Assert.Null(DesktopExtension.For(Products.AgyMail));

@@ -12,8 +12,8 @@ public sealed record DesktopExtension(Product Product, string Repo, string Name,
 {
     public static DesktopExtension? For(Product product) => product.Key switch
     {
-        // NexusWindows for Claude names its asset with the version (nexus-windows-claude-3.2.2.mcpb).
-        "windows" => new(product, "NexusWindows-Claude", "nexus-windows-claude", Versioned: true),
+        // The single NexusWindows repository attaches the Claude profile's extension as nexus-windows-claude.mcpb.
+        "windows" => new(product, "NexusWindows", "nexus-windows-claude", Versioned: false),
         "android" => new(product, "NexusAndroid", "nexus-android", Versioned: false),
         "browser" => new(product, "NexusBrowser", "nexus-browser", Versioned: false),
         _ => null,

@@ -11,6 +11,8 @@ To be released as 1.7.0 once every product (NexusWindows, NexusAndroid, NexusBro
 has published its native release and `get.ps1`.
 
 ### Changed
+- App: the Claude Desktop extension of NexusWindows comes from the single NexusWindows repository
+  (`nexus-windows-claude.mcpb` of its latest release), no longer from the archived NexusWindows-Claude.
 - Native catalogs, no Python: every plugin reaches its product's native Windows engine. Claude Code: `nexus-android`
   (daemon `127.0.0.1:16180/mcp`), `nexus-browser` (`127.0.0.1:16182/mcp?agent=claude`) and `nexus-relay`
   (`127.0.0.1:16181/mcp?agent=claude`) over HTTP with `Authorization: Bearer ${NEXUS_MCP_TOKEN}`; `nexus-windows`
