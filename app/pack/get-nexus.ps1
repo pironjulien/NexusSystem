@@ -21,13 +21,21 @@
 #                  (the NexusSystem app reads the same file).
 #   -Json          also print one "NEXUS_PACK_EVENT {json}" line per event (found, plan, step, cell, done), for the
 #                  Nexus apps that run this same script and show its progress
+#   -Maintain     update installed products and existing active Nexus routes only, preserving running sessions
+#   -MaintenanceStatus  read the last check as JSON without changing files or contacting GitHub
+#   -InstallMaintenance  establish the same updater for an already installed Store hub, without reinstalling products
 param(
     [string[]]$Only = @(),
     [string[]]$Skip = @(),
     [switch]$DryRun,
     [switch]$NoGuide,
     [string]$Catalog = 'pironjulien/NexusSystem',
-    [switch]$Json
+    [switch]$Json,
+    [switch]$Maintain,
+    [switch]$MaintenanceStatus,
+    [switch]$MaintenanceCurrent,
+    [switch]$ForceMaintenance,
+    [switch]$InstallMaintenance
 )
 
 $ErrorActionPreference = 'Stop'
@@ -45,6 +53,7 @@ $ProgressPreference = 'SilentlyContinue'  # Invoke-WebRequest is many times slow
 $Ok = [string][char]0x2713
 $No = [string][char]0x2717
 $Marketplace = 'nexus-plugins'
+$NexusMaintenanceVersion = '1.6.37'
 
 # AI apps, in display order. Claude Desktop also carries Claude Code (its Code tab reads the same ~\.claude).
 $AiNames = [ordered]@{
@@ -231,6 +240,9 @@ function Read-Json([string]$Path) {
     if (-not (Test-Path -LiteralPath $Path)) { return $null }
     $text = [IO.File]::ReadAllText($Path)
     if (-not $text.Trim()) { return $null }
+    # PowerShell 7.5+ otherwise converts ISO timestamps into DateTime, whose later string conversion depends on
+    # culture and loses the original offset. Windows PowerShell 5.1 already keeps JSON dates as strings.
+    if ((Get-Command ConvertFrom-Json).Parameters.ContainsKey('DateKind')) { return $text | ConvertFrom-Json -DateKind String }
     return $text | ConvertFrom-Json
 }
 
@@ -287,12 +299,13 @@ function Get-LatestTag([string]$Repo) {
     try {
         $request = [Net.HttpWebRequest]::Create("https://github.com/pironjulien/$Repo/releases/latest")
         $request.AllowAutoRedirect = $false
+        $request.Timeout = 30000
         $request.UserAgent = 'NexusSystem-get-nexus'
         $response = $request.GetResponse()
         try { $location = $response.Headers['Location'] } finally { $response.Close() }
         if ($location -match '/releases/tag/(v[0-9][^/?#]*)$') { return $Matches[1] }
     } catch { Write-Verbose "Redirect lookup failed: $($_.Exception.Message)" }
-    return (Invoke-RestMethod -UseBasicParsing "https://api.github.com/repos/pironjulien/$Repo/releases/latest").tag_name
+    return (Invoke-RestMethod -UseBasicParsing "https://api.github.com/repos/pironjulien/$Repo/releases/latest" -TimeoutSec 30).tag_name
 }
 
 function Get-ExpectedSha256([string]$Manifest, [string]$Name) {
@@ -311,7 +324,7 @@ function Get-ExpectedSha256([string]$Manifest, [string]$Name) {
 }
 
 function Save-VerifiedFile([string]$Url, [string]$File, [string]$Expected) {
-    Invoke-WebRequest -UseBasicParsing $Url -OutFile $File
+    Invoke-WebRequest -UseBasicParsing $Url -OutFile $File -TimeoutSec 60
     $actual = (Get-FileHash -LiteralPath $File -Algorithm SHA256).Hash.ToLowerInvariant()
     if ($actual -ne $Expected) {
         Remove-Item -LiteralPath $File -Force -ErrorAction SilentlyContinue
@@ -668,8 +681,24 @@ function Install-CodexMarketplace([string]$Cli, [string]$Catalog) {
     return Invoke-Native 'Codex: Nexus plugin catalog' {
         # The CLI owns its configuration. Existing Git snapshots need an explicit refresh; local catalogs are read
         # in place (also how the offline recipe verifies the exact catalog about to be published).
-        & $Cli plugin marketplace add $Catalog --json
-        if ($LASTEXITCODE -eq 0 -and -not (Test-Path -LiteralPath $Catalog -PathType Container)) {
+        $listed = & $Cli plugin marketplace list --json | Out-String
+        if ($LASTEXITCODE) { throw 'Codex could not inspect its existing marketplaces.' }
+        $existing = @(($listed | ConvertFrom-Json).marketplaces | Where-Object { $_.name -eq $Marketplace })
+        if ($existing.Count -gt 1) { throw 'Codex reported an ambiguous Nexus marketplace; no source was replaced.' }
+        $localCatalog = Test-Path -LiteralPath $Catalog -PathType Container
+        if ($existing.Count) {
+            $sameLocal = $localCatalog -and $existing[0].root -and
+                [IO.Path]::GetFullPath($Catalog).TrimEnd('\','/') -ieq [IO.Path]::GetFullPath($existing[0].root).TrimEnd('\','/')
+            # GitHub shorthand, HTTPS and SSH identify this same repository; changing spelling is not a new source.
+            $official = '^(?:https://github\.com/|git@github\.com:|ssh://git@github\.com/)?pironjulien/NexusSystem(?:\.git)?/?$'
+            $sameGit = -not $localCatalog -and $Catalog -match $official -and
+                $existing[0].marketplaceSource.sourceType -eq 'git' -and $existing[0].marketplaceSource.source -match $official
+            if (-not $sameLocal -and -not $sameGit) { throw 'The existing Nexus marketplace uses another source; it was preserved.' }
+        } else {
+            & $Cli plugin marketplace add $Catalog --json
+            if ($LASTEXITCODE) { throw 'Codex could not add the Nexus marketplace.' }
+        }
+        if (-not $localCatalog) {
             & $Cli plugin marketplace upgrade $Marketplace --json
         }
     }
@@ -704,8 +733,14 @@ function Install-ClaudePlugin([string[]]$Plugins) {
                 & $cli plugin marketplace update $Marketplace
                 if ($LASTEXITCODE) { return }
             }
+            $installed = & $cli plugin list --json | Out-String
+            if ($LASTEXITCODE) { return }
             foreach ($plugin in $Plugins) {
-                & $cli plugin install "$plugin@$Marketplace" --scope user
+                if ($installed -match [regex]::Escape("$plugin@$Marketplace")) {
+                    & $cli plugin update "$plugin@$Marketplace" --scope user --json
+                } else {
+                    & $cli plugin install "$plugin@$Marketplace" --scope user
+                }
                 if ($LASTEXITCODE) { return }
             }
         }
@@ -832,7 +867,7 @@ function Get-AntigravityState($Product) {
     foreach ($name in $names) {
         if ($config -and $config.plugins -and $config.plugins.PSObject.Properties[$name]) {
             $entry = $config.plugins.($name)
-            if ($entry.PSObject.Properties['enabled'] -and $entry.enabled -eq $false) { return 'disabled' }
+            if ($entry -eq $false -or ($entry.PSObject.Properties['enabled'] -and $entry.enabled -eq $false)) { return 'disabled' }
         }
     }
     foreach ($name in $names) {
@@ -889,6 +924,450 @@ function Get-Cell($Product, [string[]]$Ais) {
 }
 
 # --- Main ---------------------------------------------------------------------------------------------------------
+
+# Maintenance is part of this released, checksum-verified file: no second downloaded helper or updater authority.
+# Exit codes: 0 checked/current, 2 pending (including another run), 1 failed. Loaded means a live process, never cache.
+function Get-NexusMaintenanceRoot { return Join-Path $env:USERPROFILE '.nexus\nexussystem\maintenance' }
+function Get-NexusMaintenanceStatusPath { return Join-Path $env:USERPROFILE '.nexus\status\nexussystem-update.json' }
+function Get-NexusMaintenanceStatus {
+    try {$state = Read-Json (Get-NexusMaintenanceStatusPath)}catch{$state=$null}
+    if (-not $state -or $state.schema -ne 1) {
+        return [pscustomobject]@{ schema=1; state='pending'; checked_at=$null; latest=$null; catalogue=$null; products=@(); message='Maintenance has not completed a check.' }
+    }
+    # The disk receipt is historical. A status read never promotes it to a live health claim.
+    $checked=[DateTimeOffset]::MinValue
+    if (-not [DateTimeOffset]::TryParse([string]$state.checked_at,[ref]$checked) -or $checked -gt [DateTimeOffset]::UtcNow -or ([DateTimeOffset]::UtcNow - $checked).TotalHours -gt 2) {
+        $state.state='stale'; Write-Property $state 'message' 'The last maintenance check is older than two hourly cycles.'
+    }
+    return $state
+}
+function Write-NexusMaintenanceStatus($State) {
+    $path=Get-NexusMaintenanceStatusPath
+    New-Item -ItemType Directory -Force (Split-Path $path) | Out-Null
+    $temporary="$path.$PID.tmp"
+    [IO.File]::WriteAllText($temporary,($State | ConvertTo-Json -Depth 12),[Text.UTF8Encoding]::new($false))
+    Move-Item -LiteralPath $temporary -Destination $path -Force
+}
+function Install-NexusMaintenance([string]$Source,[switch]$Start) {
+    $choices=Read-Json (Join-Path $env:USERPROFILE '.nexus\nexussystem.json')
+    if ($choices -and $choices.autoUpdate -eq $false) { return }
+    $root=Get-NexusMaintenanceRoot
+    New-Item -ItemType Directory -Force $root | Out-Null
+    $destination=Join-Path $root 'get-nexus.ps1'
+    if ([IO.Path]::GetFullPath($Source) -ine [IO.Path]::GetFullPath($destination)) {
+        Copy-Item -LiteralPath $Source -Destination "$destination.$PID.tmp" -Force
+        Move-Item -LiteralPath "$destination.$PID.tmp" -Destination $destination -Force
+    }
+    $shell=Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
+    $arguments='-NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -File "'+$destination+'" -Maintain'
+    $action=New-ScheduledTaskAction -Execute $shell -Argument $arguments
+    $currentUser=[Security.Principal.WindowsIdentity]::GetCurrent().Name
+    $triggers=@((New-ScheduledTaskTrigger -AtLogOn -User $currentUser), (New-ScheduledTaskTrigger -Once -At (Get-Date).AddHours(1) -RepetitionInterval (New-TimeSpan -Hours 1)))
+    $settings=New-ScheduledTaskSettingsSet -Hidden -StartWhenAvailable -MultipleInstances IgnoreNew -ExecutionTimeLimit (New-TimeSpan -Minutes 30) -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 15) -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
+    $principal=New-ScheduledTaskPrincipal -UserId $currentUser -LogonType Interactive -RunLevel Limited
+    $previous=Get-ScheduledTask -TaskName 'NexusSystem Update' -ErrorAction SilentlyContinue
+    if ($previous -and -not $previous.Settings.Enabled) { $settings.Enabled=$false }
+    Register-ScheduledTask -TaskName 'NexusSystem Update' -Action $action -Trigger $triggers -Settings $settings -Principal $principal -Description 'Verified Nexus releases; installed products and existing active AI routes only. Sessions are preserved.' -Force | Out-Null
+    if ($Start -and $settings.Enabled -and (-not $previous -or $previous.State -ne 'Running')) { Start-ScheduledTask -TaskName 'NexusSystem Update' }
+}
+function Assert-NexusUpdateContract([string]$File,[string[]]$Parameters) {
+    $errors=$null;$tokens=$null
+    $ast=[Management.Automation.Language.Parser]::ParseFile($File,[ref]$tokens,[ref]$errors)
+    $names=@($ast.ParamBlock.Parameters | ForEach-Object {$_.Name.VariablePath.UserPath})
+    if ($errors.Count -or @($Parameters | Where-Object {$names -notcontains $_}).Count) { throw 'The verified installer does not declare the required update-only contract; it was not executed.' }
+}
+function Assert-NexusOfficialUpdateEnvironment([string]$Product) {
+    $prefix=switch($Product){'windows'{'NEXUS_WINDOWS_'}'browser'{'NEXUS_BROWSER_'}default{return}}
+    foreach($suffix in @('SOURCE','TAG','ROOT','PROFILE')) {
+        if([Environment]::GetEnvironmentVariable($prefix+$suffix,'Process')) {throw "A $Product development/test override is set; unattended maintenance will not execute it."}
+    }
+}
+function Get-NexusPublishedInstaller([string]$Repo,[string]$Work,[string]$Name='get.ps1') {
+    $tag=Get-LatestTag $Repo
+    if ($tag -notmatch '^v\d+\.\d+\.\d+$') { throw "Unsupported release tag for $Repo." }
+    $folder=Join-Path $Work $Repo
+    New-Item -ItemType Directory -Force $folder | Out-Null
+    $base="https://github.com/pironjulien/$Repo/releases/download/$tag"
+    $response=Invoke-WebRequest -UseBasicParsing "$base/SHA256SUMS.txt" -TimeoutSec 30
+    $manifest=if ($response.Content -is [byte[]]) {[Text.Encoding]::UTF8.GetString($response.Content)} else {[string]$response.Content}
+    $file=Join-Path $folder $Name
+    Save-VerifiedFile "$base/$Name" $file (Get-ExpectedSha256 $manifest $Name)
+    if ($Repo -eq 'NexusSystem') {
+        $parseErrors=$null; $tokens=$null
+        $ast=[Management.Automation.Language.Parser]::ParseFile($file,[ref]$tokens,[ref]$parseErrors)
+        if ($parseErrors.Count -or -not @($ast.ParamBlock.Parameters | Where-Object {$_.Name.VariablePath.UserPath -eq 'Maintain'}).Count -or -not $ast.Find({param($node) $node -is [Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq 'Invoke-NexusMaintenance'},$true)) {
+            throw 'The published NexusSystem installer does not yet implement maintenance; it was not executed.'
+        }
+    }
+    # When the existing official gh tool is available, also authenticate the build provenance. A failed
+    # attestation is fatal; it never silently degrades to checksums. No gh installation or authentication is added.
+    $gh=Get-Command gh.exe -ErrorAction SilentlyContinue
+    if ($gh) {
+        if (Invoke-Native "$Repo build provenance" { & $gh.Source attestation verify $file --repo "pironjulien/$Repo" --source-ref "refs/tags/$tag" }) { throw "Build provenance failed for $Repo $tag." }
+    }
+    return [pscustomobject]@{tag=$tag; version=$tag.Substring(1); file=$file; sha256=(Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant()}
+}
+function Get-NexusInstalledVersion($Product) {
+    switch ($Product.Key) {
+        'windows' {
+            $record=Read-Json (Join-Path $env:USERPROFILE '.nexus\nexus-windows\installation.json')
+            if (-not $record -or $record.Schema -ne 2 -or -not $record.NativeArtifacts -or $record.NativeHash -notmatch '^[a-f0-9]{64}$') { return $null }
+            $expected=Join-Path $env:USERPROFILE ".nexus\nexus-windows\native\$($record.NativeHash)\NexusWindows.exe"
+            if ($record.NativeExecutable -ine $expected) { return $null }
+            foreach ($required in @('NexusWindows.exe','NexusWindows.dll','NexusWindows.deps.json','NexusWindows.runtimeconfig.json')) {
+                if (-not $record.NativeArtifacts.PSObject.Properties[$required]) { return $null }
+            }
+            foreach ($artifact in $record.NativeArtifacts.PSObject.Properties) {
+                if ($artifact.Name -match '[/\\:]' -or $artifact.Name -in @('.','..') -or $artifact.Value -notmatch '^[a-fA-F0-9]{64}$') { return $null }
+                $file=Join-Path (Split-Path $expected) $artifact.Name
+                if (-not (Test-Path -LiteralPath $file) -or (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash -ine $artifact.Value) { return $null }
+            }
+            return [string]$record.Version
+        }
+        'browser' {
+            $record=Read-Json (Join-Path $env:LOCALAPPDATA 'NexusBrowser\current.json')
+            if (-not $record -or $record.fingerprint -notmatch '^[a-f0-9]{64}$' -or -not $record.exe) { return $null }
+            $expected=Join-Path $env:LOCALAPPDATA "NexusBrowser\versions\$($record.fingerprint.Substring(0,16))\NexusBrowser.exe"
+            if ($record.exe -ine $expected -or -not (Test-Path -LiteralPath $expected)) { return $null }
+            $assembly=Join-Path (Split-Path $expected) 'NexusBrowser.dll'
+            if (-not (Test-Path -LiteralPath $assembly)) { $assembly=$expected }
+            if ((Get-FileHash -LiteralPath $assembly -Algorithm SHA256).Hash -ine $record.fingerprint) { return $null }
+            return [string]$record.version
+        }
+        default {
+            # Other products keep their own distribution protocols. Their saved version remains installation
+            # information only, and is never promoted to loaded state or used to run an unqualified installer.
+            $record=Read-Json (Join-Path $env:USERPROFILE ".nexus\status\$($Product.Key).json")
+            if ($record) { return [string]$record.version }
+            return $null
+        }
+    }
+}
+function Get-NexusMaintenanceToken { return [Environment]::GetEnvironmentVariable('NEXUS_MCP_TOKEN','User') }
+function Test-NexusOwnedJsonRoute($Product,$Server,[string]$Agent) {
+    if (-not $Server -or $Server.disabled -eq $true -or $Server.enabled -eq $false) { return $false }
+    if ($Product.Key -eq 'browser') {
+        $names=@($Server.PSObject.Properties.Name)
+        if ($Server.command) {
+            if (@($names | Where-Object {$_ -notin @('type','command','args','env')}).Count -or ($Server.type -and $Server.type -ne 'stdio')) {return $false}
+            $command=[string]$Server.command
+            if (-not [IO.Path]::IsPathRooted($command)) {return $false}
+            $root=[IO.Path]::GetFullPath((Join-Path $env:LOCALAPPDATA 'NexusBrowser')).TrimEnd('\')+'\'
+            $full=[IO.Path]::GetFullPath($command)
+            if (-not $full.StartsWith($root,[StringComparison]::OrdinalIgnoreCase)) {return $false}
+            $relative=$full.Substring($root.Length).Replace('\','/')
+            return $relative -match '^(versions/[0-9a-f]{16}|app/engine|native)/NexusBrowser\.exe$' -and (@($Server.args) -join '|') -ceq '--mcp' -and $Server.env -and @($Server.env.PSObject.Properties).Count -eq 1 -and [string]$Server.env.NEXUS_BROWSER_AGENT -ieq $Agent
+        }
+        $urlKey=@($names | Where-Object {$_ -in @('url','serverUrl','httpUrl')})
+        $authorization=if($Server.headers){[string]$Server.headers.Authorization}else{''}
+        $token=Get-NexusMaintenanceToken
+        $ownedHeader=$authorization -ceq 'Bearer ${NEXUS_MCP_TOKEN}' -or ($token -and $authorization -ceq "Bearer $token")
+        return $names.Count -eq 2 -and $urlKey.Count -eq 1 -and $Server.($urlKey[0]) -ceq "http://127.0.0.1:16182/mcp?agent=$Agent" -and $Server.headers -and @($Server.headers.PSObject.Properties).Count -eq 1 -and $ownedHeader
+    }
+    $keys=@($Server.PSObject.Properties.Name | Where-Object { $_ -notin @('type','command','args','url','headers','disabled','enabled','startup_timeout_sec','bearer_token_env_var') })
+    if ($keys.Count) { return $false }
+    if ($Product.Key -eq 'windows') {
+        if (@($Server.PSObject.Properties.Name | Where-Object {$_ -notin @('type','command','args','env','disabled','enabled','startup_timeout_sec')}).Count -or ($Server.type -and $Server.type -ne 'stdio') -or ($Server.env -and @($Server.env.PSObject.Properties).Count)) {return $false}
+        $stable=Join-Path $env:USERPROFILE '.nexus\nexus-windows\NexusWindows.exe'
+        $command=[Environment]::ExpandEnvironmentVariables([string]$Server.command).Replace('${USERPROFILE}',$env:USERPROFILE)
+        return $command -ieq $stable -and (@($Server.args) -join '|') -ceq "--mcp|--agent|$Agent"
+    }
+    $port=switch ($Product.Key) {'browser'{16182} 'android'{16180} 'relay'{16181} default{0}}
+    if (-not $port) { return $false }
+    $uri=$null
+    return [Uri]::TryCreate([string]$Server.url,[UriKind]::Absolute,[ref]$uri) -and $uri.Scheme -eq 'http' -and $uri.Host -eq '127.0.0.1' -and $uri.Port -eq $port -and $uri.AbsolutePath -eq '/mcp' -and ($uri.Query -eq '' -or $uri.Query -ceq "?agent=$Agent")
+}
+function Get-NexusMaintenanceProfile($Product,[string]$Ai) {
+    $state=& $Checks[$Ai] $Product
+    if ($state -ne 'ok') { return [pscustomobject]@{key=$Ai; state=$state; route=$null; pluginVersion=$null; activationPending=$false; reason='Existing user selection is preserved.'} }
+    $route='custom'; $version=$null
+    switch ($Ai) {
+        'codex' {
+            $path=Join-Path (Get-CodexHome) 'config.toml'; $text=[IO.File]::ReadAllText($path)
+            $tables=@(Get-CodexServerTable $text $Product.Server)
+            if ($tables.Count) { if (Test-CodexOwnedServer $text $Product.Server) { $route='direct' } }
+            elseif ((Get-CodexPluginState $text $Product.Server $Marketplace) -eq 'enabled') { $route='catalogue' }
+        }
+        'claude-code' {
+            $settings=Read-Json (Join-Path $env:USERPROFILE '.claude\settings.json')
+            $direct=Read-Json (Join-Path $env:USERPROFILE '.claude.json')
+            if ($direct -and $direct.mcpServers -and $direct.mcpServers.PSObject.Properties[$Product.Server]) {
+                if (Test-NexusOwnedJsonRoute $Product $direct.mcpServers.($Product.Server) 'claude') { $route='direct' }
+            } elseif ($settings -and $settings.enabledPlugins -and $settings.enabledPlugins.PSObject.Properties["$($Product.Plugin)@$Marketplace"] -and $settings.enabledPlugins.("$($Product.Plugin)@$Marketplace") -eq $true) { $route='catalogue' }
+            $installed=Read-Json (Join-Path $env:USERPROFILE '.claude\plugins\installed_plugins.json')
+            if ($installed -and $installed.plugins -and $installed.plugins.PSObject.Properties["$($Product.Plugin)@$Marketplace"]) {
+                $entry=@($installed.plugins.("$($Product.Plugin)@$Marketplace") | Where-Object { $_.scope -eq 'user' }) | Select-Object -First 1
+                if ($entry) { $version=[string]$entry.version }
+            }
+        }
+        'antigravity' {
+            foreach ($name in @($Product.Agy)+@($Product.AgyLegacy) | Where-Object {$_}) {
+                $folder=Join-Path $env:USERPROFILE ".gemini\config\plugins\$name"
+                $manifest=Read-Json (Join-Path $folder 'plugin.json'); $config=Read-Json (Join-Path $folder 'mcp_config.json')
+                if ($manifest -and $config -and $config.mcpServers -and $config.mcpServers.PSObject.Properties[$Product.Server] -and (Test-NexusOwnedJsonRoute $Product $config.mcpServers.($Product.Server) 'antigravity')) {
+                    $route='product'; $version=[string]$manifest.version; break
+                }
+            }
+        }
+        'claude-desktop' {
+            $owned=$true
+            $folders=Get-DesktopFolder
+            foreach ($folder in $folders) {
+                $config=Read-Json (Join-Path $folder 'claude_desktop_config.json')
+                if (-not $config -or -not (Test-NexusOwnedJsonRoute $Product $config.mcpServers.($Product.Server) 'claude')) { $owned=$false }
+            }
+            if ($owned) { $route='direct' }
+        }
+    }
+    return [pscustomobject]@{key=$Ai;state=$(if($route -eq 'custom'){'kept'}else{'unknown'});route=$route;pluginVersion=$version;activationPending=$false;guideLoaded=$null;reason=$(if($route -eq 'custom'){'Custom declaration is preserved.'}else{'Guide loading in an existing conversation is unknown; runtime activation is checked separately.'})}
+}
+function Get-NexusProcessAgent($Process,$Processes) {
+    if ($Process.CommandLine -notmatch '\s--mcp\s+--agent\s+(claude|codex|antigravity)\s*$') {return $null}
+    $expected=$Matches[1]
+    $parent=$Processes[[int]$Process.ParentProcessId]
+    # The stable launcher is one inert hop; the Codex catalogue also uses one exact cmd.exe hop.
+    if ($parent -and $parent.Name -ieq 'NexusWindows.exe' -and $parent.ExecutablePath -ieq (Join-Path $env:USERPROFILE '.nexus\nexus-windows\NexusWindows.exe') -and $parent.CommandLine -match ('\s--mcp\s+--agent\s+'+[regex]::Escape($expected)+'\s*$')) {$parent=$Processes[[int]$parent.ParentProcessId]}
+    if ($parent -and $expected -eq 'codex' -and $parent.Name -ieq 'cmd.exe' -and $parent.CommandLine -match '\s/d\s+/c\s+cd\s+/d\s+\S+\\\.nexus\\nexus-windows\s+&&\s+\.\\NexusWindows\.exe\s+--mcp\s+--agent\s+codex\s*$') {$parent=$Processes[[int]$parent.ParentProcessId]}
+    if (-not $parent) {return $null}
+    if ($expected -eq 'codex' -and $parent.Name -ieq 'codex.exe' -and $parent.CommandLine -notmatch '(?:^|\s)exec(?:\s|$)') {return $expected}
+    if ($expected -eq 'antigravity' -and ($parent.Name -in @('antigravity.exe','language_server_windows_x64.exe') -or ($parent.Name -ieq 'language_server.exe' -and $parent.ExecutablePath -like '*\Programs\Antigravity\resources\bin\language_server.exe'))) {return $expected}
+    if ($expected -eq 'claude' -and $parent.Name -ieq 'claude.exe' -and $parent.CommandLine -notmatch '(?:^|\s)--type(?:\s|=)' -and ($parent.ExecutablePath -ieq (Join-Path $env:USERPROFILE '.local\bin\claude.exe') -or $parent.ExecutablePath -match '\\Claude-Data\\anthropicpbc\.claude_[a-z0-9]+\\claude-code\\\d+\.\d+\.\d+\\[a-f0-9]{12,64}\\claude\.exe$')) {return $expected}
+    return $null # A qualification client below an AI's shell is deliberately not that AI's connection.
+}
+function Get-NexusLoadedVersion($Product) {
+    $versions=@(); $unknown=$false;$agents=@()
+    $processes=@(Get-CimInstance Win32_Process -Property ProcessId,ParentProcessId,Name,CommandLine,ExecutablePath,CreationDate -ErrorAction Stop)
+    $table=@{};foreach($process in $processes){$table[[int]$process.ProcessId]=$process}
+    if ($Product.Key -eq 'windows') {
+        $installed=Read-Json (Join-Path $env:USERPROFILE '.nexus\nexus-windows\installation.json')
+        foreach ($process in $processes | Where-Object { $_.Name -ieq 'NexusWindows.exe' -and $_.CommandLine -match '\s--mcp\s+--agent\s+(claude|codex|antigravity)\s*$' }) {
+            # Do not count an inert stable launcher alongside its child engine.
+            if ($process.ExecutablePath -ieq (Join-Path $env:USERPROFILE '.nexus\nexus-windows\NexusWindows.exe')) {continue}
+            $agent=Get-NexusProcessAgent $process $table
+            if (-not $agent) {continue}
+            $receipt=Get-ChildItem -LiteralPath (Join-Path $env:USERPROFILE '.nexus\status\runtime') -Filter "windows-$agent-$($process.ProcessId)-*.json" -ErrorAction SilentlyContinue | ForEach-Object {Read-Json $_.FullName} | Where-Object {
+                $birth=[DateTimeOffset]::MinValue
+                $_ -and $_.schema -eq 1 -and $_.product -eq 'windows' -and $_.state -in @('idle','busy') -and $_.agent -eq $agent -and $_.pid -eq $process.ProcessId -and $_.executable -ieq $process.ExecutablePath -and [DateTimeOffset]::TryParse([string]$_.processStartUtc,[ref]$birth) -and [Math]::Abs(($birth.UtcDateTime-$process.CreationDate.ToUniversalTime()).TotalSeconds) -lt 0.01 -and [string]$_.processStartTicks -ceq $birth.UtcDateTime.Ticks.ToString() -and $_.assembly -ieq (Join-Path (Split-Path $process.ExecutablePath) 'NexusWindows.dll') -and $_.assemblySha256 -match '^[a-f0-9]{64}$' -and (Test-Path -LiteralPath $_.assembly) -and (Get-FileHash -LiteralPath $_.assembly -Algorithm SHA256).Hash -ieq $_.assemblySha256
+            } | Select-Object -First 1
+            $activeVersion=$null
+            if ($receipt -and $receipt.version -match '^\d+\.\d+\.\d+$') {
+                $versions += [string]$receipt.version
+                if (-not $installed -or $receipt.executable -ine $installed.NativeExecutable -or $receipt.assemblySha256 -ine $installed.NativeArtifacts.'NexusWindows.dll') {$unknown=$true}
+                else {$activeVersion=[string]$receipt.version}
+            } else { $unknown=$true }
+            # Keep every host-owned connection in its AI's verdict: a newer client does not hide an older,
+            # unattested connection belonging to that same host.
+            $agents += [pscustomobject]@{agent=$agent;version=$activeVersion;processStartUtc=$receipt.processStartUtc}
+        }
+    } elseif ($Product.Key -eq 'browser') {
+        $installed=Read-Json (Join-Path $env:LOCALAPPDATA 'NexusBrowser\current.json')
+        $health=Invoke-RestMethod -UseBasicParsing 'http://127.0.0.1:16182/health' -TimeoutSec 3 -ErrorAction SilentlyContinue
+        if ($health -and $health.status -eq 'ok' -and $health.service -eq 'nexus-browser' -and $health.version -match '^\d+\.\d+\.\d+$' -and @($processes | Where-Object { $_.ProcessId -eq $health.pid -and $_.Name -ieq 'NexusBrowser.exe' -and $_.CommandLine -match '\s--http(?:\s|=)' }).Count) {
+            $versions += [string]$health.version
+            if (-not $installed -or -not @($processes | Where-Object {$_.ProcessId -eq $health.pid -and $_.ExecutablePath -ieq $installed.exe}).Count -or ($health.fingerprint -and $health.fingerprint -ine $installed.fingerprint)) {$unknown=$true}
+        }
+        elseif (@($processes | Where-Object {$_.Name -ieq 'NexusBrowser.exe' -and $_.CommandLine -match '\s--(?:http|bridge)(?:\s|=)'}).Count) { $unknown=$true }
+        $tokenPath=Join-Path $env:USERPROFILE '.nexus\nexus-browser\bridge-token'
+        if (Test-Path -LiteralPath $tokenPath) {
+            try {
+                $bridge=Invoke-RestMethod -UseBasicParsing 'http://127.0.0.1:9225/api/status' -Headers @{'X-Nexus-Browser-Token'=[IO.File]::ReadAllText($tokenPath).Trim()} -TimeoutSec 3
+                if ($bridge.status -eq 'online' -and $bridge.version -match '^\d+\.\d+\.\d+$' -and @($processes | Where-Object {$_.ProcessId -eq $bridge.pid -and $_.Name -ieq 'NexusBrowser.exe' -and $_.CommandLine -match '\s--bridge(?:\s|=|$)'}).Count) {
+                    $versions += [string]$bridge.version
+                    if (-not $installed -or $bridge.fingerprint -ine $installed.fingerprint -or -not @($processes | Where-Object {$_.ProcessId -eq $bridge.pid -and $_.ExecutablePath -ieq $installed.exe}).Count) {$unknown=$true}
+                }else{$unknown=$true}
+                # Ping is an authenticated read-only extension command with no AI/session identity. It neither
+                # takes tabs nor changes focus. Its live response, not a package manifest, proves Chrome's version.
+                $ping=Invoke-RestMethod -UseBasicParsing 'http://127.0.0.1:9225/api/command' -Method Post -ContentType 'application/json' -Headers @{'X-Nexus-Browser-Token'=[IO.File]::ReadAllText($tokenPath).Trim()} -Body '{"action":"ping","params":{},"timeout":3}' -TimeoutSec 5
+                if ($ping.success -eq $true -and $ping.data.status -eq 'pong' -and $ping.data.version -match '^\d+\.\d+\.\d+$') {$versions += [string]$ping.data.version}else{$unknown=$true}
+            }catch{$unknown=$true}
+        }else{$unknown=$true}
+    }
+    return [pscustomobject]@{versions=@($versions | Select-Object -Unique);unknown=$unknown;agents=$agents}
+}
+function Invoke-NexusPluginMaintenance($Product,$Profiles) {
+    foreach ($integration in $Profiles | Where-Object {$_.route -eq 'catalogue'}) {
+        if ($integration.key -eq 'codex') {
+            $cli=Get-CodexCli
+            if (-not $cli) { throw 'The signed Codex CLI is unavailable; no configuration was replaced.' }
+            if (Install-CodexMarketplace $cli 'pironjulien/NexusSystem') { throw 'Codex catalogue refresh failed.' }
+            if (Install-CodexPlugin $cli $Product.Plugin) { throw 'Codex plugin refresh failed.' }
+            $catalogue=(& $cli plugin list --json | Out-String) | ConvertFrom-Json
+            if ($LASTEXITCODE) { throw 'Codex could not report its installed plugin.' }
+            $entry=@($catalogue.installed | Where-Object {$_.pluginId -eq "$($Product.Plugin)@$Marketplace" -or $_.id -eq "$($Product.Plugin)@$Marketplace"}) | Select-Object -First 1
+            $integration.pluginVersion=if($entry){[string]$entry.version}else{$null}
+            $integration.reason='Plugin files verified; active conversations may still require reloading.'
+        } elseif ($integration.key -eq 'claude-code') {
+            $cli=Get-ClaudeCli
+            if (-not $cli) { throw 'The trusted Claude Code CLI is unavailable; plugin activation remains pending.' }
+            & $cli plugin marketplace update $Marketplace 2>&1 | Out-Host
+            if ($LASTEXITCODE) { throw 'Claude catalogue refresh failed.' }
+            & $cli plugin update "$($Product.Plugin)@$Marketplace" --scope user --json 2>&1 | Out-Host
+            if ($LASTEXITCODE) { throw 'Claude plugin update failed.' }
+            $cache=Read-Json (Join-Path $env:USERPROFILE '.claude\plugins\installed_plugins.json')
+            $entry=if($cache -and $cache.plugins -and $cache.plugins.PSObject.Properties["$($Product.Plugin)@$Marketplace"]){@($cache.plugins.("$($Product.Plugin)@$Marketplace") | Where-Object {$_.scope -eq 'user'}) | Select-Object -First 1}else{$null}
+            if (-not $entry -or -not $entry.installPath -or -not (Test-Path -LiteralPath (Join-Path $entry.installPath "skills\$($Product.Plugin)\SKILL.md"))) { throw 'Claude did not return an installed guide; activation remains pending.' }
+            $integration.pluginVersion=[string]$entry.version
+            $settingsPath=Join-Path $env:USERPROFILE '.claude\settings.json'; $settings=Read-Json $settingsPath
+            if ($settings -and $settings.extraKnownMarketplaces -and $settings.extraKnownMarketplaces.PSObject.Properties[$Marketplace]) {
+                $entry=$settings.extraKnownMarketplaces.($Marketplace)
+                if (-not $entry.PSObject.Properties['autoUpdate']) { Write-Property $entry 'autoUpdate' $true; Write-JsonWithBackup $settingsPath $settings }
+            }
+            $integration.reason='Plugin updated on disk; /reload-plugins or a new session activates it.'
+        }
+    }
+}
+function Invoke-NexusMaintenance([switch]$Current,[switch]$Force) {
+    $root=Get-NexusMaintenanceRoot
+    New-Item -ItemType Directory -Force $root | Out-Null
+    # File lock is released by Windows even after an interrupted updater. No stale lock heuristics or process kills.
+    $lock=$null
+    try { $lock=[IO.File]::Open((Join-Path $root 'maintenance.lock'),[IO.FileMode]::OpenOrCreate,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None) }
+    catch [IO.IOException] { return 2 }
+    $work=Join-Path $root "run-$PID"
+    $state=[ordered]@{schema=1;state='checking';checked_at=[DateTimeOffset]::UtcNow.ToString('O');nextCheckAt=[DateTimeOffset]::UtcNow.AddHours(1).ToString('O');activationPending=$false;retryable=$false;latest=$null;catalogue=$null;products=@();message='Checking published releases and installed routes.'}
+    $savedPack=$env:NEXUS_PACK; $savedTargets=$env:NEXUS_PACK_TARGETS; $savedMcpToken=$env:NEXUS_MCP_TOKEN
+    $bootstrap=$null;$preserveStatus=$false
+    try {
+        $choices=Read-Json (Join-Path $env:USERPROFILE '.nexus\nexussystem.json')
+        if ($choices -and $choices.autoUpdate -eq $false) {
+            $state.state='disabled';$state.message='Automatic updates are disabled in nexussystem.json.'
+            return 0
+        }
+        $previous=Read-Json (Get-NexusMaintenanceStatusPath)
+        $next=[DateTimeOffset]::MinValue
+        if (-not $Force -and -not $Current -and $previous -and [DateTimeOffset]::TryParse([string]$previous.nextCheckAt,[ref]$next) -and $next -gt [DateTimeOffset]::UtcNow) {
+            $state=$previous;$preserveStatus=$true
+            return $(if($previous.state -eq 'failed'){1}elseif($previous.state -eq 'pending'){2}else{0})
+        }
+        New-Item -ItemType Directory -Force $work | Out-Null
+        Write-NexusMaintenanceStatus $state
+        if ($Current) {
+            # Explicit qualification of this file: published products only, no downgrade or durable copy of a
+            # development manager. The older public catalogue is not executed and need not implement maintenance.
+            $tag=Get-LatestTag 'NexusSystem'
+            if ($tag -notmatch '^v\d+\.\d+\.\d+$') {throw 'Invalid published catalogue version.'}
+            $catalogue=[pscustomobject]@{tag=$tag;version=$tag.Substring(1);sha256=(Get-FileHash -LiteralPath $script:NexusPackScript -Algorithm SHA256).Hash}
+        } else {$catalogue=Get-NexusPublishedInstaller 'NexusSystem' $work 'get-nexus.ps1'}
+        $state.latest=$catalogue.version; $state.catalogue=$catalogue.tag
+        if (-not $Current -and [version]$catalogue.version -lt [version]$NexusMaintenanceVersion) {
+            $state.state='pending';$state.message='This manager is newer than the published release; no downgrade or development payload was propagated.'
+            return 2
+        }
+        $durable=Join-Path $root 'get-nexus.ps1'
+        if (-not $Current -and (Get-FileHash -LiteralPath $script:NexusPackScript -Algorithm SHA256).Hash -ine $catalogue.sha256) {
+            # Hand the next run to the published manager only after releasing the lock below.
+            Copy-Item -LiteralPath $catalogue.file -Destination "$durable.$PID.tmp" -Force
+            Move-Item -LiteralPath "$durable.$PID.tmp" -Destination $durable -Force
+            $bootstrap=$durable
+        } else {
+            $env:NEXUS_PACK='1'
+            # An AI launched before installation can lack the user's token in its inherited environment. Pass the
+            # same current user credential used to identify existing routes to the official installer child.
+            $maintenanceToken=Get-NexusMaintenanceToken
+            if ($maintenanceToken) { $env:NEXUS_MCP_TOKEN=$maintenanceToken }
+            # These existing detection functions deliberately return one array object. Assign before piping so
+            # multi-AI profiles and multi-entry skip lists are not accidentally nested and then overlooked.
+            $skip=Get-LocalSkip; $found=Find-AiApp
+            foreach ($product in $Products | Where-Object {$_.Repo -and $skip -notcontains $_.Key}) {
+                $profiles=@($found | Where-Object {$product.Targets -contains $_ -and $skip -notcontains $_} | ForEach-Object {Get-NexusMaintenanceProfile $product $_})
+                $active=@($profiles | Where-Object {$_.route -and $_.route -ne 'custom'})
+                $installed=Get-NexusInstalledVersion $product
+                if (-not $installed -and -not $active.Count) { continue }
+                $row=[ordered]@{key=$product.Key;publishedVersion=$null;installedVersion=$installed;loadedVersions=@();state='pending';activationPending=$false;retryable=$false;message='';profiles=$profiles}
+                try {
+                    if (-not $active.Count) { $row.state='kept'; $row.message='No active owned route; disabled and custom routes were preserved.' }
+                    else {
+                        $tag=Get-LatestTag $product.Repo
+                        if ($tag -notmatch '^v\d+\.\d+\.\d+$') { throw 'Invalid published version.' }
+                        $published=$tag.Substring(1); $row.publishedVersion=$published
+                        # UpdateOnly is a qualified release contract, never sent to older installers.
+                        $minimum=switch($product.Key){'windows'{'3.9.5'} 'browser'{'2.33.5'} default{$null}}
+                        if (-not $minimum) { $row.state='unsupported'; $row.message='This product owns its update protocol; automatic installer migration is not qualified.' }
+                        elseif (-not $installed) { $row.message='The existing installation could not be verified; no fresh installation was attempted.' }
+                        elseif ([version]$published -lt [version]$minimum) { $row.message='The published installer does not yet support preserving existing routes during maintenance.' }
+                        else {
+                            $env:NEXUS_PACK_TARGETS=@($active | ForEach-Object {$_.key}) -join ','
+                            $old=@($previous.products | Where-Object {$_.key -eq $product.Key}) | Select-Object -First 1
+                            $profileRefresh=@($active | Where-Object {$_.key -eq 'antigravity' -and $_.pluginVersion -ne $published}).Count -gt 0
+                            # A deferred Browser switch is retried on the next bounded cycle even after files
+                            # were installed. A plain open AI connection is not a reason to reinstall Windows.
+                            $retry=($product.Key -eq 'browser' -and $old -and $old.retryable)
+                            if ([version]$published -gt [version]$installed -or $profileRefresh -or $retry) {
+                                $release=Get-NexusPublishedInstaller $product.Repo $work
+                                if ($release.tag -ne $tag) { throw 'Release changed while preparing the update; retry on the next cycle.' }
+                                $parameters=@('UpdateOnly');$arguments=@('-UpdateOnly')
+                                if ($product.Key -eq 'windows' -and @($active | Where-Object {$_.key -eq 'antigravity'}).Count) {$parameters+='RefreshExistingProfiles';$arguments+='-RefreshExistingProfiles'}
+                                Assert-NexusUpdateContract $release.file $parameters
+                                Assert-NexusOfficialUpdateEnvironment $product.Key
+                                if (Invoke-ScriptFile "$($product.Name) maintenance" $release.file $arguments) { throw 'The product update failed.' }
+                                $installed=Get-NexusInstalledVersion $product; $row.installedVersion=$installed
+                                if (-not $installed -or [version]$installed -lt [version]$published) { throw 'The installed version did not reach the published version.' }
+                            }
+                            Invoke-NexusPluginMaintenance $product $active
+                            foreach($integration in $active | Where-Object {$_.route -eq 'catalogue'}) {
+                                if (-not $integration.pluginVersion -or [version]$integration.pluginVersion -lt [version]$published) {
+                                    $integration.state='pending';$integration.activationPending=$true;$integration.reason='The published catalogue has not supplied this product version yet; distribution remains pending.'
+                                }
+                            }
+                            foreach($integration in $active | Where-Object {$_.key -eq 'antigravity'}) {
+                                $refreshed=Get-NexusMaintenanceProfile $product 'antigravity';$integration.pluginVersion=$refreshed.pluginVersion
+                                if ($integration.pluginVersion -ne $published) {throw 'The existing Antigravity plugin has not reached the published version.'}
+                            }
+                            $loaded=Get-NexusLoadedVersion $product
+                            $row.loadedVersions=@($loaded.versions)
+                            foreach($integration in $active) {
+                                if ($product.Key -eq 'browser') {
+                                    if(-not $integration.activationPending){$integration.state='unknown';$integration.reason='The shared daemon, bridge and extension are observed separately; this does not attest an individual chat guide.'}
+                                    continue
+                                }
+                                if ($integration.activationPending) {continue}
+                                $agent=switch($integration.key){'claude-code'{'claude'}'codex'{'codex'}'antigravity'{'antigravity'}default{$null}}
+                                $connections=@($loaded.agents | Where-Object {$_.agent -eq $agent})
+                                if (-not $integration.activationPending -and $connections.Count -and -not @($connections | Where-Object {$_.version -ne $installed}).Count) {
+                                    $integration.state='runtime-verified';$integration.reason='The host owns a matching running engine; guide loading in existing chats remains unknown.'
+                                } else {$integration.activationPending=$true;$integration.state='pending';$integration.reason='No matching host-owned engine attestation; the existing session is preserved.'}
+                            }
+                            if ($loaded.unknown -or @($loaded.versions | Where-Object {[version]$_ -ne [version]$installed}).Count) {
+                                $row.state='pending';$row.activationPending=$true;$row.retryable=($product.Key -eq 'browser'); $row.message='Installed; an older or unattested running connection is preserved until its safe reload.'
+                            } elseif (-not $loaded.versions.Count) {
+                                $row.state='pending';$row.activationPending=$true;$row.retryable=($product.Key -eq 'browser'); $row.message='Installed; no running connection has attested activation yet.'
+                            } else {
+                                $row.state='success'; $row.message='Published version installed; observed running engine versions match. Guide loading in existing chats is not attested.'
+                            }
+                            if (@($active | Where-Object {$_.activationPending}).Count) {$row.activationPending=$true;if($row.state -eq 'success'){$row.state='pending'}}
+                        }
+                    }
+                } catch { $row.state='failed'; $row.message=$_.Exception.Message }
+                $state.products += [pscustomobject]$row
+                Write-NexusMaintenanceStatus $state
+            }
+            $state.activationPending=@($state.products | Where-Object {$_.activationPending}).Count -gt 0
+            $state.retryable=@($state.products | Where-Object {$_.retryable}).Count -gt 0
+            $state.state=if (@($state.products | Where-Object {$_.state -eq 'failed'}).Count) {'failed'} elseif (@($state.products | Where-Object {$_.state -eq 'pending'}).Count) {'pending'} else {'success'}
+            $state.message='Installed files and observed runtimes are reported separately; no AI process was stopped.'
+        }
+    } catch {$state.state='failed';$state.retryable=$true;$state.message=$_.Exception.Message}
+    finally {
+        if(-not $preserveStatus){
+            $state.checked_at=[DateTimeOffset]::UtcNow.ToString('O')
+            if($state.state -eq 'failed'){$state.nextCheckAt=[DateTimeOffset]::UtcNow.AddMinutes(15).ToString('O')}
+            Write-NexusMaintenanceStatus $state
+        }
+        if ($null -eq $savedPack) {Remove-Item Env:NEXUS_PACK -ErrorAction SilentlyContinue}else{$env:NEXUS_PACK=$savedPack}
+        if ($null -eq $savedTargets) {Remove-Item Env:NEXUS_PACK_TARGETS -ErrorAction SilentlyContinue}else{$env:NEXUS_PACK_TARGETS=$savedTargets}
+        if ($null -eq $savedMcpToken) {Remove-Item Env:NEXUS_MCP_TOKEN -ErrorAction SilentlyContinue}else{$env:NEXUS_MCP_TOKEN=$savedMcpToken}
+        # Only this run's absolute child directory is disposable. Never clean product payloads or runtime folders.
+        $absolute=[IO.Path]::GetFullPath($work);$parentRoot=[IO.Path]::GetFullPath($root).TrimEnd('\')+'\'
+        if ($absolute.StartsWith($parentRoot,[StringComparison]::OrdinalIgnoreCase) -and (Split-Path $absolute -Leaf) -ceq "run-$PID" -and (Test-Path -LiteralPath $absolute) -and -not ((Get-Item -LiteralPath $absolute).Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+            Remove-Item -LiteralPath $absolute -Recurse -Force -ErrorAction SilentlyContinue
+        }
+        if ($lock) {$lock.Dispose()}
+    }
+    if ($bootstrap) { return Invoke-ScriptFile 'NexusSystem maintenance manager' $bootstrap @('-Maintain','-MaintenanceCurrent') }
+    if ($state.state -eq 'failed') {return 1}
+    if ($state.state -eq 'pending') {return 2}
+    return 0
+}
 
 function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool]$NoGuide, [string]$Catalog) {
     if ($env:OS -ne 'Windows_NT') { Say 'The Nexus pack runs on Windows 10 or 11 only.' Red; return 1 }
@@ -1067,10 +1546,18 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
         Remove-Item -LiteralPath $work -Recurse -Force -ErrorAction SilentlyContinue
     }
 
+    # A successful product installation also establishes the one shared update authority. Never register a task
+    # from a dry run, a selection without products, or a test that loaded these functions instead of this file.
+    $maintenanceFailed = $false
+    if ($script:NexusPackScript -and @($results.Values | Where-Object { $_ -eq 0 }).Count) {
+        try { Install-NexusMaintenance $script:NexusPackScript }
+        catch { $maintenanceFailed = $true; Say "Maintenance could not be registered: $($_.Exception.Message)" Red }
+    }
+
     # Summary: a cell is green when its route succeeded AND the AI app now declares the product.
     Say ''
     Say 'Summary' Cyan
-    $failed = 0
+    $failed = if ($maintenanceFailed) { 1 } else { 0 }
     foreach ($name in @('git')) {
         if ($prereq.ContainsKey($name) -and $prereq[$name]) { Say "  $No $name (the steps that need it were not run)" Red; $failed++ }
     }
@@ -1168,6 +1655,23 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
     return 0
 }
 
+$script:NexusPackScript = $PSCommandPath
+if ($InstallMaintenance) {
+    if ($DryRun) { exit 0 }
+    Install-NexusMaintenance $PSCommandPath -Start
+    exit 0
+}
+if ($MaintenanceStatus) {
+    Get-NexusMaintenanceStatus | ConvertTo-Json -Depth 12
+    exit 0
+}
+if ($Maintain) {
+    if ($DryRun -or $Only.Count -or $Skip.Count -or $Catalog -ne 'pironjulien/NexusSystem') {
+        throw 'Maintenance uses installed products and local choices only; DryRun/Only/Skip/Catalog are installation options.'
+    }
+    $code = Invoke-NexusMaintenance -Current:$MaintenanceCurrent -Force:$ForceMaintenance
+    exit $code
+}
 $code = Invoke-NexusPack -Only $Only -Skip $Skip -DryRun $DryRun.IsPresent -NoGuide $NoGuide.IsPresent -Catalog $Catalog
 Send-Event @{ type = 'done'; code = $code }
 if ($PSCommandPath) {

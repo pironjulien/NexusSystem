@@ -7,6 +7,52 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Changed
+- Next Store app (1.0.13.0): request the installed public maintenance task and display dated published, installed,
+  observed and pending versions. First launch establishes the same maintenance task for existing product installs,
+  without reinstalling them. Publishing the catalog does not deploy this separate Store package.
+
+## [1.6.37] - 2026-10-30
+
+### Fixed
+- The logon trigger is limited to the current user, matching its limited principal. Standard users no longer
+  request an all-users trigger requiring administrator rights. Real registration and execution were verified.
+- The next Store app retries bootstrap after a partial installation: a copied script without its registered task
+  no longer counts as a completed setup.
+
+## [1.6.36] - 2026-10-30
+
+### Added
+- One public maintenance coordinator for installed NexusWindows and NexusBrowser engines and existing AI
+  integrations: verified published installers, a durable per-user task, mutual exclusion and retries for deferred
+  activation. Source checkouts and user-disabled or custom integrations remain outside automatic maintenance.
+- Separate published, installed and observed running versions, including pending activation when an existing AI
+  connection retains its previous runtime. A new qualification client never substitutes for a host connection.
+
+### Fixed
+- Existing Codex marketplace entries refresh in place when HTTPS, SSH and GitHub shorthand refer to the same Nexus
+  repository; custom sources remain untouched. Maintenance passes the current user credential to installer children
+  even when the launching AI predates installation, then restores its original process environment.
+- Existing Claude plugins are explicitly updated after their marketplace is refreshed. A refreshed listing or
+  enabled setting alone is no longer treated as proof of an updated installed plugin.
+- Deferred work remains pending and is retried instead of being reported as a completed update.
+
+### Changed
+- Windows and Browser catalog plugins follow native releases 3.9.5 and 2.33.5, whose update-only installers preserve
+  existing integrations while staging immutable runtime files. See UPDATES.md for activation and Store boundaries.
+
+## [1.6.35] - 2026-10-30
+
+### Fixed
+- Windows and Browser plugin guidance respects an explicit end-to-end instruction or approval already given for
+  the same exact operation. A new confirmation dialog or action token does not request the user's approval again;
+  materially changed content, recipients, product/version or publication mode still requires fresh approval.
+  Action-bound tokens, expiry, single-use checks and the boundary against instructions read in content are retained.
+
+### Changed
+- NexusWindows plugins follow native release 3.9.4 and NexusBrowser plugins follow release 2.33.4, refreshing their
+  installed guides. This targeted catalog release leaves the pending 1.6.34 and Windows app changes separate.
+
 ## [1.6.34] - 2026-10-30
 
 ### Fixed

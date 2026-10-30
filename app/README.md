@@ -62,10 +62,12 @@ The previous `NexusWindows.Antigravity.exe` MCP client is still recognized while
   NexusBrowser honor it. An AI app where the user turned a product off is left as it is.
 - **Declarations**: read for real (declared, missing, turned off by the user, invalid command) in Claude Code, Codex
   and Antigravity, the same way as the pack.
-- **Updates**: each product updates itself, outside the app. The app reads `~\.nexus\status\<name>.json` and asks
-  for an update only through the product's own interface: NexusRelay's daemon and NexusBrowser's bridge
-  (`POST /api/update`), NexusKeypad's pipe (`update`). The others update at their AI app's next start. From the
-  package, an installed product is never installed again.
+- **Updates**: the public NexusSystem maintenance task coordinates supported Windows and Browser updates outside
+  the app package, using verified official release installers. The app requests that task and reads its result;
+  it distinguishes published, installed and actually loaded versions. Existing AI sessions can remain on an older
+  engine until their normal reload. Older installations retain the product's own update interface where available
+  (Relay and Browser HTTP APIs, Keypad's pipe). See [Updates](../UPDATES.md); an absent update path is never shown
+  as a promise that the product will update itself.
 
 `store/` holds the listing (FR/EN), the privacy text and the certification notes. `probe/` measures what an installed
 MSIX and its child processes really write outside the package container (locally, NexusProbe markers only, erased
