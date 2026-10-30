@@ -48,5 +48,8 @@ if ($Full) {
     }
     if ($code) { exit $code }
 }
+# The NexusSystem app (app/): solution build with warnings as errors, then its tests.
+& (Join-Path $PSScriptRoot 'app\test.ps1')
+if ($LASTEXITCODE) { exit $LASTEXITCODE }
 Write-Host 'test.ps1: all checks passed'
 exit 0

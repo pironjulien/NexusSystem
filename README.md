@@ -1,11 +1,13 @@
 # NexusSystem
 
-The installer of the Nexus ecosystem, two ways for the same thing:
+The hub and installer of the Nexus ecosystem (every product is optional, à la carte):
 
-- **The NexusSystem app** from the [Microsoft Store](https://apps.microsoft.com/detail/9NSH2P3QLWT1): install, update
-  and follow every Nexus product with a window, an activity log and the emergency stop.
-- **This repository**: the one-line install below, and the plugin catalogs for Claude Code and Codex (catalog name
-  `nexus-plugins`, kept so that existing installs keep working). The app runs the same `get-nexus.ps1`.
+- **Ask your AI (recommended)**: paste one sentence into **Claude Code**, **Codex** or **Antigravity** and let it install, verify and guide you through the products you want:
+  ```text
+  Install Nexus for me by following https://raw.githubusercontent.com/pironjulien/NexusSystem/main/INSTALL-AI.md
+  ```
+- **The NexusSystem app** from the [Microsoft Store](https://apps.microsoft.com/detail/9NSH2P3QLWT1): tick the products you want à la carte, copy the tailored AI prompt or install in one click, follow each server's live state and 24-hour activity log, and use the emergency stop.
+- **This repository**: the one-line PowerShell install below, [`INSTALL-AI.md`](INSTALL-AI.md), and the plugin catalogs for Claude Code and Codex (catalog name `nexus-plugins`, kept so that existing installs keep working). The app and the AI guide run the same `get-nexus.ps1`. The app's own source (WinUI 3, .NET 10) is in [`app/`](app/README.md).
 
 This repository was called `nexus-plugins` until 28/10/2026; GitHub redirects the old address.
 
@@ -13,11 +15,21 @@ This repository was called `nexus-plugins` until 28/10/2026; GitHub redirects th
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/pironjulien/NexusSystem/badge)](https://scorecard.dev/viewer/?uri=github.com/pironjulien/NexusSystem)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/pironjulien/NexusSystem/blob/main/LICENSE)
 
-## Install everything
+## Install (by AI or PowerShell)
 
-The whole Nexus ecosystem, for every AI app on your PC (Claude Code, Claude Desktop, Codex, Antigravity), in one
-line. Windows 10 or 11, no administrator rights, nothing to install first. Open **PowerShell** (Start menu, type
-`PowerShell`) and paste:
+Pick only the products you want (`windows`, `browser`, `android`, `relay`, `keypad`, `agymail`) or install everything that fits your PC (Claude Code, Claude Desktop, Codex, Antigravity). Windows 10 or 11, no administrator rights, nothing to install first.
+
+### Option A — Tell your AI (Claude Code, Codex, Antigravity)
+
+Paste into your AI chat (adjust the product names if you only want specific ones):
+
+```text
+Install and set up NexusWindows and NexusBrowser for me by following https://raw.githubusercontent.com/pironjulien/NexusSystem/main/INSTALL-AI.md
+```
+
+### Option B — One line in PowerShell
+
+Open **PowerShell** (Start menu, type `PowerShell`) and paste:
 
 ```powershell
 irm https://raw.githubusercontent.com/pironjulien/NexusSystem/main/get-nexus.ps1 | iex

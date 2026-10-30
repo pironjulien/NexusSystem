@@ -1,0 +1,24 @@
+<Window x:Class="Nexus.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Window.SystemBackdrop>
+        <MicaBackdrop />
+    </Window.SystemBackdrop>
+    <Grid x:Name="Root">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="48" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <!-- Title bar drawn by the app (extended into the window, Windows 11 style). -->
+        <Grid x:Name="TitleBar" Padding="16,0,0,0">
+            <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                <Image x:Name="TitleIcon" Width="18" Height="18" />
+                <TextBlock Text="NexusSystem" Style="{StaticResource CaptionTextBlockStyle}" VerticalAlignment="Center" />
+            </StackPanel>
+        </Grid>
+        <NavigationView x:Name="Nav" Grid.Row="1" IsBackButtonVisible="Collapsed" IsSettingsVisible="False"
+                        PaneDisplayMode="Left" OpenPaneLength="232" SelectionChanged="OnNavigate">
+            <ContentControl x:Name="Body" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" />
+        </NavigationView>
+    </Grid>
+</Window>

@@ -1,9 +1,81 @@
 # Changelog
 
-All notable changes to this marketplace are documented here. The format follows
-[Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
+All notable changes to NexusSystem are documented here: the plugin catalogs and one-line install (versions `x.y.z`,
+tags `vx.y.z`) and the Windows app on the Microsoft Store (versions `app a.b.c.d`, tags `nexussystem-va.b.c.d`).
+The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
+[Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
+
+### Added
+- `INSTALL-AI.md`: structured installation and verification guide for AI coding agents (Claude Code, Codex, Antigravity), supporting à-la-carte product selection (`-Only ... -NoGuide`).
+- Updated `README.md` to put AI-driven installation first alongside the `NexusSystem` app and the one-line PowerShell installer.
+
+## [app 1.0.10.0] - 2026-10-30
+
+Prepared on 2026-10-30, sent to the Store once 1.0.9.0 is published.
+
+### Changed
+- Reads the common journal from `%USERPROFILE%\.nexus\journal`, where every Nexus product now writes it (AppData is
+  virtualized for MSIX apps); 1.0.9.0 still reads the old folder and would show no activity.
+
+## [app 1.0.9.0] - 2026-10-30
+
+Submitted to the Store on 2026-10-30 (submission 7, x64+ARM64 bundle; listing FR/EN updated: no Claude Desktop
+extension, simple states).
+
+### Changed
+- Plain words for everyone: each product page shows one line per AI ("Ready", "To install", "Turned off by you",
+  "Needs repair"), plus only what you can act on ("in use right now", "restart Codex for the latest version").
+  Versions read "up to date (version X)" or "update ready: X → Y" instead of "latest ?" and check dates; the
+  activity card is a one-sentence summary with the raw journal behind "Show details".
+- Nexus lives in Claude Code, Codex and Antigravity: the hub no longer offers or reports Claude Desktop extensions.
+- The Codex "Nexus Relay" project step is hidden once Relay's Codex workspace is chosen.
+
+### Fixed
+- The still-loaded legacy `NexusWindows.Antigravity.exe` MCP client and the observed Antigravity
+  `language_server.exe` host now appear as an older active connection instead of idle. Stop guards and mixed modes
+  remain excluded. Claude Desktop's Store/Electron host is distinguished from the native Code CLI by executable
+  metadata; Desktop configuration and a matching live client are both required to show its common connection active.
+- The Windows page displays the single shared C# core from its verified Schema 2 installation manifest, separately
+  from each AI's live connection. Older loaded clients remain visible, while qualification clients, stop guards,
+  UIA helpers and command-line tools never count as an active AI connection.
+- Once the common Windows core is installed, the hub no longer offers an older Claude-specific extension that
+  would create a second engine. Claude Desktop's own missing, disabled or different declaration is shown separately
+  and is never inferred from an enabled Claude Code plugin.
+- Local unpackaged deployment preserves the Store installation and previous local releases. It checks every copied
+  payload file and the physical executable/shortcut paths, and uses an unpackaged user worker when the invoking
+  terminal inherits an MSIX identity. Core tests run the freshly built executable instead of a recursive stale match.
+- NexusSystem recognizes the native Android, Browser, Relay, AGYmail and Windows MCP processes, while excluding
+  Chrome's one-shot authentication hosts and UIA helpers. Product pages refresh declarations and running servers
+  without blocking the interface, and check the actual Chrome connection separately.
+- Saved update metadata is dated and marked when older than the daily check interval. A saved version no longer
+  appears as a green service-health result, and a missing state is no longer silently treated as idle.
+- Unpackaged publishing includes the application's generated XAML resource index in its normal publish items;
+  the Windows App SDK otherwise omits it and the deployed executable crashes while loading its first window.
+- A closed Chrome is shown as idle separately from an unpaired extension; older bridges remain compatible.
+
+## [app 1.0.8.0] - 2026-10-29
+
+### Added
+- `Products.AiPrompt` and the **Copy prompt for my AI** primary action in `HomePage`: generates a tailored AI installation prompt for the exact products ticked by the user (`get-nexus.ps1 -Only ... -NoGuide` + `INSTALL-AI.md`).
+- Official AI logos (`ai-claude.png`, `ai-codex.png`, `ai-antigravity.png`) in the detected AI banner, on each product card's per-AI declaration pills, and on each product page's status lines.
+- Select all / Clear all quick actions and a 2-column à-la-carte product grid where every ready product remains selectable at any time.
+
+### Changed
+- Suppression du doublon Claude dans NexusSystem : alignement sur le trio souverain d'IA de code (Claude Code, Codex, Antigravity). L'entree distincte Claude Desktop est retiree de l'enumeration AiApp et de l'affichage du hub. La detection de Claude Code couvre la presence de Claude Desktop, son onglet Code (~/.claude), ses extensions .mcpb et ses configurations.
+### Fixed
+- Sandbox certification supplies WACK's required TAEF runtime and SDK reference metadata as read-only inputs and starts the kit in its own
+  directory. Missing TAEF is refused before launch instead of crashing appcert in ExecuteTAEFTaskInstance. WACK's
+  binary analyzer COM class is registered in the disposable guest only, and its XML overall result is read explicitly.
+  `-CertificationOnly` permits a separate certification run without repeating an already recorded native smoke;
+  unsigned inputs require explicit guest signing in that mode and are otherwise refused before deployment.
+  reports include the guest's application-control state. A native close now requires an available zero exit code,
+  and the host guard uses the current Sandbox inventory instead of treating a leftover RemoteSession client as an active guest.
+- The screenshot tool finds the app under the LocalAppData build root and selects the host's architecture instead
+  of the last ARM64 or x64 build. Codex and journal paths are explicitly confined to the demonstration profile.
+  Cleanup accepts only the default capture folder or a marked custom output, refuses roots and foreign content,
+  and removes only recognized generated PNG files instead of recursively deleting the output directory.
 
 ## [1.6.29] - 2026-10-28
 
@@ -71,6 +143,47 @@ All notable changes to this marketplace are documented here. The format follows
   its title, images up to 2000 px with lossless WebP, Tk wheel and covered-window capture fixes, guardrails that see
   through invisible characters and look-alike letters. Plugin, lock and marketplace entry.
 
+## [app 1.0.7.0] - 2026-10-28
+
+### Changed
+- The embedded installer gives Codex each Nexus plugin and its bundled guide before installing the product runtime.
+  Existing disabled plugins and custom server settings are preserved; an installation is reported as complete only
+  after the plugin and its guide have been verified. The public product guides include the distinction between real
+  questions and ordinary progress updates.
+- Store packaging discovers the installed Visual Studio symbol tool and includes the x64 and ARM64 public-symbol
+  packages in the upload, so Partner Center can resolve crash reports. Missing symbol tooling is an explicit error.
+- `tools/sandbox.ps1` verifies an exact MSIX hash and version in a fresh Windows Sandbox, with native activation,
+  product UI Automation, a screenshot and optional WACK. Inputs stay read-only and reports live in LocalAppData.
+  Activation failures include Windows event logs; unsigned builds rejected by Smart App Control remain failures.
+
+### Fixed
+- Certification (`tools/wack.ps1`) refuses an MSIX identity already installed on the profile before starting WACK.
+  Package mode leaves deployment cleanup to WACK; registered-layout mode removes only its own exact registration,
+  preserving a later replacement. Reports default to LocalAppData. Eight isolated ownership scenarios run with the
+  app checks, without using WACK or changing the user's installed packages.
+- The throwaway-profile runner finds the app under the configured LocalAppData build root.
+
+## [app 1.0.6.0] - 2026-10-28
+
+Package built for the Store on 2026-10-28 (x64+ARM64 bundle).
+
+### Changed
+- NexusSystem and the plugin catalog are one product: the public repository `pironjulien/nexus-plugins` is now
+  `pironjulien/NexusSystem` (GitHub redirects the old address), and the catalog source lives in this repository
+  (`catalog/`). The embedded pack (`pack/get-nexus.ps1`, catalog 1.6.26) adds the catalog from the new address (its
+  name stays `nexus-plugins`) and gives Claude Code the `nexus-relay` plugin, the relay's daemon still coming from its
+  installer. Store listing and privacy links point to the new repository.
+
+### Fixed
+- Error log (`app.log`): one line per start, so an empty log means "no error" and not "the log does not work"; crashes
+  outside the UI thread and background tasks nobody awaited are written too; capped at about 1.6 MB (the old file
+  becomes `app.log.1`). Written by `Nexus.Core.ErrorLog` (tested). Installed from the MSIX package, Windows keeps it
+  in `%LOCALAPPDATA%\Packages\<package>\LocalCache\Local\NexusSystem\app.log`.
+- Product page: a product running a newer version than its last daily check (NexusWindows for Antigravity 3.3.0
+  with a check saying 3.2.8) was shown with a red cross and that older number as the latest. Only a newer published
+  version now counts as an update (`ProductState.CompareVersions`, numeric x.y.z), and the running version is shown
+  as the latest known.
+
 ## [1.6.22] - 2026-10-27
 
 ### Changed
@@ -90,6 +203,48 @@ All notable changes to this marketplace are documented here. The format follows
 ### Changed
 - Plugin icons of `nexus-android`, `nexus-browser` and `nexus-windows`: the Nexus family medallion (512 px) replaces
   the bare pictogram, as on julienpiron.fr and the other stores.
+
+## [app 1.0.5.0] - 2026-10-27
+
+Sent to the Store on 2026-10-27 (submission 4, x64+ARM64 bundle, Windows App Certification Kit PASS with the same 3 optional failures as 1.0.4.0; published automatically once certified).
+
+### Added
+- Store package for x64 and ARM64: `tools/package.ps1 -Store` builds both `.msix` and bundles them
+  (`NexusSystem_<version>_x64_arm64_bundle.msixupload`, makeappx from the Windows SDK build tools); `-Platforms`
+  picks one. The test package stays x64 by default.
+- Dependabot version updates, weekly (NuGet and GitHub Actions), grouped; no workflow runs on them.
+- Git tags `v1.0.2.0`, `v1.0.3.0` and `v1.0.4.0` on the commits that made those Store versions.
+- `test.ps1`: builds the solution (warnings as errors) and runs the Nexus.Core tests, results outside OneDrive
+  (`%LOCALAPPDATA%\NexusApps\TestResults`); the workstation sync expects one in every project.
+
+### Changed
+- One version for everything: `<Version>` in `Directory.Build.props` (1.0.5.0) gives the assemblies,
+  `NexusSystem.exe`'s file version (it said 0.1.0) and, through `tools/package.ps1`, the package manifest;
+  `-Version` overrides it for one build.
+- The `probe` workflow is turned off on GitHub: its runs never started (the account's Actions billing is blocked).
+- Build output (`bin`, `obj`) goes to `%LOCALAPPDATA%\NexusApps\build\<project>` (`Directory.Build.props`), outside
+  OneDrive: about 1.5 GB no longer counts against the 5 GB quota nor syncs on every build. The pack test finds the
+  catalog from its source file instead of the build folder.
+
+### Fixed
+- The NexusBrowser pairing code copied by "Show a code" stays out of the clipboard history (Win+V), the cloud
+  clipboard and clipboard monitors (`CanIncludeInClipboardHistory` and `CanUploadToCloudClipboard` at 0,
+  `ExcludeClipboardContentFromMonitorProcessing`).
+- Release build without any warning: the 7 xUnit analyzer warnings of the tests (test cancellation token,
+  `Assert.Contains`).
+
+## [app 1.0.4.0] - 2026-10-27
+
+### Changed
+- Small icons are the julienpiron.fr medallion cut round (kit `-round`, transparent corners), never the pictogram
+  alone (Julien, 27/10): navigation, title bar, `Square44x44Logo`, `nexus.ico` up to 40 px, NexusSystem included.
+  New `Square44x44Logo.targetsize-16/24/32/48` (plated and unplated) so the taskbar, Start and Alt+Tab take a size
+  drawn for them instead of scaling the 44 px one. In the app the small icons are 96 px PNG (`nexus<product>-round.png`):
+  WinUI's `SvgImageSource` does not draw the image embedded in the kit's SVG (it showed a dark disc only).
+- Package logos at every display scale (`scale-100`, 125, 150, 200, 400) for `Square150x150Logo`, `Wide310x150Logo`,
+  `StoreLogo` and `Square44x44Logo`, and `Square44x44Logo` at every target size (16 to 256 px, plated, unplated and
+  light-unplated), all from the round medallion: Windows never enlarges a tile or mixes shapes on the taskbar.
+  Windows App Certification Kit: PASS.
 
 ## [1.6.19] - 2026-10-26
 
@@ -236,6 +391,92 @@ All notable changes to this marketplace are documented here. The format follows
 - NexusKeypad counts as installed from the state its plugin writes (`~\.nexus\status\keypad.json`), else from any of
   its editions in Logi's plugin folder: NexusKeypad (complete edition), TrinitePad (Marketplace "AI Coding Agents",
   or a build from the sources), AiAgentsPc and PcDashboard. Only the complete edition was recognized before.
+
+## [app 1.0.3.0] - 2026-10-26
+
+### Changed
+- New icons of the Nexus family kit (`NexusPublish/communication/icones`, as on julienpiron.fr): NexusSystem is the
+  cyan chip with the π in the site's medallion; from 44 px the mark (cards, page headers, Store tiles, `nexus.ico`
+  from 48 px), under 44 px the icon alone (navigation, title bar, Square44x44, `nexus.ico` up to 40 px).
+  `tools/icon_from_site.py` builds them from the kit.
+
+### Fixed
+- Install on a new Windows without Git: the pack 1.6.19 installs Git through winget before Claude Code adds the
+  Nexus catalog (it clones it with git); without winget it says where to get Git. The results table shows each
+  product's real state: NexusAndroid and NexusBrowser declared by their own installer count as installed, no more
+  false "failed". The app reads Claude Code's declarations the same way (`~\.claude.json` when the plugin is missing).
+- "Open Chrome on its extensions" never does nothing: without Chrome it says so and offers "Install Chrome" (its
+  official page); NexusBrowser not installed yet, or Chrome failing to open, is said too. "Pair Chrome" says Chrome
+  is missing instead of asking to open it.
+- Checked in Windows Sandbox (no .NET, no Git, no Chrome, Claude Code only): Git installed, the three plugins installed
+  and connected, every cell ok, the Chrome button answers. Windows App Certification Kit PASS.
+
+## [app 1.0.2.0] - 2026-10-26
+
+### Fixed
+- The app now starts on PCs without the .NET runtime: .NET 10 is in the package (`SelfContained`, ReadyToRun, no
+  trimming), next to the Windows App SDK already there. 1.0.1.0 stopped on a new Windows with "You must install .NET
+  Desktop Runtime" (seen in Windows Sandbox). Nothing else is needed: no VC++ runtime either.
+
+### Added
+- Capture mode: `--size WxH` (pictures at 1920 x 1080 for videos) and `--frames` (the home page with products unticked, ticked again, then the screen while the pack runs); `tools/capture.ps1 -Size -Frames`.
+- NexusRelay without Claude Code (NexusRelay 1.4.0): it needs two of Claude Code, Codex and Antigravity; the Codex project step only when Codex answers. Pack 1.6.14.
+- Antigravity: a product turned off there (`plugins.<name>.enabled = false`) shows as turned off by you, kept. Test of NexusBrowser's update request against a stand-in bridge. Store package 1.0.1.0 built with the pack 1.6.12, built against Windows 11 24H2 (MaxVersionTested 10.0.26100, minimum still Windows 10 2004), Windows App Certification Kit PASS. README: how the hub works from the Store package.
+- Declarations read for real, as the pack does: declared, missing, turned off by the user (kept, shown as such) or invalid (command not found). Results table: "off, kept", "not run" (beyond the selection) and "invalid" from the pack's cell state.
+- Version card on each product page: what the product itself reports in `~\.nexus\status\<name>.json` (installed,
+  latest, state, message; one line per NexusWindows edition). "Update" only where the product takes the request
+  through its own interface: NexusRelay's daemon (`POST /api/update`, 1.3.1), NexusBrowser's bridge (the same, 2.26.0) and NexusKeypad's complete edition (its
+  pipe, command `update`, the only one ever sent). The others update themselves at their AI app's next start. From
+  the Store package, a product already installed is not installed again (it updates itself), and the home button
+  never turns into "Update". 33 tests.
+
+### Changed
+- The hub is named NexusSystem (one word, like the products): window title, menu, home, manifest DisplayName,
+  executable `NexusSystem.exe`, log in `%LOCALAPPDATA%\NexusSystem`, test identity `NexusSystemTest`, Store listing
+  and privacy text (julienpiron.fr/nexussystem/confidentialite/). "The Nexus products" stays the family's name. The
+  logo stays Julien Piron's π.
+- NexusKeypad counts as installed from the state its plugin writes (`~\.nexus\status\keypad.json`), else from any of
+  its editions in Logi's plugin folder (NexusKeypad, TrinitePad, AiAgentsPc, PcDashboard), not only the complete one.
+
+### Added
+- Store package: `tools/package.ps1` builds the MSIX (test identity, unsigned, for developer mode) or, with `-Store`,
+  the `.msixupload` with the identity Partner Center gives. Manifest with `runFullTrust` only, no
+  `unvirtualizedResources` (measured useless by the probe). Draft listing in French and English
+  (`store/listing.md`), privacy text for julienpiron.fr/nexus/confidentialite/ (`store/privacy.md`), captures at
+  1366 px for the Store's desktop screenshots.
+- Claude Desktop through its `.mcpb` extensions (NexusWindows, NexusAndroid, NexusBrowser): a step that downloads the
+  latest release's extension into `~\.nexus\claude-desktop` and shows it in File Explorer, to drop on Claude Desktop,
+  and "Open Claude". An extension installed in Claude Desktop counts as declared. From the Store package, the pack
+  skips Claude Desktop (an edit of its existing configuration would stay in the package) and only the extension
+  counts.
+- NexusBrowser pairing without the native host (NexusBrowser 2.25.0): the bridge's state read natively, "Pair Chrome"
+  opens the extension's pairing page in the running Chrome, "Show a code" copies a single-use code for the popup; an
+  older bridge gets the guided fallback (the official PowerShell line, run by the user). 21 tests.
+- Hub, milestone 2: NexusBrowser, NexusKeypad, NexusRelay and NexusAGYmail installed from the app (the pack's own
+  script, `-Only`). Each product says for which AI apps it installs here, or why it does not fit (needs Claude Code,
+  Antigravity only, needs Logi Options+), as get-nexus.ps1 does. Product pages show the status of the AI apps it
+  serves (NexusRelay's shared daemon, the keypad's plugin) and its steps left to the user, with a button where the app
+  can do the next click: Chrome opened on its extensions by NexusBrowser's own guide, the relay's Codex folder copied.
+  Results table with `-` for the AI apps a product does not serve and a Logi Options+ column for the keypad.
+- `Nexus.Core`: AI apps found the way get-nexus.ps1 finds them (Claude Desktop from the Store in
+  `%LOCALAPPDATA%\Claude-Data`, folders it left ignored), declarations read in each app's own configuration, the
+  common journal (`%LOCALAPPDATA%\NexusJournal`), the common emergency stop (`~\.nexus\stop`), running servers and the
+  AI app that started them, and the one-line install's own script embedded and run with `-Json` (`pack/`, checked
+  byte for byte against the catalog). 12 tests.
+- `Nexus` hub (WinUI 3, Windows App SDK 2.5.1, Mica, Fluent, light and dark, French and English from Windows'
+  language): home with the AI apps found, product cards in the colors and logos of julienpiron.fr, one Install button
+  in a bar that stays in sight, live steps, ✓ / ✗ per product and AI app, phone guide, details; product pages for
+  NexusWindows and NexusAndroid (status per AI app, server running, 24 h of activity, safeguards, emergency stop); the
+  other products shown with how they come (later in the app, Logitech Marketplace, coming soon). Unpackaged for now.
+- The hub's logo is Julien Piron's π medal from julienpiron.fr (`Assets/julienpiron-logo.png`), reduced, never
+  redrawn, into `Assets/nexus.ico` by `tools/icon_from_site.py`; every product shows the icon and color it has on the
+  site (NexusRelay and NexusAGYmail included).
+- `tools/capture.ps1`: pictures of every page, FR/EN, light/dark, on a made-up profile (`tools/demo_profile.py`),
+  the window shown away from the desktop without activation, foreground checked unchanged.
+- `--quiet`: the window never takes the foreground, for tests driven in the background; `tools/run-on-profile.ps1`
+  starts it on a throwaway profile and refuses the real user profile without `-AllowRealProfile`.
+- `probe/`: MSIX container probe and its CI job (writes from the packaged process, a normal child, a child started
+  with the desktop app breakaway policy; read back from outside the package).
 
 ## [1.6.2] - 2026-10-25
 

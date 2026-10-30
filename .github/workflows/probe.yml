@@ -1,0 +1,24 @@
+name: probe
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['app/probe/**', '.github/workflows/probe.yml']
+permissions:
+  contents: read
+jobs:
+  msix-container:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: MSIX probe (what a packaged app and its children really write)
+        shell: powershell
+        run: ./app/probe/run-probe.ps1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: probe-results
+          path: app/probe/dist/probe-results.json

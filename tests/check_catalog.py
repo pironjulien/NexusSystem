@@ -208,6 +208,9 @@ for entry in codex_entries:
 for path in ROOT.rglob("*"):
     if not path.is_file() or ".git" in path.parts or path.suffix not in {".json", ".md", ".toml"}:
         continue
+    # What agents read is the catalog; app/ is the NexusSystem app's source, dist/ and TestResults/ local outputs.
+    if path.relative_to(ROOT).parts[0] in {"app", "dist", "TestResults"}:
+        continue
     if path.name == "CHANGELOG.md":
         continue
     text = path.read_text(encoding="utf-8")
