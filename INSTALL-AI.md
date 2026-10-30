@@ -23,24 +23,42 @@ Never assume the user wants every product if they only need one or two. The avai
 
 ## 2. Run the official installer
 
-Run the official PowerShell pack script (`get-nexus.ps1`). It requires no administrator rights, detects the AI apps installed on the PC, installs missing prerequisites (`uv`, and `Git` or `Node.js` when a selected target needs them), and runs each selected product's official installer.
+**Never run downloaded code in memory** (a download piped into PowerShell, or a script block or encoded command built from it): Microsoft
+Defender rightly blocks it as a malware loader. Always download the pack script as a **file** of the latest
+NexusSystem release, check it, then run it with `-File`. It requires no administrator rights, detects the AI apps
+installed on the PC, installs missing prerequisites (`uv` for the products still served from PyPI, `Git` or `Node.js`
+when a selected target needs them), and runs each selected product's official installer the same way (the `get.ps1`
+file of its release, checked against its `SHA256SUMS.txt`, run with `-File`).
+
+If the user prefers an app: the NexusSystem app of the Microsoft Store does all this
+(`winget install --id 9NSH2P3QLWT1 --source msstore`).
+
+### Download and check (once)
+
+```powershell
+$dir = Join-Path $env:TEMP 'nexus-pack'; New-Item -ItemType Directory -Force $dir | Out-Null; Set-Location $dir
+$r = 'https://github.com/pironjulien/NexusSystem/releases/latest/download'
+Invoke-WebRequest "$r/get-nexus.ps1" -OutFile get-nexus.ps1
+Invoke-WebRequest "$r/SHA256SUMS.txt" -OutFile SHA256SUMS.txt
+$expected = (Select-String -Path SHA256SUMS.txt -Pattern '^([0-9a-f]{64})\s+get-nexus\.ps1$').Matches[0].Groups[1].Value
+if ((Get-FileHash get-nexus.ps1 -Algorithm SHA256).Hash -ne $expected) { throw 'get-nexus.ps1 does not match SHA256SUMS.txt' }
+```
 
 ### Selected products (recommended)
 
 Replace `windows,browser` with the comma-separated keys chosen by the user:
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "& ([scriptblock]::Create((irm https://raw.githubusercontent.com/pironjulien/NexusSystem/main/get-nexus.ps1))) -Only windows,browser -NoGuide"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\get-nexus.ps1 -Only windows,browser -NoGuide
 ```
 
 ### All products that fit this PC
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "& ([scriptblock]::Create((irm https://raw.githubusercontent.com/pironjulien/NexusSystem/main/get-nexus.ps1))) -NoGuide"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\get-nexus.ps1 -NoGuide
 ```
 
 *(Why `-NoGuide` when run by an AI agent: without `-NoGuide`, the NexusBrowser installer waits up to 5 minutes in the terminal for the user to load the Chrome extension manually. With `-NoGuide`, the command finishes immediately so you can read the summary and guide the user yourself.)*
-
 ---
 
 ## 3. Check the output and guide the user through the final manual step

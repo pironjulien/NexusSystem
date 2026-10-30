@@ -95,11 +95,11 @@ public static class Products
         var keys = string.Join(",", ordered.Select(p => p.Key));
         var names = string.Join(", ", ordered.Select(p => p.Name));
         const string guide = "https://raw.githubusercontent.com/pironjulien/NexusSystem/main/INSTALL-AI.md";
-        const string pack = "https://raw.githubusercontent.com/pironjulien/NexusSystem/main/get-nexus.ps1";
-        var command = $"& ([scriptblock]::Create((irm {pack}))) -Only {keys} -NoGuide";
+        // The pack script as a checked file of the latest release, run with -File (never downloaded code in memory).
+        var command = $"powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\get-nexus.ps1 -Only {keys} -NoGuide";
         return french
-            ? $"Installe et configure pour moi {names} en suivant {guide} avec la commande : {command}"
-            : $"Install and set up {names} for me by following {guide} with: {command}";
+            ? $"Installe et configure pour moi {names} en suivant {guide} : télécharge get-nexus.ps1 en fichier depuis la dernière release, vérifie son empreinte, puis lance : {command}"
+            : $"Install and set up {names} for me by following {guide}: download get-nexus.ps1 as a file from the latest release, check its SHA-256, then run: {command}";
     }
 }
 

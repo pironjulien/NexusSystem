@@ -232,13 +232,24 @@ public class InstallTests
     static async Task<(JsonNode Init, JsonNode Tools)> OverStdio(JsonObject server)
     {
         var command = Expand((string?)server["command"] ?? throw new InvalidDataException("neither url nor command"));
-        var start = new ProcessStartInfo(command)
+        // A bare name (npx, uvx) is found the way the AI app finds it: PATH and PATHEXT; a .cmd goes through cmd.exe.
+        if (!Path.IsPathRooted(command) && !command.Contains('\\', StringComparison.Ordinal) && !command.Contains('/', StringComparison.Ordinal))
+        {
+            var found = (Environment.GetEnvironmentVariable("PATH") ?? "").Split(';', StringSplitOptions.RemoveEmptyEntries)
+                .SelectMany(dir => (Path.HasExtension(command) ? [""] : (Environment.GetEnvironmentVariable("PATHEXT") ?? ".EXE;.CMD;.BAT").Split(';'))
+                    .Select(ext => Path.Combine(dir, command + ext.ToLowerInvariant())))
+                .FirstOrDefault(File.Exists);
+            if (found is not null) command = found;
+        }
+        var viaCmd = command.EndsWith(".cmd", StringComparison.OrdinalIgnoreCase) || command.EndsWith(".bat", StringComparison.OrdinalIgnoreCase);
+        var start = new ProcessStartInfo(viaCmd ? Path.Combine(Environment.SystemDirectory, "cmd.exe") : command)
         {
             RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true,
             UseShellExecute = false, CreateNoWindow = true, StandardOutputEncoding = Encoding.UTF8,
         };
         if ((string?)server["cwd"] is { } cwd) start.WorkingDirectory = Expand(cwd);
         // Arguments as the AI app passes them: cmd.exe (Codex's launcher) expands %VAR% itself.
+        if (viaCmd) foreach (var arg in new[] { "/d", "/c", command }) start.ArgumentList.Add(arg);
         foreach (var arg in server["args"]?.AsArray() ?? []) start.ArgumentList.Add(command.EndsWith("cmd.exe", StringComparison.OrdinalIgnoreCase) ? (string)arg! : Expand((string)arg!));
         foreach (var (key, value) in server["env"]?.AsObject() ?? []) start.Environment[key] = Expand((string?)value ?? "");
         using var process = Process.Start(start) ?? throw new InvalidOperationException($"{command} did not start");

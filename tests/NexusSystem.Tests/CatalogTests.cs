@@ -263,6 +263,24 @@ public class CatalogTests
     }
 
     [Fact]
+    public void NoDownloadedCodeRunsInMemory()
+    {
+        // Microsoft Defender rightly flags downloaded code run in memory (Trojan:Win32/Commando.A!ml): installers are
+        // always files of a release, checked, then run with -File. Nowhere: irm | iex, Invoke-Expression on a download,
+        // [scriptblock]::Create of a download, -EncodedCommand.
+        var forbidden = new Regex(@"\birm\b|\biwr\b[^\n]*\|\s*iex|\|\s*iex\b|Invoke-Expression|scriptblock\]::Create\(\(\s*(?:irm|iwr|Invoke-RestMethod|Invoke-WebRequest)|-EncodedCommand",
+            RegexOptions.IgnoreCase);
+        var found = Repository.TrackedFiles()
+            .Where(f => f != "CHANGELOG.md" && !f.StartsWith("tests/NexusSystem.Tests/", StringComparison.Ordinal) &&
+                Path.GetExtension(f) is ".ps1" or ".md" or ".cs" or ".yml" or ".json")
+            .SelectMany(f => Repository.Text(f).Split('\n').Select((line, i) => (f, i, line)))
+            .Where(x => forbidden.IsMatch(x.line) && !x.line.Contains("Assert.DoesNotContain", StringComparison.Ordinal))
+            .Select(x => $"{x.f}:{x.i + 1}: {x.line.Trim()}")
+            .ToList();
+        Assert.True(found.Count == 0, "Downloaded code run in memory:\n" + string.Join("\n", found));
+    }
+
+    [Fact]
     public void CatalogNamesNoLocalPathTokenOrPerson()
     {
         var problems = new List<string>();

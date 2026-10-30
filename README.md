@@ -2,24 +2,31 @@
 
 The hub and installer of the Nexus ecosystem (every product is optional, à la carte):
 
-- **Ask your AI (recommended)**: paste one sentence into **Claude Code**, **Codex** or **Antigravity** and let it install, verify and guide you through the products you want:
+- **The NexusSystem app (recommended)** from the [Microsoft Store](https://apps.microsoft.com/detail/9NSH2P3QLWT1)
+  (or `winget install --id 9NSH2P3QLWT1 --source msstore`): tick the products you want à la carte, install them in one
+  click, follow each server's live state and 24-hour activity log, and use the emergency stop.
+- **Ask your AI**: paste one sentence into **Claude Code**, **Codex** or **Antigravity** and let it install, verify and
+  guide you through the products you want:
   ```text
   Install Nexus for me by following https://raw.githubusercontent.com/pironjulien/NexusSystem/main/INSTALL-AI.md
   ```
-- **The NexusSystem app** from the [Microsoft Store](https://apps.microsoft.com/detail/9NSH2P3QLWT1): tick the products you want à la carte, copy the tailored AI prompt or install in one click, follow each server's live state and 24-hour activity log, and use the emergency stop.
-- **This repository**: the one-line PowerShell install below, [`INSTALL-AI.md`](INSTALL-AI.md), and the plugin catalogs for Claude Code and Codex (catalog name `nexus-plugins`, kept so that existing installs keep working). The app and the AI guide run the same `get-nexus.ps1`. The app's own source (WinUI 3, .NET 10) is in [`app/`](app/README.md).
-
+- **This repository**: the pack script `get-nexus.ps1` (a file of each release, checked, then run), [`INSTALL-AI.md`](INSTALL-AI.md), and the plugin catalogs for Claude Code and Codex (catalog name `nexus-plugins`, kept so that existing installs keep working). The app and the AI guide run the same `get-nexus.ps1`. The app's own source (WinUI 3, .NET 10) is in [`app/`](app/README.md).
 This repository was called `nexus-plugins` until 28/10/2026; GitHub redirects the old address.
 
 [![test](https://github.com/pironjulien/NexusSystem/actions/workflows/test.yml/badge.svg)](https://github.com/pironjulien/NexusSystem/actions/workflows/test.yml)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/pironjulien/NexusSystem/badge)](https://scorecard.dev/viewer/?uri=github.com/pironjulien/NexusSystem)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/pironjulien/NexusSystem/blob/main/LICENSE)
 
-## Install (by AI or PowerShell)
+## Install
 
 Pick only the products you want (`windows`, `browser`, `android`, `relay`, `keypad`, `agymail`) or install everything that fits your PC (Claude Code, Claude Desktop, Codex, Antigravity). Windows 10 or 11, no administrator rights, nothing to install first.
 
-### Option A — Tell your AI (Claude Code, Codex, Antigravity)
+### Option A — The NexusSystem app
+
+Install [NexusSystem from the Microsoft Store](https://apps.microsoft.com/detail/9NSH2P3QLWT1), or in PowerShell
+`winget install --id 9NSH2P3QLWT1 --source msstore`, open it, tick the products and click Install.
+
+### Option B — Tell your AI (Claude Code, Codex, Antigravity)
 
 Paste into your AI chat (adjust the product names if you only want specific ones):
 
@@ -27,23 +34,26 @@ Paste into your AI chat (adjust the product names if you only want specific ones
 Install and set up NexusWindows and NexusBrowser for me by following https://raw.githubusercontent.com/pironjulien/NexusSystem/main/INSTALL-AI.md
 ```
 
-### Option B — One line in PowerShell
+### Option C — The pack script, by hand
 
-Open **PowerShell** (Start menu, type `PowerShell`) and paste:
+Download the script as a file from the latest release, check it, then run it (never pipe downloaded code into
+PowerShell: antivirus heuristics rightly flag that). In **PowerShell**, in a folder of your choice:
 
 ```powershell
-irm https://raw.githubusercontent.com/pironjulien/NexusSystem/main/get-nexus.ps1 | iex
+$r = 'https://github.com/pironjulien/NexusSystem/releases/latest/download'
+Invoke-WebRequest "$r/get-nexus.ps1" -OutFile get-nexus.ps1
+Invoke-WebRequest "$r/SHA256SUMS.txt" -OutFile SHA256SUMS.txt
+(Get-FileHash get-nexus.ps1 -Algorithm SHA256).Hash   # must match the get-nexus.ps1 line of SHA256SUMS.txt
+gh attestation verify get-nexus.ps1 --repo pironjulien/NexusSystem   # optional: proof it was built here
+powershell -NoProfile -ExecutionPolicy Bypass -File .\get-nexus.ps1
 ```
 
-Rather not paste a command? Download
-[`get-nexus.ps1`](https://github.com/pironjulien/NexusSystem/releases/latest/download/get-nexus.ps1) from the latest
-release (its SHA-256 is in `SHA256SUMS.txt`, its origin can be checked with
-`gh attestation verify get-nexus.ps1 --repo pironjulien/NexusSystem`), then right click it > **Run with PowerShell**
-(on Windows 11: **Show more options** first). Windows asks whether to run a script from the internet: answer **R**
-(Run once). The window stays open at the end until you press Enter.
-
-It shows which AI apps it found and what it will install for each, installs [uv](https://docs.astral.sh/uv/) (and
-Git when a Claude Code or Codex plugin needs it, Node.js LTS when Codex is there; Windows asks once), then runs each product's own official installer:
+Or right click the downloaded `get-nexus.ps1` > **Run with PowerShell** (on Windows 11: **Show more options** first);
+the window stays open at the end until you press Enter.
+It shows which AI apps it found and what it will install for each, installs [uv](https://docs.astral.sh/uv/) when a
+product still served from PyPI needs it (and Git when a Claude Code or Codex plugin needs it, Node.js LTS when Codex is
+there; Windows asks once), then runs each product's own official installer: the `get.ps1` file of its latest release,
+checked against that release's `SHA256SUMS.txt`, run with `-File`:
 
 | Product | Claude Code | Claude Desktop | Codex | Antigravity |
 | --- | --- | --- | --- | --- |
@@ -59,17 +69,17 @@ when Logi Options+ is there (also on the Logitech Marketplace, in review).
 It ends with a ✓ / ✗ summary per product and per AI app, then the steps only you can do: load the NexusBrowser
 extension in Chrome (the installer opens the page and tells you what to click), turn on USB debugging on your phone,
 add the relay's project in Codex once, connect your own Google account to NexusAGYmail, place the keypad's keys, and
-restart your AI apps. A product that does not fit this PC (no Antigravity, no Logi Options+…) is shown, with why. Run the same line again to update or repair: every installer only does what is missing.
+restart your AI apps. A product that does not fit this PC (no Antigravity, no Logi Options+…) is shown, with why. Run it again to update or repair: every installer only does what is missing.
 
 Options: `-Only` and `-Skip` take product names (`windows`, `android`, `browser`, `relay`, `agymail`, `keypad`) or AI app names (`claude-code`,
-`claude-desktop`, `codex`, `antigravity`); `-DryRun` shows the plan and installs nothing. NexusAndroid and NexusBrowser
-have one installer for every AI app: when they run, they declare themselves to each app they find. For example:
+`claude-desktop`, `codex`, `antigravity`); `-DryRun` shows the plan and installs nothing. Each product has one installer for
+every AI app: when it runs, it declares itself to each app it is told. For example:
 
 ```powershell
-& ([scriptblock]::Create((irm https://raw.githubusercontent.com/pironjulien/NexusSystem/main/get-nexus.ps1))) -Only windows,browser
+powershell -NoProfile -ExecutionPolicy Bypass -File .\get-nexus.ps1 -Only windows,browser
 ```
 
-Each product also installs alone: see its README.
+Each product also installs alone, the same way (the `get.ps1` file of its release): see its README.
 
 ## The plugins, one by one
 
@@ -93,8 +103,7 @@ local native daemon (token read from the user variable `NEXUS_MCP_TOKEN`), and W
    winget install --id=astral-sh.uv -e
    ```
 
-   Without winget, use uv's own installer:
-   `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"`. Claude Code adds a
+   Without winget, take uv's official release binaries from https://github.com/astral-sh/uv/releases. Claude Code adds a
    marketplace with Git: on a PC without it, `winget install --id Git.Git -e` first. Then restart Claude Code.
 2. In Claude Code, add the marketplace and install the plugins you want:
 
@@ -146,13 +155,13 @@ More examples, and how to test each plugin without your own phone or data, are i
 Per-plugin requirements:
 
 - **nexus-android**: USB debugging on the phone and the PC's key accepted (`adb` is downloaded if missing;
-  NexusAndroid's `get.ps1`, `irm https://raw.githubusercontent.com/pironjulien/NexusAndroid/main/get.ps1 | iex`, installs
-  the daemon and guides the first connection).
+  the NexusSystem app, or the `get.ps1` file of NexusAndroid's latest release run with `-File`, installs the daemon
+  and guides the first connection: [its Install section](https://github.com/pironjulien/NexusAndroid#install)).
 - **nexus-windows**: Windows 10 or 11.
-- **nexus-browser**: the **NexusBrowser Chrome extension and local bridge**, installed once with one PowerShell
-  command, `irm https://raw.githubusercontent.com/pironjulien/NexusBrowser/main/get.ps1 | iex`
+- **nexus-browser**: the **NexusBrowser Chrome extension and local bridge**, installed once by the NexusSystem app or
+  the `get.ps1` file of NexusBrowser's latest release run with `-File`
   ([details](https://github.com/pironjulien/NexusBrowser#install); Windows, Chrome 116+). Without them the server
-  starts but every call answers with an error giving that command.
+  starts but every call answers with an error saying how to install them.
 
 ## How it works
 

@@ -6,16 +6,10 @@ its own tabs; secrets are masked by the extension and the bridge.
 
 ## Requires a one-time install
 This plugin only adds the MCP server and its skill. The **NexusBrowser Chrome extension and local bridge** must be
-installed once (Windows 10/11, Chrome 116+), in PowerShell:
-
-```powershell
-irm https://raw.githubusercontent.com/pironjulien/NexusBrowser/main/get.ps1 | iex
-```
-
-then load the extension in `chrome://extensions` as the installer shows (details:
+installed once (Windows 10/11, Chrome 116+), by the NexusSystem app of the Microsoft Store, or by the `get.ps1` file of NexusBrowser's latest release, checked and run with `-File`, then load the extension in `chrome://extensions` as the installer shows (details:
 https://github.com/pironjulien/NexusBrowser#install). With this plugin enabled, the installer adds no second
 server for Claude Code (run before the plugin, running it again removes its own entry). Without the bridge and the
-extension, the server starts but every call answers with an error giving that command.
+extension, the server starts but every call answers with an error saying how to install them.
 
 ## What it runs
 The plugin starts the open-source MCP server [`nexus-browser`](https://pypi.org/project/nexus-browser/) 2.32.0 from

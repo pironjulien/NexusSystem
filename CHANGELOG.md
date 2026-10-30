@@ -7,6 +7,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Changed
+- Install documentation follows the file-based method of release 1.6.31: the NexusSystem app of the Microsoft Store
+  first (`winget install --id 9NSH2P3QLWT1 --source msstore`), then the `get-nexus.ps1` file of the latest release,
+  checked against its `SHA256SUMS.txt` and run with `-File` (README, `INSTALL-AI.md`, plugin READMEs and skills).
+- App: the AI prompt asks for the pack script as a checked file run with `-File`; the NexusBrowser pairing fallback
+  and the Gmail sign-in step point to the products' install pages instead of an in-memory command.
+- Tests: no file may run downloaded code in memory; the post-install check finds `npx`-style commands through PATH.
+
 ## [1.6.31] - 2026-10-30
 
 A product moves to its native form only once its native release and `get.ps1` are published: what is installed is

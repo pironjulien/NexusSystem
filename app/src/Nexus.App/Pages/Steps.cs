@@ -136,8 +136,8 @@ static class Steps
                 var secret = await BrowserBridge.OfferAsync(folders, Http);
                 if (secret is null)
                 {
-                    Copy(OfficialLine);
-                    Show(Text.Format("Pair.Fallback", OfficialLine));
+                    Copy(InstallPage);
+                    Show(Text.Format("Pair.Fallback", InstallPage));
                     return;
                 }
                 if (!page)
@@ -173,7 +173,8 @@ static class Steps
         return card;
     }
 
-    const string OfficialLine = "irm https://raw.githubusercontent.com/pironjulien/NexusBrowser/main/get.ps1 | iex";
+    // Its install section: the get.ps1 file of its release, checked, run with -File (never downloaded code in memory).
+    const string InstallPage = "https://github.com/pironjulien/NexusBrowser#install";
 
     // The extension step: the button says what it did, or why it could not (Chrome missing: its official download
     // page offered; NexusBrowser not installed yet). Never a click without an answer.

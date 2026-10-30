@@ -614,5 +614,9 @@ public class ErrorLogTests
         var en = Products.AiPrompt(["keypad"], french: false);
         Assert.Contains("Install and set up NexusKeypad", en);
         Assert.Contains("-Only keypad -NoGuide", en);
+        // Never downloaded code run in memory: the pack is a checked file run with -File.
+        Assert.Contains("-File .\\get-nexus.ps1", en);
+        Assert.DoesNotContain("irm ", en + fr);
+        Assert.DoesNotContain("scriptblock", en + fr);
     }
 }
