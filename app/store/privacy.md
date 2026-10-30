@@ -49,8 +49,7 @@ Ces lectures servent uniquement à afficher l'état des produits et ce que vos I
 **Réseau**
 L'appli ne contacte que :
 - GitHub, pour les installeurs et les fichiers des versions publiées des produits ;
-- PyPI et astral.sh, pour uv et les serveurs des produits ;
-- winget (Microsoft), pour Node.js quand Codex est présent ;
+- winget (Microsoft), pour Git quand Claude Code ou Codex en a besoin pour ajouter le catalogue ;
 - 127.0.0.1, pour le pont local de NexusBrowser.
 Ces services reçoivent les informations de toute connexion (adresse IP, version demandée) selon leurs propres
 politiques. Aucune donnée n'est envoyée au Développeur ni à un service de mesure d'audience.
@@ -112,8 +111,7 @@ These reads only serve to show the products' status and what your AI apps did:
 **Network**
 The app only contacts:
 - GitHub, for the installers and the files of the products' published releases;
-- PyPI and astral.sh, for uv and the products' servers;
-- winget (Microsoft), for Node.js when Codex is present;
+- winget (Microsoft), for Git when Claude Code or Codex needs it to add the catalog;
 - 127.0.0.1, for NexusBrowser's local bridge.
 These services receive what any connection carries (IP address, requested version) under their own policies. No data
 is sent to the Developer or to an analytics service.

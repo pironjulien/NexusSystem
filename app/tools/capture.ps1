@@ -1,4 +1,4 @@
-# Pictures of every page in French and English, dark and light, on the made-up demo profile (tools/demo_profile.py):
+# Pictures of every page in French and English, dark and light, on the made-up demo profile (Initialize-NexusDemoProfile):
 # never the real user's data. The app's --capture mode shows its window away from the desktop, without activation,
 # and this script checks that it never becomes the foreground window.
 param([string]$Out = (Join-Path $PSScriptRoot '..\dist\captures'), [string]$Size = '1366x860', [switch]$Frames)
@@ -52,18 +52,77 @@ function Initialize-NexusCaptureOutput([string]$Path, [string]$ProjectRoot) {
         ConvertTo-Json | Set-Content -LiteralPath $approved.Marker -Encoding UTF8
     $approved.Path
 }
-# Dot-source only for read-only output validation; the native captures start only when the script is executed.
+function Initialize-NexusDemoProfile([string]$Root) {
+    # A made-up user profile for the apps' pictures (milestone reports, Store listing): the four AI apps, the products
+    # declared as the native installers and this catalog leave them, a day of journal lines on everyday apps. Nothing
+    # comes from a real PC; the same pictures every time (seeded per product).
+    $utf8 = New-Object Text.UTF8Encoding $false
+    function Write-DemoFile([string]$Relative, [string]$Text) {
+        $file = Join-Path $Root $Relative
+        New-Item -ItemType Directory -Force (Split-Path $file) | Out-Null
+        [IO.File]::WriteAllText($file, $Text, $utf8)
+    }
+    Write-DemoFile '.claude\settings.json' (@{ enabledPlugins = [ordered]@{
+        'nexus-windows@nexus-plugins' = $true; 'nexus-android@nexus-plugins' = $true; 'nexus-browser@nexus-plugins' = $true
+        'nexus-relay@nexus-plugins' = $true } } | ConvertTo-Json -Compress)
+    # Claude Desktop as the Store app leaves it: NexusWindows and NexusBrowser added as .mcpb extensions, NexusAndroid
+    # not yet (its page shows the extension step).
+    Write-DemoFile 'AppData\Roaming\Claude\claude_desktop_config.json' '{"mcpServers":{}}'
+    foreach ($name in 'nexus-windows-claude', 'nexus-browser') {
+        Write-DemoFile "AppData\Roaming\Claude\Claude Extensions\local.mcpb.julien-piron.$name\manifest.json" (@{ name = $name } | ConvertTo-Json -Compress)
+    }
+    Write-DemoFile '.codex\config.toml' ((@('nexus-windows', 'nexus-android', 'nexus-browser', 'nexus-relay') |
+        ForEach-Object { "[plugins.`"$_@nexus-plugins`"]`nenabled = true`n" }) -join "`n")
+    foreach ($plugin in 'nexus-windows', 'nexus-android', 'nexus-browser', 'nexus-relay', 'nexus-agymail') {
+        Write-DemoFile ".gemini\config\plugins\$plugin\plugin.json" '{}'
+    }
+    New-Item -ItemType Directory -Force (Join-Path $Root '.gemini\antigravity'), (Join-Path $Root 'AppData\Local\Logi\LogiPluginService\Plugins\NexusKeypad') | Out-Null
+    # The state each product writes about its own version (~\.nexus\status), as the released versions do.
+    $states = [ordered]@{
+        'windows-claude' = @('3.8.0', '3.8.0', 'NexusWindows 3.8.0 is up to date'); 'windows-codex' = @('3.8.0', '3.8.0', 'NexusWindows 3.8.0 is up to date')
+        'windows-antigravity' = @('3.8.0', '3.8.0', 'NexusWindows 3.8.0 is up to date')
+        'android' = @('0.21.0', '0.22.0', 'Version 0.22.0 is ready: it is used at the next start of your AI app.')
+        'browser' = @('2.32.0', '2.32.0', $null); 'relay' = @('1.9.0', '1.9.0', 'NexusRelay 1.9.0 is up to date'); 'agymail' = @('0.13.0', '0.13.0', $null)
+    }
+    foreach ($name in $states.Keys) {
+        $state = $states[$name]
+        Write-DemoFile ".nexus\status\$name.json" ([ordered]@{ product = $name; version = $state[0]; latest = $state[1]; state = 'idle'
+            checked_at = '2026-10-26T08:00:00Z'; message = $state[2] } | ConvertTo-Json -Compress)
+    }
+    $journals = [ordered]@{
+        windows = @(40, @('notepad.exe|type', 'notepad.exe|key', 'mspaint.exe|click', 'explorer.exe|look', 'calculatorapp.exe|click', 'excel.exe|set', 'explorer.exe|launch'))
+        android = @(12, @('com.android.settings|tap', 'com.google.android.calculator|tap', 'com.android.chrome|type', 'com.google.android.apps.maps|look', 'com.android.settings|scroll'))
+        browser = @(20, @('example.com|navigate', 'wikipedia.org|navigate', 'wikipedia.org|click', 'example.com|fill'))
+        relay = @(8, @('codex|send', 'antigravity|send', 'codex|wait_reply', 'codex|wake'))
+    }
+    $now = [DateTime]::UtcNow
+    foreach ($product in $journals.Keys) {
+        $count, $actions = $journals[$product]
+        $random = New-Object Random ([int]([Text.Encoding]::UTF8.GetBytes($product) | Measure-Object -Sum).Sum)
+        foreach ($agent in 'claude', 'codex', 'antigravity') {
+            $lines = for ($i = 0; $i -lt $count; $i++) {
+                $app, $action = $actions[$random.Next($actions.Count)] -split '\|'
+                $roll = $random.Next(100)
+                $issue = if ($roll -lt 80) { [string][char]0x2713 } elseif ($roll -lt 88) { '=' } elseif ($roll -lt 96) { '~' } else { [string][char]0x2717 }
+                [ordered]@{ v = 1; ts = $now.AddMinutes(-$random.Next(1, 601)).ToString("yyyy-MM-ddTHH:mm:ss.ffffffZ"); agent = $agent; outil = 'demo'
+                    appel = $null; app = $app; cadre = $null; action = $action; technique = $null; issue = $issue; ms = $random.Next(40, 901)
+                    premier_plan = $false; erreur = $(if ($issue -eq [string][char]0x2717) { 'element not found' } else { $null }) } | ConvertTo-Json -Compress
+            }
+            Write-DemoFile "AppData\Local\NexusJournal\$product\$agent\$($now.ToString('yyyy-MM')).jsonl" (($lines -join "`n") + "`n")
+        }
+    }
+    Write-Host "demo profile in $Root"
+}# Dot-source only for read-only output validation; the native captures start only when the script is executed.
 if ($MyInvocation.InvocationName -eq '.') { return }
 $output = Resolve-NexusCaptureOutput $Out (Split-Path $PSScriptRoot)
 $Out = $output.Path
 $architecture = if ($env:PROCESSOR_ARCHITEW6432) { $env:PROCESSOR_ARCHITEW6432 } else { $env:PROCESSOR_ARCHITECTURE }
 $architecture = if ($architecture -eq 'ARM64') { 'ARM64' } else { 'x64' }
-$exe = Get-ChildItem (Join-Path $env:LOCALAPPDATA "NexusApps\build\Nexus.App\bin\$architecture") -Recurse -Filter NexusSystem.exe |
+$exe = Get-ChildItem (Join-Path $HOME ".nexus\build\NexusSystem\Nexus.App\bin\$architecture") -Recurse -Filter NexusSystem.exe |
     Sort-Object LastWriteTime -Descending | Select-Object -First 1
-if (-not $exe) { throw 'Build src\Nexus.App first (output under LocalAppData\NexusApps\build).' }
+if (-not $exe) { throw 'Build src\Nexus.App first (output under ~\.nexus\build\NexusSystem).' }
 $demo = Join-Path ([IO.Path]::GetTempPath()) ('nexus-demo-' + [guid]::NewGuid().ToString('N'))
-python -B (Join-Path $PSScriptRoot 'demo_profile.py') $demo
-if ($LASTEXITCODE) { throw 'The demonstration profile could not be prepared.' }
+Initialize-NexusDemoProfile $demo
 $Out = Initialize-NexusCaptureOutput $Out (Split-Path $PSScriptRoot)
 Add-Type -MemberDefinition '[DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow(); [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);' -Name Foreground -Namespace NexusCapture
 $changed = $false  # true when a NexusSystem window was ever the foreground one (the user may switch windows meanwhile)

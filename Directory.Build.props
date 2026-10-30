@@ -1,0 +1,8 @@
+<Project>
+  <!-- Build and test output outside OneDrive: one folder per project under ~\.nexus\build\NexusSystem. -->
+  <PropertyGroup>
+    <NexusBuildRoot>$(USERPROFILE)\.nexus\build\NexusSystem\$(MSBuildProjectName)\</NexusBuildRoot>
+    <BaseOutputPath>$(NexusBuildRoot)bin\</BaseOutputPath>
+    <BaseIntermediateOutputPath>$(NexusBuildRoot)obj\</BaseIntermediateOutputPath>
+  </PropertyGroup>
+</Project>

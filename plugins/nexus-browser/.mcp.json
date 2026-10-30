@@ -1,14 +1,10 @@
 {
   "mcpServers": {
     "nexus-browser": {
-      "command": "uvx",
-      "args": [
-        "--python",
-        "3.14",
-        "nexus-browser==2.32.0"
-      ],
-      "env": {
-        "NEXUS_BROWSER_AGENT": "Claude"
+      "type": "http",
+      "url": "http://127.0.0.1:16182/mcp?agent=claude",
+      "headers": {
+        "Authorization": "Bearer ${NEXUS_MCP_TOKEN}"
       }
     }
   }

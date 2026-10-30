@@ -1,30 +1,13 @@
 {
   "name": "nexus-relay",
-  "version": "1.9.0",
-  "description": "Nexus Relay for Codex: direct link between Codex, Claude and Antigravity on one Windows PC (topic rooms, multi-agent review, delegated tasks), served by the local nexus-relay daemon.",
+  "version": "1.10.0",
+  "description": "Direct link between Claude, Codex and Antigravity on one Windows PC: topic rooms, multi-agent review, delegated tasks. Served by the local NexusRelay daemon, installed by NexusSystem (or NexusRelay's get.ps1).",
   "author": { "name": "Julien Piron", "url": "https://julienpiron.fr" },
   "repository": "https://github.com/pironjulien/NexusRelay",
   "license": "MIT",
   "keywords": ["multi-agent", "codex", "claude", "antigravity", "mcp"],
   "mcpServers": "./.mcp.json",
   "skills": "./skills/",
-  "hooks": {
-    "hooks": {
-      "PreToolUse": [
-        {
-          "matcher": "apply_patch",
-          "hooks": [
-            {
-              "type": "command",
-              "command": "uvx --python 3.14 --from nexus-relay==1.9.0 python -I -B -m nexus_relay.edit_guard codex",
-              "timeout": 60,
-              "async": false
-            }
-          ]
-        }
-      ]
-    }
-  },
   "interface": {
     "displayName": "Nexus Relay",
     "shortDescription": "Direct link with Claude and Antigravity",

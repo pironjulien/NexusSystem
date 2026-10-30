@@ -154,5 +154,5 @@ How it stays inside the MSIX model, stated plainly:
 Testing: no account or sign-in is needed. Without an AI app on the PC, the install button is disabled and every page
 can still be opened. To try an install, install Claude Desktop, Codex or Antigravity first and open it once.
 runFullTrust: required by a packaged desktop app that starts installers and reads the user's AI app configurations.
-Network: GitHub (release files and scripts), PyPI and astral.sh (uv), winget (Node.js LTS when Codex is present), and
+Network: GitHub (release files and scripts), winget (Git when Claude Code or Codex needs it to add the catalog), and
 127.0.0.1 (the products' local bridges). No telemetry, no ads, no account.

@@ -4,13 +4,25 @@ using System.Text.RegularExpressions;
 
 namespace Nexus.Core;
 
-public sealed record WindowsInstallation(string Version, string ExecutablePath, string NativeHash);
+/// <summary>
+/// The verified shared core: its immutable versioned executable, and the stable path its installer keeps beside it
+/// (~\.nexus\nexus-windows\NexusWindows.exe), which the catalog plugins start. Both are the same common core.
+/// </summary>
+public sealed record WindowsInstallation(string Version, string ExecutablePath, string NativeHash, string? StablePath = null)
+{
+    public bool IsCore(string? executable) => executable is not null &&
+        (string.Equals(executable, ExecutablePath, StringComparison.OrdinalIgnoreCase) ||
+         StablePath is not null && string.Equals(executable, StablePath, StringComparison.OrdinalIgnoreCase));
+}
 
 public enum WindowsConnection { Idle, Common, Previous, Unconfigured }
 
 /// <summary>The shared native core and its separate MCP client processes. Installation is not service health.</summary>
 public static class WindowsRuntime
 {
+    /// <summary>The stable path NexusWindows' installer keeps for every client: what the catalog plugins start.</summary>
+    public static string StablePath(UserFolders folders) => Path.Combine(folders.Nexus, "nexus-windows", "NexusWindows.exe");
+
     public static WindowsInstallation? ReadInstallation(UserFolders folders)
     {
         try
@@ -40,7 +52,9 @@ public static class WindowsRuntime
                 using var file = File.OpenRead(Path.Combine(Path.GetDirectoryName(expected)!, artifact.Name));
                 if (!Convert.ToHexString(SHA256.HashData(file)).Equals(digest, StringComparison.OrdinalIgnoreCase)) return null;
             }
-            return new WindowsInstallation(version!, expected, hash);
+            // The stable path counts only once its installer has put it there.
+            var stable = StablePath(folders);
+            return new WindowsInstallation(version!, expected, hash, File.Exists(stable) ? stable : null);
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException or JsonException or
             InvalidOperationException or KeyNotFoundException or ArgumentException or FormatException or OverflowException)
@@ -64,8 +78,7 @@ public static class WindowsRuntime
     {
         var clients = running.ToList();
         // Any older loaded connection matters even if a new client is also running for the same AI.
-        if (clients.Any(server => !server.CommonWindowsCore || installation is null ||
-            !string.Equals(server.ExecutablePath, installation.ExecutablePath, StringComparison.OrdinalIgnoreCase))) return WindowsConnection.Previous;
+        if (clients.Any(server => !server.CommonWindowsCore || installation is null || !installation.IsCore(server.ExecutablePath))) return WindowsConnection.Previous;
         return clients.Count > 0 ? WindowsConnection.Common : WindowsConnection.Idle;
     }
 
@@ -90,7 +103,7 @@ public static class WindowsRuntime
                         continue;
                     }
                     var common = installation is not null && server.TryGetProperty("command", out var command) &&
-                        command.GetString() is { } executable && executable.Equals(installation.ExecutablePath, StringComparison.OrdinalIgnoreCase) &&
+                        installation.IsCore(command.GetString()) &&
                         server.TryGetProperty("args", out var args) && args.ValueKind == JsonValueKind.Array &&
                         args.EnumerateArray().Select(arg => arg.GetString()).SequenceEqual(["--mcp", "--agent", "claude"], StringComparer.OrdinalIgnoreCase);
                     states.Add(common ? DeclarationState.Declared : DeclarationState.Invalid);

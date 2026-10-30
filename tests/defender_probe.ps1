@@ -20,7 +20,7 @@ try {
 Start-Sleep -Seconds 5
 Show-State 'after'
 
-# A fresh profile per case, so that each one really installs (uv missing): the AI apps found by their folders.
+# A fresh profile per case, so that each one really installs: the AI apps found by their folders.
 function Initialize-CaseProfile([string]$Name) {
     $root = Join-Path $work $Name
     foreach ($d in '.codex', '.gemini\antigravity', 'AppData\Roaming\Claude', 'AppData\Local') { New-Item -ItemType Directory -Force (Join-Path $root $d) | Out-Null }
@@ -35,8 +35,6 @@ $cases = [ordered]@{
     'paste-scriptblock'    = @{ Args = '-NoProfile -Command -'; Input = "& ([scriptblock]::Create((irm $pack))) -DryRun" }
     # What our automated tests did on the PC (flagged there): the URL on the PowerShell command line.
     'commandline-irm-iex'  = @{ Args = "-NoProfile -Command `"& ([scriptblock]::Create((irm $pack))) -DryRun`""; Input = $null }
-    # uv's official one-liner, as product installers used to start it.
-    'commandline-uv'       = @{ Args = '-NoProfile -ExecutionPolicy ByPass -Command "irm https://astral.sh/uv/install.ps1 | iex"'; Input = $null }
     # The pack downloaded to a file, then run from it (the recommended alternative).
     'file'                 = @{ Args = $null; Input = $null; File = $true }
 }

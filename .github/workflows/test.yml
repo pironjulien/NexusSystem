@@ -7,28 +7,31 @@ on:
 permissions:
   contents: read
 jobs:
-  catalog:
+  # Exactly what test.ps1 runs on the PC: PowerShell lint, then dotnet test (catalogs, pack dry runs under Windows
+  # PowerShell 5.1, the app's build and tests).
+  test:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68  # v6.0.0
         with:
           global-json-file: global.json
       - name: PSScriptAnalyzer
         shell: pwsh
         run: if (-not (Get-Module -ListAvailable PSScriptAnalyzer)) { Install-Module PSScriptAnalyzer -Scope CurrentUser -Force }
-      - name: Catalog checks, lint, pack dry runs, real server start from PyPI, app build and tests
+      - name: test.ps1
         shell: pwsh
-        run: ./test.ps1 -Full
+        run: ./test.ps1
 
-  # The one-liner on a machine with none of its prerequisites set up by the workflow: no uv, the runner's own Node.js,
-  # the official Claude Code installer, the pinned signed Codex engine, and the folders by which Claude Desktop
-  # and Antigravity are found. Codex must install real plugins; an empty .codex folder cannot stand in for its engine.
-  # Then every server that each AI app declares is started as that app would start it.
+  # The one-liner on a clean runner: the official Claude Code installer, the pinned signed Codex engine, and the
+  # folders by which Claude Desktop and Antigravity are found. Codex must install real plugins; an empty .codex folder
+  # cannot stand in for its engine. Each product's native get.ps1 (its latest release) installs its engine; then every
+  # server that each AI app declares is reached as that app would reach it (InstallTests). Run by hand: it depends on
+  # the products' published releases, not on this commit alone.
   pack:
+    if: github.event_name == 'workflow_dispatch'
     runs-on: windows-latest
     timeout-minutes: 45
     steps:
@@ -50,12 +53,14 @@ jobs:
               $signature.SignerCertificate.Subject -notmatch '(^|,\s*)(CN|O)="OpenAI OpCo, LLC"(?=,|$)') { throw 'Codex release lacks a valid OpenAI signature' }
           if ((& $engine --version) -ne 'codex-cli 0.165.0' -or $LASTEXITCODE) { throw 'Unexpected Codex engine version' }
           Add-Content -LiteralPath $env:GITHUB_PATH -Value $toolDir
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68  # v6.0.0
+        with:
+          global-json-file: global.json
       - name: AI apps present (Claude Code installed, Claude Desktop and Antigravity found by their folders)
         shell: powershell
         run: |
           irm https://claude.ai/install.ps1 | iex
           New-Item -ItemType Directory -Force "$env:APPDATA\Claude", "$env:USERPROFILE\.gemini\antigravity" | Out-Null
-          if (Get-Command uv -ErrorAction SilentlyContinue) { Write-Host "uv already here: $((Get-Command uv).Source)" }
       - name: get-nexus.ps1 (Windows PowerShell 5.1), this commit's catalog
         shell: powershell
         run: |
@@ -66,9 +71,13 @@ jobs:
         shell: powershell
         run: |
           $env:PATH = "$env:USERPROFILE\.local\bin;" + [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + [Environment]::GetEnvironmentVariable('Path', 'User')
-          uv run --no-project --python 3.14 python -B tests/check_install.py --ais claude-code,claude-desktop,codex,antigravity
+          $env:NEXUS_MCP_TOKEN = [Environment]::GetEnvironmentVariable('NEXUS_MCP_TOKEN', 'User')
+          $env:NEXUS_PACK_CHECK_AIS = 'claude-code,claude-desktop,codex,antigravity'
+          $env:NEXUS_PACK_CHECK_PRODUCTS = 'windows,android,browser,relay'
+          dotnet test --project tests/NexusSystem.Tests --filter-class NexusSystem.Tests.InstallTests
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          uv run --no-project --python 3.14 python -B tests/check_install.py --ais antigravity --products agymail
+          $env:NEXUS_PACK_CHECK_AIS = 'antigravity'; $env:NEXUS_PACK_CHECK_PRODUCTS = 'agymail'
+          dotnet test --project tests/NexusSystem.Tests --filter-class NexusSystem.Tests.InstallTests
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           claude mcp list
       - name: Second run changes nothing and stays green

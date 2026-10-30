@@ -263,6 +263,39 @@ public class WindowsRuntimeTests
     }
 
     [Fact]
+    public void TheCatalogPluginsStablePathIsTheCommonCore()
+    {
+        // Claude Code's plugin starts ${USERPROFILE}\.nexus\nexus-windows\NexusWindows.exe directly; Codex's plugin goes
+        // through cmd.exe from that folder (Codex reads no variable in a command). Both are the host's own connection.
+        using var profile = new FakeProfile();
+        Install(profile);
+        var stable = WindowsRuntime.StablePath(profile.Folders);
+        Assert.Null(WindowsRuntime.ReadInstallation(profile.Folders)!.StablePath);  // not put there by its installer yet
+        profile.Write(@".nexus\nexus-windows\NexusWindows.exe", "fixture:stable");
+        var installation = WindowsRuntime.ReadInstallation(profile.Folders)!;
+        Assert.Equal(stable, installation.StablePath);
+        var running = Servers.Match(new Dictionary<int, ServerProcess>
+        {
+            [1] = new(0, "claude.exe", "claude.exe", @"C:\Users\fixture\.local\bin\claude.exe"),
+            [2] = new(1, "NexusWindows.exe", '"' + stable + "\" --mcp --agent claude", stable),
+            [10] = new(0, "codex.exe", "codex.exe app-server"),
+            [11] = new(10, "cmd.exe", @"cmd.exe /d /c cd /d %USERPROFILE%\.nexus\nexus-windows && .\NexusWindows.exe --mcp --agent codex"),
+            [12] = new(11, "NexusWindows.exe", @".\NexusWindows.exe  --mcp --agent codex", stable),
+        });
+        Assert.Equal(2, running.Count);
+        Assert.Equal(AiApp.Codex, running.Single(s => s.ProcessId == 12).StartedBy);
+        Assert.Equal(WindowsConnection.Common, WindowsRuntime.Connection(AiApp.ClaudeCode, running, installation));
+        Assert.Equal(WindowsConnection.Common, WindowsRuntime.Connection(AiApp.Codex, running, installation));
+        // Another cmd.exe line is not the catalog's launcher.
+        Assert.False(Servers.IsCodexLauncher(new ServerProcess(10, "cmd.exe", @"cmd.exe /c C:\other\run.cmd && .\NexusWindows.exe --mcp --agent codex")));
+        profile.Write(@"AppData\Roaming\Claude\claude_desktop_config.json", JsonSerializer.Serialize(new
+        {
+            mcpServers = new Dictionary<string, object> { ["nexus-windows"] = new { command = stable, args = new[] { "--mcp", "--agent", "claude" } } },
+        }));
+        Assert.Equal(DeclarationState.Declared, WindowsRuntime.DesktopDeclaration(profile.Folders, installation));
+    }
+
+    [Fact]
     public void LoadedExecutableMetadataWinsOverAConfiguredPathInArgv()
     {
         using var profile = new FakeProfile();

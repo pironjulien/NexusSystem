@@ -5,16 +5,15 @@ uses menus and shortcuts and launches apps without taking your mouse, keyboard o
 action. Irreversible gestures need your explicit "yes"; Ctrl+Alt+Shift+Esc stops everything for two minutes.
 
 ## What it runs
-The plugin starts the open-source MCP server [`nexus-windows-claude`](https://pypi.org/project/nexus-windows-claude/) 3.7.4 from
-PyPI with `uvx --python 3.14`, over stdio (uv downloads Python 3.14 if needed). The exact version of the server and
-of every dependency is recorded with its hash in `uv.lock`. The plugin itself contains only this launcher, the lock
-file and a skill; it sends nothing anywhere. The server's only request of its own is its update check: at most once a
-day it reads the latest version number from PyPI and writes `~/.nexus/status/windows-claude.json`
-(`NEXUS_UPDATE_CHECK=off` turns it off; details in its [Privacy section](https://github.com/pironjulien/NexusWindows/tree/main/claude#privacy)).
-
+The plugin starts the native NexusWindows engine over stdio, from the stable path its installer keeps up to date:
+`%USERPROFILE%\.nexus\nexus-windows\NexusWindows.exe --mcp --agent claude`. The plugin itself contains only this
+launcher and a skill; it sends nothing anywhere (engine privacy:
+[NexusWindows](https://github.com/pironjulien/NexusWindows/tree/main/claude#privacy)).
+Install it once with NexusSystem (the Microsoft Store app, or in PowerShell:
+`irm https://raw.githubusercontent.com/pironjulien/NexusSystem/main/get-nexus.ps1 | iex`), which runs the product's own
+native installer (`get.ps1` of its repository): no Python, no uv.
 ## Requirements
-- Windows 10 or 11.
-- [uv](https://docs.astral.sh/uv/).
+- Windows 10 or 11 with NexusWindows installed (above).
 
 ## Try it
 - "Open Notepad and write a shopping list: milk, eggs, bread."
@@ -22,7 +21,7 @@ day it reads the latest version number from PyPI and writes `~/.nexus/status/win
 - "Open my Downloads folder in File Explorer and tell me what is in it."
 
 ## Testing
-Any Windows 10 or 11 PC (or VM) with uv works: no account, no sample data. Notepad and Calculator are enough to see
-the background flow (look, act, read back) while you keep using the mouse and keyboard.
+Any Windows 10 or 11 PC (or VM) works: no account, no sample data. Notepad and Calculator are enough to see the
+background flow (look, act, read back) while you keep using the mouse and keyboard.
 
 Source, safeguards and privacy: https://github.com/pironjulien/NexusWindows (MIT).

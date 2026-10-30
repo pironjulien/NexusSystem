@@ -7,6 +7,39 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+To be released as 1.7.0 once every product (NexusWindows, NexusAndroid, NexusBrowser, NexusRelay, NexusAGYmail)
+has published its native release and `get.ps1`.
+
+### Changed
+- Native catalogs, no Python: every plugin reaches its product's native Windows engine. Claude Code: `nexus-android`
+  (daemon `127.0.0.1:16180/mcp`), `nexus-browser` (`127.0.0.1:16182/mcp?agent=claude`) and `nexus-relay`
+  (`127.0.0.1:16181/mcp?agent=claude`) over HTTP with `Authorization: Bearer ${NEXUS_MCP_TOKEN}`; `nexus-windows`
+  starts `${USERPROFILE}\.nexus\nexus-windows\NexusWindows.exe --mcp --agent claude`, the stable path kept by its
+  installer. Codex: the same daemons with `bearer_token_env_var`, and `nexus-windows` is now a plugin of this catalog
+  (`--agent codex`), started from its stable folder through `cmd.exe` since Codex reads no variable in a command.
+  Plugin versions: nexus-android 0.22.0, nexus-windows 3.8.0, nexus-browser 2.33.0, nexus-relay 1.10.0.
+- The Codex `nexus-relay` plugin no longer carries the edit guard (it was started with `uvx`): NexusRelay's installer
+  declares it with its own native path.
+- `get-nexus.ps1` runs each product's own native installer (`get.ps1` of NexusWindows, NexusAndroid, NexusBrowser,
+  NexusRelay, NexusAGYmail, NexusKeypad), told every chosen AI app through `NEXUS_PACK_TARGETS`; no uv, no Node.js.
+  Git stays the only prerequisite, for Claude Code and Codex to add the catalog. The Codex migration also recognises
+  the native direct declarations an installer may write.
+- The NexusSystem app counts the stable NexusWindows path as the common core, and Codex's `cmd.exe` launcher as
+  Codex's own connection; its Gmail step no longer shows a `uvx` command.
+- Tests: one `dotnet test` (xUnit v3, Microsoft.Testing.Platform) from the repository root, run by `test.ps1` and CI
+  alike: catalog checks (ported from Python, with the exact native forms), pack dry runs under Windows PowerShell 5.1,
+  the app's tests. Build and test output in `~\.nexus\build\NexusSystem`. The CI pack job (run by hand) checks every
+  declared server over MCP after a real install (`InstallTests`, ported from `check_install.py`).
+
+### Added
+- `nexus-keypad` plugin for Claude Code: live states for the Logitech keypad, exact usage and Nexus Relay's peers
+  under the prompt (NexusKeypad's native helper and Claude's modules).
+
+### Removed
+- Every Python and PyPI file and step: `pyproject.toml` and `uv.lock` of the plugins, Dependabot `uv`, `uvx` launchers,
+  `tests/check_catalog.py`, `tests/check_install.py`, `tests/smoke_mcp.py`, `test.ps1 -Full`, `setup-uv` in CI.
+  `app/tools/demo_profile.py` and `icon_from_site.py` are now PowerShell (`capture.ps1`, `icon-from-site.ps1`).
+
 ## [1.6.30] - 2026-10-30
 
 ### Changed

@@ -15,7 +15,7 @@ public sealed record ServerProcess(int Parent, string Name, string CommandLine, 
 /// </summary>
 public static class Servers
 {
-    // What a server's command line contains, per product: its PyPI or npm package.
+    // What the command line of a former (npm or PyPI) installation's server contains, per product, recognised so the app shows it as a previous connection.
     static readonly IReadOnlyDictionary<string, string[]> Packages = new Dictionary<string, string[]>
     {
         ["windows"] = ["nexus-windows-claude", "nexus-windows-codex", "nexus-windows-antigravity", "nexus_windows"],
@@ -61,12 +61,16 @@ public static class Servers
             // Prefer the identifiable shared core over a legacy wrapper that merely mentions its package.
             if (!common && product == Products.Windows && processes.Values.Any(child => child.Parent == pid &&
                 WindowsRuntime.TryMcpCommand(child.Name, child.CommandLine, out _, out _))) continue;
-            // uvx starts python, npx starts node: keep only the top of each server tree.
+            // A launcher of a former installation (npm, PyPI) starts its runtime: keep only the top of each server tree.
             if (processes.TryGetValue(process.Parent, out var parent) && ProductOf(parent.Name, parent.CommandLine) == product &&
                 (!common || WindowsRuntime.TryMcpCommand(parent.Name, parent.CommandLine, out _, out _))) continue;
             // Shared-core declarations start the exact executable directly. A Python/PowerShell qualification
             // client somewhere below an AI host is not that host's MCP connection.
-            var (owner, desktop) = StartedBy(processes, process.Parent, common ? 1 : 8);
+            // Codex reads no variable in a plugin's command: the catalog's Codex plugin starts the engine from its
+            // stable folder through cmd.exe, which is then the one step between Codex and the engine.
+            var from = process.Parent;
+            if (common && processes.TryGetValue(from, out var launcher) && IsCodexLauncher(launcher)) from = launcher.Parent;
+            var (owner, desktop) = StartedBy(processes, from, common ? 1 : 8);
             // --agent is also used by isolated qualification clients. It is not proof that the actual AI host loaded it.
             if (common && (desktop ? agent != AiApp.ClaudeCode : owner != agent)) { owner = null; desktop = false; }
             found.Add(new RunningServer(product, pid, owner, executable, common, desktop));
@@ -100,6 +104,11 @@ public static class Servers
         }
         return null;
     }
+
+    /// <summary>The nexus-windows Codex plugin's launcher: cmd.exe /d /c cd /d ...\.nexus\nexus-windows &amp;&amp; .\NexusWindows.exe --mcp --agent codex.</summary>
+    public static bool IsCodexLauncher(ServerProcess process) =>
+        process.Name.Equals("cmd.exe", StringComparison.OrdinalIgnoreCase) &&
+        Regex.IsMatch(process.CommandLine, @"\s/d\s+/c\s+cd\s+/d\s+\S+\\\.nexus\\nexus-windows\s+&&\s+\.\\NexusWindows\.exe\s+--mcp\s+--agent\s+codex\s*$", RegexOptions.IgnoreCase);
 
     static (AiApp? App, bool Desktop) StartedBy(IReadOnlyDictionary<int, ServerProcess> processes, int pid, int maximumDepth)
     {

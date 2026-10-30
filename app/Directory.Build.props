@@ -1,11 +1,6 @@
 <Project>
-  <!-- Build output outside OneDrive: bin/obj (about 1.5 GB) would otherwise fill the 5 GB OneDrive quota and be
-       synced on every build. One folder per project under %LOCALAPPDATA%\NexusApps\build. -->
-  <PropertyGroup>
-    <NexusBuildRoot>$([System.Environment]::GetFolderPath(SpecialFolder.LocalApplicationData))\NexusApps\build\$(MSBuildProjectName)\</NexusBuildRoot>
-    <BaseOutputPath>$(NexusBuildRoot)bin\</BaseOutputPath>
-    <BaseIntermediateOutputPath>$(NexusBuildRoot)obj\</BaseIntermediateOutputPath>
-  </PropertyGroup>
+  <!-- Build output outside OneDrive (the repository's Directory.Build.props: ~\.nexus\build\NexusSystem\<project>). -->
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)..\'))" />
   <!-- The app's version, its only source: assemblies, NexusSystem.exe's file version and, through tools/package.ps1,
        the package manifest. Four numbers ending in .0 (the Store reserves the last one). -->
   <PropertyGroup>
