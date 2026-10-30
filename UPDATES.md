@@ -12,6 +12,10 @@ and retries periodically in the background. It uses the same official product in
 as files and checked against the exact release's SHA-256 manifest. The coordinator refreshes itself from the
 published NexusSystem catalog release using the same checks.
 
+For an existing Store hub upgraded to the new app, the first launch establishes this same task when NexusWindows
+or NexusBrowser is already installed. It does not reinstall products. An explicit `autoUpdate: false` in
+`~\.nexus\nexussystem.json`, or a disabled maintenance task, remains respected.
+
 Maintenance updates existing supported installations and their selected integrations. A disabled integration,
 custom server, skipped product or AI app is not an invitation to install or reconfigure it. Unsupported product
 installers are reported explicitly rather than run with guessed arguments. User choices in

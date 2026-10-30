@@ -49,41 +49,83 @@ public static class PackRunner
         return file;
     }
 
-    /// <summary>Runs the pack for these product and AI keys; every output line goes to onLine, every event to onEvent.</summary>
-    public static async Task<int> RunAsync(IEnumerable<string> only, bool dryRun, Action<string> onLine, Action<PackEvent> onEvent,
-        CancellationToken cancel = default)
+    /// <summary>
+    /// Existing engines need the maintenance worker once after upgrading an older hub. Reading installation
+    /// files here only selects the bootstrap; it never reports a running connection or executes those engines.
+    /// </summary>
+    public static bool NeedsMaintenanceBootstrap(UserFolders folders)
     {
-        var script = ExtractScript();
+        if (MaintenanceUpdates.IsInstalled(folders)) return false;
         try
         {
-            var start = new ProcessStartInfo(Path.Combine(Environment.SystemDirectory, @"WindowsPowerShell\v1.0\powershell.exe"))
+            var choices = LocalSettings.FilePath(folders);
+            if (File.Exists(choices))
             {
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                StandardOutputEncoding = System.Text.Encoding.UTF8,
-                StandardErrorEncoding = System.Text.Encoding.UTF8,
-            };
-            foreach (var arg in new[] { "-NoProfile", "-ExecutionPolicy", "RemoteSigned", "-File", script, "-Json", "-NoGuide" }) start.ArgumentList.Add(arg);
+                using var settings = JsonDocument.Parse(File.ReadAllText(choices), new JsonDocumentOptions
+                    { AllowTrailingCommas = true, CommentHandling = JsonCommentHandling.Skip });
+                if (settings.RootElement.ValueKind != JsonValueKind.Object) return false;
+                if (settings.RootElement.EnumerateObject().Any(property => property.Name.Equals("autoUpdate", StringComparison.OrdinalIgnoreCase)
+                    && property.Value.ValueKind == JsonValueKind.False)) return false;
+            }
+            if (WindowsRuntime.ReadInstallation(folders) is not null) return true;
+            var browser = Path.Combine(folders.LocalAppData, "NexusBrowser");
+            using var installation = JsonDocument.Parse(File.ReadAllText(Path.Combine(browser, "current.json")));
+            var root = installation.RootElement;
+            if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty("exe", out var executable) ||
+                executable.ValueKind != JsonValueKind.String || executable.GetString() is not { } path ||
+                !Path.IsPathFullyQualified(path) || !Path.GetFileName(path).Equals("NexusBrowser.exe", StringComparison.OrdinalIgnoreCase)) return false;
+            return Path.GetFullPath(path).StartsWith(Path.GetFullPath(browser) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) && File.Exists(path);
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or JsonException or ArgumentException or NotSupportedException)
+        {
+            return false; // Unreadable choices or no existing engine: do not infer permission for a bootstrap.
+        }
+    }
+
+    /// <summary>The same embedded pack, either normal installation or maintenance bootstrap without product selection.</summary>
+    public static ProcessStartInfo CreateCommand(string script, IEnumerable<string> only, bool dryRun, bool maintenanceOnly = false)
+    {
+        var start = new ProcessStartInfo(Path.Combine(Environment.SystemDirectory, @"WindowsPowerShell\v1.0\powershell.exe"))
+        {
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            StandardOutputEncoding = System.Text.Encoding.UTF8,
+            StandardErrorEncoding = System.Text.Encoding.UTF8,
+        };
+        foreach (var arg in new[] { "-NoProfile", "-ExecutionPolicy", "RemoteSigned", "-File", script, "-Json", "-NoGuide" }) start.ArgumentList.Add(arg);
+        if (maintenanceOnly) start.ArgumentList.Add("-InstallMaintenance");
+        else
+        {
             var keys = only.ToList();
             if (keys.Count > 0)
             {
                 start.ArgumentList.Add("-Only");
                 start.ArgumentList.Add(string.Join(",", keys));
             }
-            // From the Store package an edit of Claude Desktop's existing configuration would stay in the package:
-            // Claude Desktop gets the .mcpb extensions instead (DesktopExtension).
+            // Store apps leave Claude Desktop's chat configuration to the .mcpb extensions.
             if (Packaging.IsPackaged)
             {
                 start.ArgumentList.Add("-Skip");
                 start.ArgumentList.Add("claude-desktop");
             }
-            if (dryRun) start.ArgumentList.Add("-DryRun");
-            start.Environment["PYTHONIOENCODING"] = "utf-8";
-            // Started from a PowerShell 7 terminal, the app inherits its module path, on which Windows PowerShell 5.1
-            // loads PowerShell 7's modules and fails: removed, each PowerShell computes its own.
-            start.Environment.Remove("PSModulePath");
+        }
+        if (dryRun) start.ArgumentList.Add("-DryRun");
+        start.Environment["PYTHONIOENCODING"] = "utf-8";
+        // A PowerShell 7 parent's module path must not make Windows PowerShell load incompatible modules.
+        start.Environment.Remove("PSModulePath");
+        return start;
+    }
+
+    /// <summary>Runs the pack; maintenanceOnly installs its worker without installing or reconfiguring products.</summary>
+    public static async Task<int> RunAsync(IEnumerable<string> only, bool dryRun, Action<string> onLine, Action<PackEvent> onEvent,
+        bool maintenanceOnly = false, CancellationToken cancel = default)
+    {
+        var script = ExtractScript();
+        try
+        {
+            var start = CreateCommand(script, only, dryRun, maintenanceOnly);
 
             using var process = Process.Start(start) ?? throw new InvalidOperationException("powershell.exe did not start.");
             void Handle(string? line)
@@ -113,4 +155,8 @@ public static class PackRunner
             File.Delete(script);
         }
     }
+
+    /// <summary>Preserve callers that pass the cancellation token as the fifth argument.</summary>
+    public static Task<int> RunAsync(IEnumerable<string> only, bool dryRun, Action<string> onLine, Action<PackEvent> onEvent,
+        CancellationToken cancel) => RunAsync(only, dryRun, onLine, onEvent, maintenanceOnly: false, cancel);
 }

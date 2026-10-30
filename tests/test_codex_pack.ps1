@@ -226,6 +226,60 @@ other = [
     }
     Write-Host 'OK Codex: desktop-only OpenAI-signed engine found, unsigned engine refused'
 
+    & {
+        # Exercise the actual catalogue command, not the pack's inert orchestration stub. The CLI below owns no
+        # profile and returns the same machine-readable envelope as the signed Codex engine.
+        . ([scriptblock]::Create(($ast.FindAll({ param($a) $a -is [Management.Automation.Language.FunctionDefinitionAst] -and
+            $a.Name -eq 'Install-CodexMarketplace' }, $true) | Select-Object -First 1).Extent.Text))
+        function Invoke-CatalogTestCli {
+            param([string]$Command, [string]$Category, [string]$Action, [string]$Value, [string]$Format)
+            Assert-True ($Command -eq 'plugin' -and $Category -eq 'marketplace') 'Unexpected CLI family.'
+            if ($Action -eq 'list') {
+                $global:LASTEXITCODE = if ($script:catalogueListFailure) { 1 } else { 0 }
+                @{ marketplaces = @($script:catalogueEntries) } | ConvertTo-Json -Depth 7 -Compress
+                return
+            }
+            $script:catalogueOperations += "$Action|$Value|$Format"
+            $global:LASTEXITCODE = 0
+            '{}'
+        }
+        foreach ($case_ in @(
+            @('https://github.com/pironjulien/NexusSystem.git', 'pironjulien/NexusSystem'),
+            @('pironjulien/NexusSystem', 'https://github.com/pironjulien/NexusSystem.git'),
+            @('https://github.com/pironjulien/NexusSystem', 'pironjulien/NexusSystem'),
+            @('git@github.com:pironjulien/NexusSystem.git', 'pironjulien/NexusSystem'),
+            @('ssh://git@github.com/pironjulien/NexusSystem.git', 'pironjulien/NexusSystem')
+        )) {
+            $script:catalogueEntries = @(@{ name = 'nexus-plugins'; root = 'C:\cache\nexus-plugins'; marketplaceSource = @{ sourceType = 'git'; source = $case_[0] } })
+            $script:catalogueOperations = @(); $script:catalogueListFailure = $false
+            $code = Install-CodexMarketplace 'Invoke-CatalogTestCli' $case_[1]
+            Assert-True ($code -eq 0) 'Equivalent public catalogue source was refused.'
+            Assert-True (($script:catalogueOperations -join ';') -ceq 'upgrade|nexus-plugins|--json') 'An existing equivalent catalogue must only be refreshed, never re-added.'
+        }
+        $script:catalogueEntries = @(@{ name = 'nexus-plugins'; root = 'C:\cache\custom'; marketplaceSource = @{ sourceType = 'git'; source = 'https://github.com/team/custom-catalogue.git' } })
+        $script:catalogueOperations = @()
+        $code = Install-CodexMarketplace 'Invoke-CatalogTestCli' 'pironjulien/NexusSystem'
+        Assert-True ($code -ne 0 -and -not $script:catalogueOperations.Count) 'A same-name custom catalogue must be preserved without add, upgrade or source replacement.'
+
+        $catalogueFolder = Join-Path $work 'local-catalogue'
+        New-Item -ItemType Directory -Force $catalogueFolder | Out-Null
+        $script:catalogueEntries = @(@{ name = 'nexus-plugins'; root = $catalogueFolder; marketplaceSource = @{ sourceType = 'local'; source = $catalogueFolder } })
+        $script:catalogueOperations = @()
+        $code = Install-CodexMarketplace 'Invoke-CatalogTestCli' $catalogueFolder
+        Assert-True ($code -eq 0 -and -not $script:catalogueOperations.Count) 'An existing identical local catalogue must be read in place without add or Git refresh.'
+        $code = Install-CodexMarketplace 'Invoke-CatalogTestCli' 'pironjulien/NexusSystem'
+        Assert-True ($code -ne 0 -and -not $script:catalogueOperations.Count) 'An existing local catalogue must not be replaced by the public Git source.'
+
+        $script:catalogueEntries = @(); $script:catalogueOperations = @()
+        $code = Install-CodexMarketplace 'Invoke-CatalogTestCli' 'pironjulien/NexusSystem'
+        Assert-True ($code -eq 0 -and ($script:catalogueOperations -join ';') -ceq 'add|pironjulien/NexusSystem|--json;upgrade|nexus-plugins|--json') 'A missing public catalogue must be added then refreshed.'
+
+        $script:catalogueListFailure = $true; $script:catalogueOperations = @()
+        $code = Install-CodexMarketplace 'Invoke-CatalogTestCli' 'pironjulien/NexusSystem'
+        Assert-True ($code -ne 0 -and -not $script:catalogueOperations.Count) 'Failed catalogue inspection must not create or replace a source.'
+    }
+    Write-Host 'OK Codex: equivalent public catalogue URLs refresh in place; custom source and inspection failures are preserved'
+
     if ($LivePluginInstall) {
         Assert-True ([bool]$script:realCli) 'Live local plugin installation requires the installed signed Codex engine.'
         Initialize-Test 'real-plugin-cache'

@@ -9,7 +9,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ### Changed
 - Next Store app (1.0.13.0): request the installed public maintenance task and display dated published, installed,
-  observed and pending versions. Publishing the catalog does not deploy this separate Store package.
+  observed and pending versions. First launch establishes the same maintenance task for existing product installs,
+  without reinstalling them. Publishing the catalog does not deploy this separate Store package.
 
 ## [1.6.36] - 2026-10-30
 
@@ -21,6 +22,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
   connection retains its previous runtime. A new qualification client never substitutes for a host connection.
 
 ### Fixed
+- Existing Codex marketplace entries refresh in place when HTTPS, SSH and GitHub shorthand refer to the same Nexus
+  repository; custom sources remain untouched. Maintenance passes the current user credential to installer children
+  even when the launching AI predates installation, then restores its original process environment.
 - Existing Claude plugins are explicitly updated after their marketplace is refreshed. A refreshed listing or
   enabled setting alone is no longer treated as proof of an updated installed plugin.
 - Deferred work remains pending and is retried instead of being reported as a completed update.
