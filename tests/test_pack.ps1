@@ -202,6 +202,33 @@ try {
         "try { Get-ExpectedSha256 `$m 'missing.ps1' } catch { 'absent=refused' }"
     $result = Invoke-Pack $empty $probe
     Test-Case 'installer checksums: exact line, duplicates, malformed and absent refused' $result 0 @("ok=$('a' * 64)", 'twice=refused', 'malformed=refused', 'absent=refused')
+    # Windows PowerShell launched by PowerShell 7 inherits Core modules. Run the actual Desktop bootstrap with an
+    # intentionally polluted path, preserving user locations, then exercise its real checksum helper with a local
+    # download fixture. No network, installed product or real profile is touched.
+    $bootstrapAst = [Management.Automation.Language.Parser]::ParseFile($pack, [ref]$null, [ref]$null)
+    $bootstrap = ($bootstrapAst.FindAll({ param($a) $a -is [Management.Automation.Language.IfStatementAst] -and
+        $a.Extent.Text.StartsWith('if ($PSVersionTable.PSEdition') }, $true) | Select-Object -First 1).Extent.Text
+    if (-not $bootstrap) { throw 'Desktop module bootstrap is missing.' }
+    $verify = ($bootstrapAst.FindAll({ param($a) $a -is [Management.Automation.Language.FunctionDefinitionAst] -and
+        $a.Name -eq 'Save-VerifiedFile' }, $true) | Select-Object -First 1).Extent.Text
+    $coreModules = Join-Path $env:ProgramFiles 'PowerShell\7\Modules'
+    $customModules = Join-Path $work 'user-modules'
+    New-Item -ItemType Directory -Force $customModules | Out-Null
+    $payload = Join-Path $work 'bootstrap-payload.txt'
+    [IO.File]::WriteAllText($payload, 'NexusSystem checksum regression')
+    $hash = [Security.Cryptography.SHA256]::Create()
+    try { $expected = [BitConverter]::ToString($hash.ComputeHash([IO.File]::ReadAllBytes($payload))).Replace('-', '').ToLowerInvariant() }
+    finally { $hash.Dispose() }
+    $destination = Join-Path $work 'bootstrap-verified.txt'
+    $probe = "`$ErrorActionPreference='Stop'`n`$env:PSModulePath='$coreModules;$customModules'`n$bootstrap`n$bootstrap`n" +
+        "`$paths=@(`$env:PSModulePath -split ';')`n" +
+        "'builtin-first=' + (`$paths[0] -eq (Join-Path `$PSHOME 'Modules'))`n" +
+        "'builtin-once=' + (@(`$paths | Where-Object { `$_ -eq (Join-Path `$PSHOME 'Modules') }).Count -eq 1)`n" +
+        "'user-kept=' + (`$paths -contains '$customModules')`n" +
+        "function Invoke-WebRequest { param([switch]`$UseBasicParsing,`$Url,`$OutFile) Copy-Item -LiteralPath '$payload' -Destination `$OutFile }`n" +
+        "$verify`nSave-VerifiedFile 'https://fixture.invalid/payload' '$destination' '$expected'`n'verified=True'"
+    $result = Invoke-Pack $empty $probe
+    Test-Case 'Desktop checksum bootstrap survives inherited Core module path' $result 0 @('builtin-first=True', 'builtin-once=True', 'user-kept=True', 'verified=True')
     # NexusKeypad counts as installed from its state file or any of its editions (Test-Device, taken from the script).
     $device = ([System.Management.Automation.Language.Parser]::ParseFile($pack, [ref]$null, [ref]$null)).FindAll({
             param($ast) $ast -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $ast.Name -eq 'Test-Device' }, $true) | Select-Object -First 1

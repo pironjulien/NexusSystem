@@ -9,6 +9,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [1.6.33] - 2026-10-30
 
+### Fixed
+- Windows PowerShell 5.1 started by PowerShell 7 loads its own built-in modules before inherited Core modules;
+  checksum verification works through the CLI as well as the Store app, while preserving user module paths.
+
 ### Changed
 - Complete native Windows catalog: NexusWindows 3.9.1 starts its stable C# engine for Claude Code and Codex;
   NexusBrowser 2.33.0 reaches the shared local daemon. Their engines are installed by each product's published
@@ -18,7 +22,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Every native installer receives exactly the chosen AI apps through `NEXUS_PACK_TARGETS`; disabled products and
   per-PC preferences remain respected. Failed engine installation fails the plugin's status too.
 - The Codex NexusWindows plugin is part of this catalog, removing the dependency on the archived per-profile
-  repository. Existing native and legacy direct declarations migrate only when their exact signature is known.
+  repository. Existing native and legacy direct declarations migrate only when their exact signature is known,
+  including the versioned stdio declaration NexusBrowser 2.33.0 wrote beside a catalog plugin.
 - Removed obsolete PyPI locks, uv CI setup and PyPI smoke checks. Clean-machine CI reaches each native server
   through its AI app's installed declaration and repeats the installation to verify it stays green.
 

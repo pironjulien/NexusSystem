@@ -31,6 +31,13 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+# A Windows PowerShell child of PowerShell 7 can inherit Core modules before its own modules. Keep all user
+# locations, but put this host's built-in modules first so Get-FileHash and other cmdlets load their Desktop build.
+if ($PSVersionTable.PSEdition -eq 'Desktop') {
+    $builtinModules = Join-Path $PSHOME 'Modules'
+    $modulePaths = @($env:PSModulePath -split ';' | Where-Object { $_ -and $_ -ine $builtinModules })
+    $env:PSModulePath = (@($builtinModules) + $modulePaths) -join ';'
+}
 $EmitEvents = $Json.IsPresent
 $ProgressPreference = 'SilentlyContinue'  # Invoke-WebRequest is many times slower with its progress bar
 [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
@@ -534,7 +541,16 @@ function Test-CodexOwnedServer([string]$Text, [string]$Name) {
                 $package -match '^(--python 3\.14 )?nexus-android(==\d+\.\d+\.\d+)?$'
         }
         'nexus-browser' {
-            if ($environment.Count -ne 1 -or $environment['NEXUS_BROWSER_AGENT'] -ne 'Codex' -or $args_.Count -ne 2 -or $args_[0] -ne '-B') { return $false }
+            if ($environment.Count -ne 1 -or $environment['NEXUS_BROWSER_AGENT'] -ne 'Codex') { return $false }
+            # Native 2.33.0 wrote this direct stdio declaration beside an already installed catalog plugin. Only
+            # its immutable release directory, exact server mode and Codex tab group belong to the installer.
+            if ($command -eq 'nexusbrowser.exe' -and $args_.Count -eq 1 -and $args_[0] -ceq '--mcp') {
+                if (-not [IO.Path]::IsPathRooted([string]$root['command'])) { return $false }
+                $folder = [IO.Path]::GetFullPath((Split-Path ([string]$root['command'])))
+                $versions = [IO.Path]::GetFullPath((Join-Path $env:LOCALAPPDATA 'NexusBrowser\versions'))
+                return (Split-Path $folder) -ieq $versions -and (Split-Path $folder -Leaf) -cmatch '^[0-9a-f]{16}$'
+            }
+            if ($args_.Count -ne 2 -or $args_[0] -ne '-B') { return $false }
             $locations = @(
                 @((Join-Path $env:LOCALAPPDATA 'NexusBrowser\venv\Scripts\python.exe'), (Join-Path $env:LOCALAPPDATA 'NexusBrowser\app\client\mcp_server.py')),
                 @((Join-Path $env:USERPROFILE '.nexus\nexus-browser\venv\Scripts\python.exe'), (Join-Path $env:LOCALAPPDATA 'NexusBrowser\app\client\mcp_server.py'))

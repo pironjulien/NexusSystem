@@ -173,6 +173,14 @@ other = [
     Assert-True (-not (Test-CodexOwnedServer ($android.Replace('nexus-android==0.20.3','--from nexus-android-dev')) 'nexus-android')) 'Custom package must prevent removal.'
     Assert-True (-not (Test-CodexOwnedServer "[mcp_servers.nexus-relay]`nurl = `"http://127.0.0.1:9999/mcp?agent=codex`"`nbearer_token_env_var = `"NEXUS_MCP_TOKEN`"`n" 'nexus-relay')) 'Nonstandard relay port must prevent removal.'
     Assert-True (-not (Test-CodexOwnedServer ($android+"[mcp_servers.nexus-android.env]`nMY_SETTING = `"yes`"`n") 'nexus-android')) 'Custom env must prevent removal.'
+    $browserExe = (Join-Path $env:LOCALAPPDATA "NexusBrowser\versions\$('a' * 16)\NexusBrowser.exe") | ConvertTo-Json -Compress
+    $nativeBrowser = "[mcp_servers.nexus-browser]`ncommand = $browserExe`nargs = [`"--mcp`"]`n[mcp_servers.nexus-browser.env]`nNEXUS_BROWSER_AGENT = `"Codex`"`n"
+    Assert-True (Test-CodexOwnedServer $nativeBrowser 'nexus-browser') 'Native NexusBrowser 2.33.0 direct declaration not recognized.'
+    Assert-True (-not (Test-CodexOwnedServer ($nativeBrowser.Replace('--mcp', '--bridge')) 'nexus-browser')) 'A non-MCP Browser process must prevent removal.'
+    Assert-True (-not (Test-CodexOwnedServer ($nativeBrowser.Replace('Codex', 'Claude')) 'nexus-browser')) 'Another Browser agent must prevent removal.'
+    Assert-True (-not (Test-CodexOwnedServer ($nativeBrowser.Replace(('a' * 16), 'custom')) 'nexus-browser')) 'An unversioned Browser directory must prevent removal.'
+    Assert-True (-not (Test-CodexOwnedServer ($nativeBrowser.Replace('NexusBrowser\\versions', 'OtherBrowser\\versions')) 'nexus-browser')) 'Another Browser installation directory must prevent removal.'
+    Assert-True (-not (Test-CodexOwnedServer ($nativeBrowser + "MY_SETTING = `"yes`"`n") 'nexus-browser')) 'Custom Browser environment must prevent removal.'
     $stable = (Join-Path $env:USERPROFILE '.nexus\nexus-windows\NexusWindows.exe') | ConvertTo-Json -Compress
     $versioned = (Join-Path $env:USERPROFILE ".nexus\nexus-windows\native\$('a' * 64)\NexusWindows.exe") | ConvertTo-Json -Compress
     foreach ($exe in $stable, $versioned) {
