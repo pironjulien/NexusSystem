@@ -7,6 +7,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Fixed
+- Maintenance preserves installed repository engines and refreshes their public catalogue plugins separately.
+  A newer public release, a deferred activation or missing provenance never silently changes a development engine
+  into a public installation. The author's workstation uses the existing local app installer and repository
+  coordinator for development; no extra watcher, service or automatic Git pull is introduced.
+
 ### Changed
 - Next Store app (1.0.13.0): request the installed public maintenance task and display dated published, installed,
   observed and pending versions. First launch establishes the same maintenance task for existing product installs,

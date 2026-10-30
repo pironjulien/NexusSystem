@@ -952,14 +952,26 @@ function Install-NexusMaintenance([string]$Source,[switch]$Start) {
     $choices=Read-Json (Join-Path $env:USERPROFILE '.nexus\nexussystem.json')
     if ($choices -and $choices.autoUpdate -eq $false) { return }
     $root=Get-NexusMaintenanceRoot
-    New-Item -ItemType Directory -Force $root | Out-Null
     $destination=Join-Path $root 'get-nexus.ps1'
-    if ([IO.Path]::GetFullPath($Source) -ine [IO.Path]::GetFullPath($destination)) {
-        Copy-Item -LiteralPath $Source -Destination "$destination.$PID.tmp" -Force
-        Move-Item -LiteralPath "$destination.$PID.tmp" -Destination $destination -Force
+    $development=$choices -and $choices.PSObject.Properties['developmentCoordinator']
+    if ($development) {
+        $selected=$choices.developmentCoordinator
+        if ($selected -isnot [string] -or $selected -notmatch '^[a-zA-Z]:[\\/]' -or (Split-Path $selected -Leaf) -ine 'get-nexus.ps1' -or -not (Test-Path -LiteralPath $selected -PathType Leaf)) {
+            throw 'developmentCoordinator must name an existing local absolute get-nexus.ps1 in a repository; no public fallback was installed.'
+        }
+        $destination=[IO.Path]::GetFullPath($selected)
+        if (-not (Test-Path -LiteralPath (Join-Path (Split-Path $destination) '.git'))) {throw 'developmentCoordinator has no repository marker beside its script; no public fallback was installed.'}
+        Assert-NexusUpdateContract $destination @('Maintain','MaintenanceCurrent')
+    } else {
+        New-Item -ItemType Directory -Force $root | Out-Null
+        if ([IO.Path]::GetFullPath($Source) -ine [IO.Path]::GetFullPath($destination)) {
+            Copy-Item -LiteralPath $Source -Destination "$destination.$PID.tmp" -Force
+            Move-Item -LiteralPath "$destination.$PID.tmp" -Destination $destination -Force
+        }
     }
     $shell=Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
     $arguments='-NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -File "'+$destination+'" -Maintain'
+    if ($development) {$arguments+=' -MaintenanceCurrent'}
     $action=New-ScheduledTaskAction -Execute $shell -Argument $arguments
     $currentUser=[Security.Principal.WindowsIdentity]::GetCurrent().Name
     $triggers=@((New-ScheduledTaskTrigger -AtLogOn -User $currentUser), (New-ScheduledTaskTrigger -Once -At (Get-Date).AddHours(1) -RepetitionInterval (New-TimeSpan -Hours 1)))
@@ -1042,6 +1054,28 @@ function Get-NexusInstalledVersion($Product) {
             return $null
         }
     }
+}
+function Get-NexusInstallationSource($Product) {
+    # Preserve how the installed bytes arrived. A checkout need not still exist: removing/moving its source
+    # directory is not permission to replace the installed development engine with a public release.
+    if ($Product.Key -eq 'windows') {
+        $record=Read-Json (Join-Path $env:USERPROFILE '.nexus\nexus-windows\installation.json')
+        $source=[string]$record.SourceRoot
+        if ($source -match '^release v\d+\.\d+\.\d+$') {return 'release'}
+        if ([IO.Path]::IsPathRooted($source)) {return 'repository'}
+    } elseif ($Product.Key -eq 'browser') {
+        $current=Read-Json (Join-Path $env:LOCALAPPDATA 'NexusBrowser\current.json')
+        if ($current -and $current.exe) {
+            $record=Read-Json (Join-Path (Split-Path $current.exe) 'installation.json')
+            $source=[string]$record.repository_root
+            if ([IO.Path]::IsPathRooted($source)) {
+                $public=Join-Path $env:LOCALAPPDATA 'NexusBrowser\app'
+                if ([IO.Path]::GetFullPath($source).TrimEnd('\','/') -ieq [IO.Path]::GetFullPath($public).TrimEnd('\','/') -and -not (Test-Path -LiteralPath (Join-Path $source '.git'))) {return 'release'}
+                return 'repository'
+            }
+        }
+    }
+    return 'unknown'
 }
 function Get-NexusMaintenanceToken { return [Environment]::GetEnvironmentVariable('NEXUS_MCP_TOKEN','User') }
 function Test-NexusOwnedJsonRoute($Product,$Server,[string]$Agent) {
@@ -1280,11 +1314,12 @@ function Invoke-NexusMaintenance([switch]$Current,[switch]$Force) {
                         $tag=Get-LatestTag $product.Repo
                         if ($tag -notmatch '^v\d+\.\d+\.\d+$') { throw 'Invalid published version.' }
                         $published=$tag.Substring(1); $row.publishedVersion=$published
+                        $source=Get-NexusInstallationSource $product
                         # UpdateOnly is a qualified release contract, never sent to older installers.
                         $minimum=switch($product.Key){'windows'{'3.9.5'} 'browser'{'2.33.5'} default{$null}}
                         if (-not $minimum) { $row.state='unsupported'; $row.message='This product owns its update protocol; automatic installer migration is not qualified.' }
                         elseif (-not $installed) { $row.message='The existing installation could not be verified; no fresh installation was attempted.' }
-                        elseif ([version]$published -lt [version]$minimum) { $row.message='The published installer does not yet support preserving existing routes during maintenance.' }
+                        elseif ($source -eq 'release' -and [version]$published -lt [version]$minimum) { $row.message='The published installer does not yet support preserving existing routes during maintenance.' }
                         else {
                             $env:NEXUS_PACK_TARGETS=@($active | ForEach-Object {$_.key}) -join ','
                             $old=@($previous.products | Where-Object {$_.key -eq $product.Key}) | Select-Object -First 1
@@ -1292,7 +1327,7 @@ function Invoke-NexusMaintenance([switch]$Current,[switch]$Force) {
                             # A deferred Browser switch is retried on the next bounded cycle even after files
                             # were installed. A plain open AI connection is not a reason to reinstall Windows.
                             $retry=($product.Key -eq 'browser' -and $old -and $old.retryable)
-                            if ([version]$published -gt [version]$installed -or $profileRefresh -or $retry) {
+                            if ($source -eq 'release' -and ([version]$published -gt [version]$installed -or $profileRefresh -or $retry)) {
                                 $release=Get-NexusPublishedInstaller $product.Repo $work
                                 if ($release.tag -ne $tag) { throw 'Release changed while preparing the update; retry on the next cycle.' }
                                 $parameters=@('UpdateOnly');$arguments=@('-UpdateOnly')
@@ -1311,7 +1346,8 @@ function Invoke-NexusMaintenance([switch]$Current,[switch]$Force) {
                             }
                             foreach($integration in $active | Where-Object {$_.key -eq 'antigravity'}) {
                                 $refreshed=Get-NexusMaintenanceProfile $product 'antigravity';$integration.pluginVersion=$refreshed.pluginVersion
-                                if ($integration.pluginVersion -ne $published) {throw 'The existing Antigravity plugin has not reached the published version.'}
+                                if ($source -eq 'release' -and $integration.pluginVersion -ne $published) {throw 'The existing Antigravity plugin has not reached the published version.'}
+                                if ($source -ne 'release') {$integration.reason='The existing product-owned Antigravity plugin is preserved; this host has no Nexus public catalogue route.'}
                             }
                             $loaded=Get-NexusLoadedVersion $product
                             $row.loadedVersions=@($loaded.versions)
@@ -1328,13 +1364,20 @@ function Invoke-NexusMaintenance([switch]$Current,[switch]$Force) {
                                 } else {$integration.activationPending=$true;$integration.state='pending';$integration.reason='No matching host-owned engine attestation; the existing session is preserved.'}
                             }
                             if ($loaded.unknown -or @($loaded.versions | Where-Object {[version]$_ -ne [version]$installed}).Count) {
-                                $row.state='pending';$row.activationPending=$true;$row.retryable=($product.Key -eq 'browser'); $row.message='Installed; an older or unattested running connection is preserved until its safe reload.'
+                                $row.state='pending';$row.activationPending=$true;$row.retryable=($source -eq 'release' -and $product.Key -eq 'browser'); $row.message='Installed; an older or unattested running connection is preserved until its safe reload.'
                             } elseif (-not $loaded.versions.Count) {
-                                $row.state='pending';$row.activationPending=$true;$row.retryable=($product.Key -eq 'browser'); $row.message='Installed; no running connection has attested activation yet.'
+                                $row.state='pending';$row.activationPending=$true;$row.retryable=($source -eq 'release' -and $product.Key -eq 'browser'); $row.message='Installed; no running connection has attested activation yet.'
                             } else {
                                 $row.state='success'; $row.message='Published version installed; observed running engine versions match. Guide loading in existing chats is not attested.'
                             }
                             if (@($active | Where-Object {$_.activationPending}).Count) {$row.activationPending=$true;if($row.state -eq 'success'){$row.state='pending'}}
+                            if ($source -eq 'repository') {
+                                if ($row.state -eq 'success') {$row.state='kept'}
+                                $row.message='Repository engine preserved; only public catalogue plugins are maintained. '+$row.message.Replace('Published version installed; ','')
+                            } elseif ($source -eq 'unknown') {
+                                $row.state='pending';$row.retryable=$false
+                                $row.message='Installation provenance is unknown; no product installer was run. '+$row.message.Replace('Published version installed; ','')
+                            }
                         }
                     }
                 } catch { $row.state='failed'; $row.message=$_.Exception.Message }

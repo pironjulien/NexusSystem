@@ -53,6 +53,7 @@ function Copy-NexusLocalPayload($Payload, [string]$Destination) {
 }
 
 function Write-NexusLocalReceipt([string]$Path, $Result) {
+    [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName([IO.Path]::GetFullPath($Path))) | Out-Null
     $temporaryReceipt = $Path + '.' + [guid]::NewGuid().ToString('N') + '.tmp'
     $Result | ConvertTo-Json | Set-Content -LiteralPath $temporaryReceipt -Encoding utf8
     Move-Item -LiteralPath $temporaryReceipt -Destination $Path -Force

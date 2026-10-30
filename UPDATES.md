@@ -4,6 +4,28 @@ NexusSystem coordinates updates of installed NexusWindows and NexusBrowser engin
 integrations. Publishing source code is separate from publishing a release. Only published releases are installed;
 development checkouts are never pulled, built or changed by maintenance.
 
+## Development workstation
+
+On the author's development PC, Nexus products are built and installed from their existing local repositories.
+The same NexusSystem application is installed locally with `app/tools/install-local.ps1`; the Store is the stable
+distribution channel, not a prerequisite for testing local changes. After a change, build, install and verify the
+affected product using its existing local path. No file watcher or automatic Git pull is required.
+
+Claude and Codex keep their public catalogue plugins by default; Antigravity uses its existing installer-managed
+plugins. When developing a plugin itself, test that change locally before publishing it, with one active connector
+per product and AI. A local engine and a public connector are separate layers.
+
+An engine's installation receipt identifies a repository build. Maintenance preserves that provenance, including
+when a public release is newer, and still refreshes its public catalogue plugins. Missing or ambiguous provenance
+never authorizes replacing an installed engine. Native installation and safe activation remain the local product's
+responsibility.
+
+For this explicit development workflow, `developmentCoordinator` in `~\.nexus\nexussystem.json` selects the absolute
+path of the repository's `get-nexus.ps1`. The existing task runs it with `-Maintain -MaintenanceCurrent`: it tests
+that coordinator without replacing it with a published copy. Ordinary
+public installations keep the released, self-updating script. This selects a channel; it does not create a second
+coordinator or silently rebuild work in progress.
+
 ## Distribution
 
 After a successful installation, the pack keeps its maintenance script under
