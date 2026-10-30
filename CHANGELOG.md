@@ -114,11 +114,21 @@ on a local branch to be applied product by product.
 - `INSTALL-AI.md`: structured installation and verification guide for AI coding agents (Claude Code, Codex, Antigravity), supporting à-la-carte product selection (`-Only ... -NoGuide`).
 - Updated `README.md` to put AI-driven installation first alongside the `NexusSystem` app and the one-line PowerShell installer.
 
+## [app 1.0.12.0] - 2026-10-30
+
+Prepared for the Microsoft Store; not submitted yet.
+
+### Fixed
+- Embeds corrected catalog 1.6.34, including Keypad's selected public marketplace and the signed Claude Code
+  engine bundled with Claude Desktop when it is not on PATH. The app uses the same verified installer script as
+  the standalone pack.
+
 ## [app 1.0.11.0] - 2026-10-30
 
-Submitted to the Microsoft Store on 2026-10-30 (submission 9); in certification. The x64 and Arm64 bundle embeds
-the exact released catalog script. French and English native smoke checks and all 24 Windows App Certification Kit
-checks passed in disposable Windows Sandbox sessions; no development certificate was installed on the host.
+Submitted to the Microsoft Store on 2026-10-30 (submission 9), then certification cancelled before publishing when
+the Keypad public/private marketplace regression was confirmed. The submission returned to a private draft for the
+corrected package. French and English native smoke checks and all 24 Windows App Certification Kit checks passed
+in disposable Windows Sandbox sessions; no development certificate was installed on the host.
 
 ### Fixed
 - Home cards reserve the full remaining width for product names and installation states; the page link sits below
