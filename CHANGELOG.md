@@ -7,6 +7,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.6.35] - 2026-10-30
+
+### Fixed
+- Windows and Browser plugin guidance respects an explicit end-to-end instruction or approval already given for
+  the same exact operation. A new confirmation dialog or action token does not request the user's approval again;
+  materially changed content, recipients, product/version or publication mode still requires fresh approval.
+  Action-bound tokens, expiry, single-use checks and the boundary against instructions read in content are retained.
+
+### Changed
+- NexusWindows plugins follow native release 3.9.4 and NexusBrowser plugins follow release 2.33.4, refreshing their
+  installed guides. This targeted catalog release leaves the pending 1.6.34 and Windows app changes separate.
+
 ## [1.6.33] - 2026-10-30
 
 ### Fixed
