@@ -14,10 +14,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
   checksum verification works through the CLI as well as the Store app, while preserving user module paths.
 
 ### Changed
-- Complete native Windows catalog: NexusWindows 3.9.1 starts its stable C# engine for Claude Code and Codex;
-  NexusBrowser 2.33.0 reaches the shared local daemon. Their engines are installed by each product's published
+- Complete native Windows catalog: NexusWindows 3.9.2 starts its stable C# engine for Claude Code and Codex;
+  NexusBrowser 2.33.1 reaches the shared local daemon. Their engines are installed by each product's published
   `get.ps1`, checked against release SHA-256 sums and run as files. No Python, uv or Node.js prerequisite remains.
-- NexusAndroid 0.22.4 and NexusRelay 1.10.3 catalog versions match their corrected native releases and refresh
+- NexusAndroid 0.22.5 and NexusRelay 1.10.4 catalog versions match their corrected native releases and refresh
   existing plugin caches. The three local daemons share one stable token file guarded by a sibling lock file.
 - Every native installer receives exactly the chosen AI apps through `NEXUS_PACK_TARGETS`; disabled products and
   per-PC preferences remain respected. Failed engine installation fails the plugin's status too.
