@@ -48,6 +48,12 @@ public class InstallTests
                     var declared = Declared(ai, product);
                     if (declared is null) { failures.Add($"{label}: not declared"); continue; }
                     var (name, version, tools) = await Reach(declared);
+                    var catalogManifest = Repository.PathOf($"plugins/{Servers[product]}/.claude-plugin/plugin.json");
+                    if (File.Exists(catalogManifest) && (string?)ReadJson(catalogManifest)?["version"] is { } expected && version != expected)
+                    {
+                        failures.Add($"{label}: initialize reports version {version}, catalog requires {expected}");
+                        continue;
+                    }
                     TestContext.Current.TestOutputHelper?.WriteLine($"OK {label}: {name} {version}, {tools} tools");
                 }
                 catch (Exception error) when (error is IOException or InvalidDataException or HttpRequestException or TimeoutException or InvalidOperationException or System.ComponentModel.Win32Exception)

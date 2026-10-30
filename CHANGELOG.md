@@ -25,7 +25,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
   repository. Existing native and legacy direct declarations migrate only when their exact signature is known,
   including the versioned stdio declaration NexusBrowser 2.33.0 wrote beside a catalog plugin.
 - Removed obsolete PyPI locks, uv CI setup and PyPI smoke checks. Clean-machine CI reaches each native server
-  through its AI app's installed declaration and repeats the installation to verify it stays green.
+  through its AI app's installed declaration, requires initialize to report the catalog version, and repeats the
+  installation to verify it stays green.
 
 ## [1.6.32] - 2026-10-30
 
