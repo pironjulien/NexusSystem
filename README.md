@@ -70,6 +70,11 @@ extension in Chrome (the installer opens the page and tells you what to click), 
 add the relay's project in Codex once, connect your own Google account to NexusAGYmail, place the keypad's keys, and
 restart your AI apps. A product that does not fit this PC (no Antigravity, no Logi Options+…) is shown, with why. Run the same line again to update or repair: every installer only does what is missing.
 
+After installation, NexusSystem checks published updates in the background and retries deferred Windows and
+Browser updates. Installation and activation are reported separately: a working AI connection keeps its state
+until it can normally reload. See [Updates](UPDATES.md) for distribution, verification and the separate Chrome
+Web Store update cycle.
+
 Options: `-Only` and `-Skip` take product names (`windows`, `android`, `browser`, `relay`, `agymail`, `keypad`) or AI app names (`claude-code`,
 `claude-desktop`, `codex`, `antigravity`); `-DryRun` shows the plan and installs nothing. Each product has one installer for every AI app: it is told the AI apps
 chosen here and adds no second server beside a plugin. For example:
