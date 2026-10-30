@@ -1,5 +1,7 @@
 # Offline tests of get-nexus.ps1 under Windows PowerShell 5.1: detection of the AI apps, plan, -Only/-Skip, both ways
 # of starting it as a file, on throwaway profiles. Nothing is installed (-DryRun, or no AI app found).
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidOverwritingBuiltInCmdlets', '', Justification = 'Discovery mocks exist only in the isolated fixture scope of this test process; no fake executable is run.')]
+param()
 $ErrorActionPreference = 'Stop'
 $pack = Join-Path (Split-Path $PSScriptRoot) 'get-nexus.ps1'
 $work = Join-Path ([IO.Path]::GetTempPath()) "nexus-pack-test-$PID"
@@ -229,6 +231,70 @@ try {
         "$verify`nSave-VerifiedFile 'https://fixture.invalid/payload' '$destination' '$expected'`n'verified=True'"
     $result = Invoke-Pack $empty $probe
     Test-Case 'Desktop checksum bootstrap survives inherited Core module path' $result 0 @('builtin-first=True', 'builtin-once=True', 'user-kept=True', 'verified=True')
+    # Bundled Claude Code discovery: inert executables plus simulated signatures. The function only discovers a
+    # path; it must never execute any fixture, change a profile, or inspect candidates outside Desktop's layout.
+    & {
+        $root = Initialize-Profile 'claude-bundled' @()
+        $savedUser = $env:USERPROFILE; $savedLocal = $env:LOCALAPPDATA; $savedRoaming = $env:APPDATA
+        try {
+            $env:USERPROFILE = $root; $env:LOCALAPPDATA = Join-Path $root 'AppData\Local'; $env:APPDATA = Join-Path $root 'AppData\Roaming'
+            . ([scriptblock]::Create(($bootstrapAst.FindAll({ param($a) $a -is [Management.Automation.Language.FunctionDefinitionAst] -and
+                $a.Name -eq 'Get-ClaudeCli' }, $true) | Select-Object -First 1).Extent.Text))
+            $script:claudeSigned = @(); $script:claudeChecks = @(); $script:claudeWrongProduct = $false; $script:claudeWrongSigner = $false; $script:claudeWrongVersion = $false
+            function Get-Command([string]$Name) {
+                if ($Name -eq 'claude') { return $null }
+                return Microsoft.PowerShell.Core\Get-Command $Name -ErrorAction SilentlyContinue
+            }
+            function Get-AuthenticodeSignature([string]$LiteralPath) {
+                $script:claudeChecks += $LiteralPath
+                return [pscustomobject]@{ Status = $(if ($script:claudeSigned -contains $LiteralPath) { 'Valid' } else { 'NotSigned' });
+                    SignerCertificate = [pscustomobject]@{ Subject = $(if ($script:claudeWrongSigner) { 'CN="Other Publisher", O="Other Publisher", C=US' } else { 'CN="Anthropic, PBC", O="Anthropic, PBC", C=US' }) } }
+            }
+            function Get-Item([string]$LiteralPath) {
+                $item = Microsoft.PowerShell.Management\Get-Item -LiteralPath $LiteralPath
+                if ($item.Name -ne 'claude.exe') { return $item }
+                $version = Split-Path (Split-Path (Split-Path $LiteralPath)) -Leaf
+                return [pscustomobject]@{ Attributes=$item.Attributes; VersionInfo=[pscustomobject]@{
+                    ProductName=$(if ($script:claudeWrongProduct) { 'Claude Desktop' } else { 'Claude Code' });
+                    CompanyName='Anthropic PBC'; ProductVersion=$(if ($script:claudeWrongVersion) { '9.9.9.0' } else { "$version.0" }) } }
+            }
+            if ($null -ne (Get-ClaudeCli)) { throw 'Absent Claude CLI must not be invented.' }
+            $data = Join-Path $env:LOCALAPPDATA 'Claude-Data\AnthropicPBC.Claude_test\claude-code'
+            $good = Join-Path $data '2.3.4\abcdef012345\claude.exe'
+            $unsigned = Join-Path $data '2.3.5\abcdef012346\claude.exe'
+            $source = Join-Path $env:LOCALAPPDATA 'Claude-Data\Unrelated_app\claude-code\9.9.9\abcdef012345\claude.exe'
+            foreach ($file in $good, $unsigned, $source) {
+                New-Item -ItemType Directory -Force (Split-Path $file) | Out-Null
+                [IO.File]::WriteAllText($file, 'Inert fixture: execution must fail.')
+            }
+            if ($null -ne (Get-ClaudeCli)) { throw 'Unsigned bundled Claude engine must be refused.' }
+            $script:claudeSigned = @($good, $source)
+            if ((Get-ClaudeCli) -ne $good) { throw 'Signed bundled Code engine missing, or unsigned newer engine selected.' }
+            if ($script:claudeChecks -contains $source) { throw 'Unrelated source directory reached signature inspection.' }
+            $script:claudeWrongProduct = $true
+            if ($null -ne (Get-ClaudeCli)) { throw 'Another signed Anthropic product must be refused.' }
+            $script:claudeWrongProduct = $false
+            $script:claudeWrongSigner = $true
+            if ($null -ne (Get-ClaudeCli)) { throw 'A valid signature from another publisher must be refused.' }
+            $script:claudeWrongSigner = $false
+            $script:claudeWrongVersion = $true
+            if ($null -ne (Get-ClaudeCli)) { throw 'Signed engine metadata must match its version directory.' }
+            $script:claudeWrongVersion = $false
+            $moved = Join-Path $env:LOCALAPPDATA 'Claude-Data\AnthropicPBC.Claude_test\.user-data-left.fixture'
+            New-Item -ItemType File -Path $moved | Out-Null
+            if ($null -ne (Get-ClaudeCli)) { throw 'A Desktop data directory marked as moved must be refused.' }
+            Remove-Item -LiteralPath $moved
+            $packaged = Join-Path $env:LOCALAPPDATA 'Packages\AnthropicPBC.Claude_fixture\LocalCache\Roaming\Claude\claude-code\2.4.1\abcdef012347\claude.exe'
+            New-Item -ItemType Directory -Force (Split-Path $packaged) | Out-Null
+            [IO.File]::WriteAllText($packaged, 'Inert packaged fixture: execution must fail.')
+            $script:claudeSigned = @($packaged)
+            if ((Get-ClaudeCli) -ne $packaged) { throw 'Registered-package Desktop data layout must be discovered.' }
+            if (Test-Path -LiteralPath (Join-Path $root '.claude')) { throw 'Discovery must not create a Claude profile.' }
+            Write-Host 'OK Claude: signed bundled engine discovered without PATH, execution or profile changes; unsigned/source/wrong-product/moved candidates refused'
+        } finally {
+            $env:USERPROFILE = $savedUser; $env:LOCALAPPDATA = $savedLocal; $env:APPDATA = $savedRoaming
+        }
+    }
     # NexusKeypad counts as installed from its state file or any of its editions (Test-Device, taken from the script).
     $device = ([System.Management.Automation.Language.Parser]::ParseFile($pack, [ref]$null, [ref]$null)).FindAll({
             param($ast) $ast -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $ast.Name -eq 'Test-Device' }, $true) | Select-Object -First 1

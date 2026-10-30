@@ -94,6 +94,64 @@ function Get-ClaudeCli {
     if ($cli) { return $cli.Source }
     $local = Join-Path $env:USERPROFILE '.local\bin\claude.exe'
     if (Test-Path -LiteralPath $local) { return $local }
+
+    # Claude Desktop's installed Code engine need not be on PATH. Search only Desktop's known data layouts,
+    # never a source checkout or an arbitrary claude.exe found recursively. Discovery executes nothing.
+    $roots = @(Join-Path $env:APPDATA 'Claude')
+    foreach ($layout in @(
+        @{ Root = (Join-Path $env:LOCALAPPDATA 'Claude-Data'); Suffix = '' },
+        @{ Root = (Join-Path $env:LOCALAPPDATA 'Packages'); Suffix = 'LocalCache\Roaming\Claude' }
+    )) {
+        if (-not (Test-Path -LiteralPath $layout.Root -PathType Container)) { continue }
+        if ((Get-Item -LiteralPath $layout.Root).Attributes -band [IO.FileAttributes]::ReparsePoint) { continue }
+        foreach ($package in @(Get-ChildItem -LiteralPath $layout.Root -Directory -ErrorAction SilentlyContinue)) {
+            if ($package.Name -notmatch '^AnthropicPBC\.Claude_[a-z0-9]+$' -or
+                ($package.Attributes -band [IO.FileAttributes]::ReparsePoint)) { continue }
+            $desktop = $package.FullName
+            $safe = $true
+            foreach ($part in @($layout.Suffix -split '\\' | Where-Object { $_ })) {
+                $desktop = Join-Path $desktop $part
+                if (-not (Test-Path -LiteralPath $desktop -PathType Container) -or
+                    ((Get-Item -LiteralPath $desktop).Attributes -band [IO.FileAttributes]::ReparsePoint)) { $safe = $false; break }
+            }
+            if ($safe) { $roots += $desktop }
+        }
+    }
+    foreach ($root in @($roots | Select-Object -Unique)) {
+        if (-not (Test-Path -LiteralPath $root -PathType Container)) { continue }
+        if ((Get-Item -LiteralPath $root).Attributes -band [IO.FileAttributes]::ReparsePoint) { continue }
+        if (Get-ChildItem -LiteralPath $root -Force -Filter '.user-data-left.*' -ErrorAction SilentlyContinue) { continue }
+        $code = Join-Path $root 'claude-code'
+        if (-not (Test-Path -LiteralPath $code -PathType Container) -or
+            ((Get-Item -LiteralPath $code).Attributes -band [IO.FileAttributes]::ReparsePoint)) { continue }
+        $versions = @(Get-ChildItem -LiteralPath $code -Directory -ErrorAction SilentlyContinue | Where-Object {
+            $parsedVersion = $null
+            $_.Name -match '^\d+\.\d+\.\d+$' -and [version]::TryParse($_.Name, [ref]$parsedVersion) -and
+                -not ($_.Attributes -band [IO.FileAttributes]::ReparsePoint)
+        } | Sort-Object { [version]$_.Name } -Descending)
+        foreach ($version in $versions) {
+            $builds = @(Get-ChildItem -LiteralPath $version.FullName -Directory -ErrorAction SilentlyContinue | Where-Object {
+                $_.Name -cmatch '^[0-9a-f]{12,64}$' -and -not ($_.Attributes -band [IO.FileAttributes]::ReparsePoint)
+            } | Sort-Object LastWriteTimeUtc -Descending)
+            foreach ($build in $builds) {
+                $candidate = Join-Path $build.FullName 'claude.exe'
+                if (-not (Test-Path -LiteralPath $candidate -PathType Leaf)) { continue }
+                $file = Get-Item -LiteralPath $candidate
+                if ($file.Attributes -band [IO.FileAttributes]::ReparsePoint) { continue }
+                try { $signature = Get-AuthenticodeSignature -LiteralPath $candidate -ErrorAction Stop }
+                catch { continue }
+                if ($signature.Status -ne 'Valid' -or -not $signature.SignerCertificate -or
+                    $signature.SignerCertificate.Subject -notmatch '(^|,\s*)(CN|O)="Anthropic, PBC"(?=,|$)') { continue }
+                # Read the signed file's identity only after authenticating it. Another Anthropic application is
+                # not a Code engine, even if somebody placed it in a Desktop engine directory.
+                $identity = $file.VersionInfo
+                if ($identity.ProductName -ne 'Claude Code' -or $identity.CompanyName -ne 'Anthropic PBC' -or
+                    $identity.ProductVersion -notmatch '^([0-9]+\.[0-9]+\.[0-9]+)(?:\.0)?$' -or
+                    $Matches[1] -ne $version.Name) { continue }
+                return $candidate
+            }
+        }
+    }
     return $null
 }
 

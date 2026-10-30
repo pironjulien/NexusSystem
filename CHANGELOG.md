@@ -7,6 +7,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.6.34] - 2026-10-30
+
+### Fixed
+- Discover Claude Desktop's installed, signed Claude Code engine when it is not on PATH. Only known Desktop data
+  layouts, semantic version directories and immutable build directories are inspected. Bundled engines require a
+  valid Anthropic signature and matching Claude Code identity before selection; discovery runs no executable and
+  changes no profile, plugin, cache or trust setting. Existing PATH and user-local installations remain supported.
+- NexusKeypad's Claude plugin follows native release 1.8.8, whose connector preserves an existing public
+  `nexus-plugins` selection instead of reactivating the retired private catalog. The version change refreshes the
+  public plugin cache; the helper still comes from NexusKeypad's signed release.
+
 ## [1.6.33] - 2026-10-30
 
 ### Fixed
