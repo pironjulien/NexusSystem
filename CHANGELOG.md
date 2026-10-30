@@ -7,10 +7,6 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
-### Fixed
-- Home cards reserve the full remaining width for product names and installation states; the page link sits below
-  the text. The product-section advice wraps below its heading instead of being clipped by the selection actions.
-
 ## [1.6.33] - 2026-10-30
 
 ### Fixed
@@ -109,7 +105,13 @@ on a local branch to be applied product by product.
 
 ## [app 1.0.11.0] - 2026-10-30
 
-Prepared for the Microsoft Store; not submitted yet.
+Submitted to the Microsoft Store on 2026-10-30 (submission 9); in certification. The x64 and Arm64 bundle embeds
+the exact released catalog script. French and English native smoke checks and all 24 Windows App Certification Kit
+checks passed in disposable Windows Sandbox sessions; no development certificate was installed on the host.
+
+### Fixed
+- Home cards reserve the full remaining width for product names and installation states; the page link sits below
+  the text. The product-section advice wraps below its heading instead of being clipped by the selection actions.
 
 ### Changed
 - Embeds catalog 1.6.33 so the app's Install button uses the complete native Windows installation, including
@@ -118,7 +120,7 @@ Prepared for the Microsoft Store; not submitted yet.
 
 ## [app 1.0.10.0] - 2026-10-30
 
-Submitted to the Store on 2026-10-30 (submission 8).
+Published on the Store on 2026-10-30 (submission 8).
 
 ### Changed
 - Reads the common journal from `%USERPROFILE%\.nexus\journal`, where every Nexus product now writes it (AppData is
