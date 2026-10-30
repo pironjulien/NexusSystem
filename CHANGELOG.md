@@ -22,7 +22,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [app 1.0.10.0] - 2026-10-30
 
-Prepared on 2026-10-30, sent to the Store once 1.0.9.0 is published.
+Submitted to the Store on 2026-10-30 (submission 8).
 
 ### Changed
 - Reads the common journal from `%USERPROFILE%\.nexus\journal`, where every Nexus product now writes it (AppData is
