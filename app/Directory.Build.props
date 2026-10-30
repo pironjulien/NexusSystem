@@ -4,6 +4,6 @@
   <!-- The app's version, its only source: assemblies, NexusSystem.exe's file version and, through tools/package.ps1,
        the package manifest. Four numbers ending in .0 (the Store reserves the last one). -->
   <PropertyGroup>
-    <Version>1.0.11.0</Version>
+    <Version>1.0.12.0</Version>
   </PropertyGroup>
 </Project>
