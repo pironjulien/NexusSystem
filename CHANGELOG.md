@@ -7,6 +7,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Fixed
+- Home cards reserve the full remaining width for product names and installation states; the page link sits below
+  the text. The product-section advice wraps below its heading instead of being clipped by the selection actions.
+
 ## [1.6.33] - 2026-10-30
 
 ### Fixed

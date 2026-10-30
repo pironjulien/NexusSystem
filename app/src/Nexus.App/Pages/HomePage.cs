@@ -73,7 +73,7 @@ public sealed partial class HomePage : UserControl
         var productsHeader = new Grid { ColumnSpacing = 16 };
         productsHeader.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         productsHeader.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        var titleRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12, VerticalAlignment = VerticalAlignment.Center };
+        var titleRow = new StackPanel { Spacing = 4, VerticalAlignment = VerticalAlignment.Center };
         titleRow.Children.Add(Ui.Subtitle(Text.Get("Products")));
         var hint = Ui.Body(Text.Get("ProductsHint"), secondary: true);
         hint.FontSize = 12.5;
@@ -149,10 +149,11 @@ public sealed partial class HomePage : UserControl
         };
 
         var topRow = new Grid { ColumnSpacing = 10 };
+        topRow.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        topRow.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         topRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         topRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         topRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        topRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
         var pick = new CheckBox
         {
@@ -161,6 +162,7 @@ public sealed partial class HomePage : UserControl
             MinWidth = 0,
             VerticalAlignment = VerticalAlignment.Center,
         };
+        Grid.SetRowSpan(pick, 2);
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(pick, product.Name);
         picks[product.Key] = pick;
         topRow.Children.Add(pick);
@@ -168,18 +170,22 @@ public sealed partial class HomePage : UserControl
         var logo = Ui.Logo(product.Key, 44);
         logo.VerticalAlignment = VerticalAlignment.Center;
         Grid.SetColumn(logo, 1);
+        Grid.SetRowSpan(logo, 2);
         topRow.Children.Add(logo);
 
-        var titleStack = Ui.Column(2, Ui.Strong(product.Name));
+        var title = Ui.Strong(product.Name);
+        title.TextWrapping = TextWrapping.Wrap;
+        var titleStack = Ui.Column(2, title);
         if (state.Length > 0)
             titleStack.Children.Add(new TextBlock { Text = state, FontSize = 11.5, TextWrapping = TextWrapping.WrapWholeWords, Foreground = Ui.AccentText(product.Accent) });
         titleStack.VerticalAlignment = VerticalAlignment.Center;
         Grid.SetColumn(titleStack, 2);
         topRow.Children.Add(titleStack);
 
-        var open = new HyperlinkButton { Content = Text.Get("OpenPage"), VerticalAlignment = VerticalAlignment.Center, Padding = new Thickness(6, 2, 6, 2) };
+        var open = new HyperlinkButton { Content = Text.Get("OpenPage"), HorizontalAlignment = HorizontalAlignment.Left, Padding = new Thickness(0, 2, 0, 2) };
         open.Click += (_, _) => window?.Open(product);
-        Grid.SetColumn(open, 3);
+        Grid.SetColumn(open, 2);
+        Grid.SetRow(open, 1);
         topRow.Children.Add(open);
 
         var desc = Ui.Body(about, secondary: true);
