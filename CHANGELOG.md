@@ -16,6 +16,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
   development build (passing `NEXUS_RELEASE_TAG` to the product's installer, still checked against that release's
   checksums). Build provenance is accepted from the release tag or from `main`, where development builds, and the
   stable releases promoted from them unchanged, are attested.
+- Shared release workflows for the products (`workflow_call`): `product-dev-release.yml` attests a tested build and
+  publishes it as the pre-release `vX.Y.Z-dev.N` (five kept); `product-promote.yml` publishes the same files as the
+  stable `vX.Y.Z` with the CHANGELOG section, then the product's `server.json` to the MCP registry. Each product keeps
+  only its own test and build steps.
 
 ## [1.6.38] - 2026-10-31
 
