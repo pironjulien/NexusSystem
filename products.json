@@ -101,7 +101,8 @@
       "key": "indesign",
       "name": "NexusInDesign",
       "group": "adobe",
-      "state": "soon",
+      "state": "ready",
+      "repository": "NexusInDesign",
       "accent": "#e749a0",
       "about": {
         "fr": "Adobe InDesign piloté par vos IA : mises en page, styles et exports, avec retour arrière.",

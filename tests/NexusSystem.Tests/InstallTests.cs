@@ -18,7 +18,7 @@ public class InstallTests
     static readonly Dictionary<string, string> Servers = new()
     {
         ["windows"] = "nexus-windows", ["android"] = "nexus-android", ["browser"] = "nexus-browser",
-        ["relay"] = "nexus-relay", ["agymail"] = "nexus-agymail",
+        ["relay"] = "nexus-relay", ["agymail"] = "nexus-agymail", ["indesign"] = "nexus-indesign",
     };
     // Current name first, then the former one of an installation not migrated yet.
     static readonly Dictionary<string, string[]> AntigravityPlugins = new()
@@ -27,7 +27,10 @@ public class InstallTests
         ["relay"] = ["nexus-relay"], ["agymail"] = ["nexus-agymail"],
     };
     // The AI apps a product serves (get-nexus.ps1): Claude Desktop's chat is not a relay client, AGYmail is for Antigravity.
-    static readonly Dictionary<string, string[]> NotServed = new() { ["relay"] = ["claude-desktop"], ["agymail"] = ["claude-code", "claude-desktop", "codex"] };
+    static readonly Dictionary<string, string[]> NotServed = new()
+    {
+        ["relay"] = ["claude-desktop"], ["agymail"] = ["claude-code", "claude-desktop", "codex"], ["indesign"] = ["claude-desktop", "antigravity"],
+    };
     static string Home => Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
 
     [Fact]

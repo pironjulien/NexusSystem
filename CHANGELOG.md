@@ -10,6 +10,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 ### Security
 - CodeQL (GitHub default setup) and the OpenSSF Scorecard workflow run again on every push to main.
 
+## [1.6.45] - 2026-10-31
+
+### Added
+- NexusInDesign is installable (`-Only indesign`): its `get.ps1` installs the native engine
+  (`~\.nexus\nexus-indesign\NexusInDesign.exe`: Adobe InDesign through COM, no Node.js, no UXP plugin) and Claude Code
+  and Codex get the `nexus-indesign` plugin from both catalogs (pinned to NexusInDesign v4.0.0); maintenance updates
+  its engine like NexusAGYmail's. The app shows it as ready (`products.json` and its built-in product) and recognises
+  its server and the former Node.js one.
+
 ## [1.6.44] - 2026-10-31
 
 ### Fixed
