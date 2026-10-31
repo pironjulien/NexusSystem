@@ -16,7 +16,7 @@ public class CatalogTests
     static readonly Regex SemVer = new(@"^\d+\.\d+\.\d+$");
     static readonly Regex KebabCase = new(@"^[a-z0-9]+(-[a-z0-9]+)*$");
     static readonly string[] Plugins = ["nexus-android", "nexus-windows", "nexus-browser", "nexus-relay", "nexus-keypad"];
-    static readonly string[] CodexPlugins = ["nexus-android", "nexus-windows", "nexus-browser", "nexus-relay"];
+    static readonly string[] CodexPlugins = ["nexus-android", "nexus-windows", "nexus-browser", "nexus-relay", "nexus-keypad"];
     const string StableWindows = @"${USERPROFILE}\.nexus\nexus-windows\NexusWindows.exe";
 
     /// <summary>Exactly what each Claude Code plugin declares (the private catalog's native forms, public).</summary>
@@ -36,6 +36,7 @@ public class CatalogTests
         ["nexus-android"] = """{"nexus-android":{"url":"http://127.0.0.1:16180/mcp","bearer_token_env_var":"NEXUS_MCP_TOKEN","startup_timeout_sec":60}}""",
         ["nexus-browser"] = """{"nexus-browser":{"url":"http://127.0.0.1:16182/mcp?agent=codex","bearer_token_env_var":"NEXUS_MCP_TOKEN","startup_timeout_sec":60}}""",
         ["nexus-windows"] = """{"nexus-windows":{"command":"cmd.exe","args":["/d","/c","cd","/d","%USERPROFILE%\\.nexus\\nexus-windows","&&",".\\NexusWindows.exe","--mcp","--agent","codex"],"startup_timeout_sec":120}}""",
+        // nexus-keypad: hooks only, no MCP server.
     };
 
     static JsonArray Entries(string marketplace) => Repository.Json(marketplace)["plugins"]!.AsArray();
@@ -62,11 +63,8 @@ public class CatalogTests
         Assert.False(string.IsNullOrEmpty((string?)market["owner"]?["name"]));
         Assert.Matches(SemVer, (string?)market["metadata"]?["version"] ?? "");
         Assert.Equal(Plugins, Entries(ClaudeCatalog).Select(e => (string?)e!["name"]));
-        // The keypad connector is the one copy left here: its installer still writes this PC's program path into the
-        // Codex and Antigravity hooks, so its repository folder cannot be installed unchanged yet.
-        foreach (var entry in Entries(ClaudeCatalog).Where(e => (string?)e!["name"] != "nexus-keypad")) PluginSources.AssertPinned(entry!);
-        Assert.Equal(["nexus-keypad"], Repository.TrackedFiles().Where(f => f.StartsWith("plugins/", StringComparison.Ordinal))
-            .Select(f => f.Split('/')[1]).Distinct());
+        foreach (var entry in Entries(ClaudeCatalog)) PluginSources.AssertPinned(entry!);
+        Assert.DoesNotContain(Repository.TrackedFiles(), f => f.StartsWith("plugins/", StringComparison.Ordinal));
         Assert.DoesNotContain(Repository.TrackedFiles(), f => f.StartsWith("codex/", StringComparison.Ordinal));
     }
 
@@ -182,11 +180,9 @@ public class CatalogTests
         Assert.Equal(name, (string?)manifest["name"]);
         Assert.Equal((string?)claude["version"], (string?)manifest["version"]);
         Assert.Equal((string?)claude["description"], (string?)manifest["description"]);
-        var mcpFile = (string?)manifest["mcpServers"] ?? "";
-        Assert.StartsWith("./", mcpFile);
         var skillsFolder = (string?)manifest["skills"] ?? "";
         Assert.StartsWith("./", skillsFolder);
-        if (name != "nexus-relay") Assert.Null(manifest["hooks"]);
+        if (name is not ("nexus-relay" or "nexus-keypad")) Assert.Null(manifest["hooks"]);
         Assert.False(string.IsNullOrEmpty((string?)manifest["interface"]?["displayName"]));
         foreach (var (field, size) in new[] { ("composerIcon", 64), ("logo", 512) })
         {
@@ -194,8 +190,14 @@ public class CatalogTests
             Assert.StartsWith("./assets/", relative);
             Assert.Equal((size, size), Repository.PngSizeOf(Under(folder, relative)));
         }
-        var servers = Json(folder, mcpFile)["mcpServers"];
-        Assert.True(JsonNode.DeepEquals(JsonNode.Parse(CodexServers[name]), servers), $"{name}: .mcp.json must be exactly {CodexServers[name]}");
+        if (CodexServers.TryGetValue(name, out var expected))
+        {
+            var mcpFile = (string?)manifest["mcpServers"] ?? "";
+            Assert.StartsWith("./", mcpFile);
+            var servers = Json(folder, mcpFile)["mcpServers"];
+            Assert.True(JsonNode.DeepEquals(JsonNode.Parse(expected), servers), $"{name}: .mcp.json must be exactly {expected}");
+        }
+        else Assert.Null(manifest["mcpServers"]);
         var skill = Path.Combine(Under(folder, skillsFolder), name, "SKILL.md");
         var meta = Repository.FrontMatterOf(skill);
         Assert.Equal(name, meta.GetValueOrDefault("name"));
@@ -324,5 +326,21 @@ public class CatalogTests
                   "Stop":[{"hooks":[{"type":"command","command":"{{{guard}}} --finish-session","timeout":15,"async":false}]}]}}
                 """;
             Assert.True(JsonNode.DeepEquals(JsonNode.Parse(expected), manifest["hooks"]), "relay: native edit guard from its stable path");
+    }
+
+    [Fact]
+    public void CodexKeypadHooksCallOnlyItsNativeHelper()
+    {
+        // Codex's lifecycle events, synchronous, to the helper NexusKeypad installs at a stable place; cmd.exe expands
+        // %LOCALAPPDATA%, so the catalog copy needs nothing of this PC.
+        var events = Json(Folder(CodexCatalog, "nexus-keypad"), ".codex-plugin/plugin.json")["hooks"]!["hooks"]!.AsObject();
+        Assert.Equal(["SessionStart", "UserPromptSubmit", "PreToolUse", "PermissionRequest", "PostToolUse", "SubagentStart",
+            "SubagentStop", "Stop", "Interrupt", "SessionEnd"], events.Select(e => e.Key));
+        foreach (var (eventName, groups) in events)
+        {
+            var hook = Assert.Single(Assert.Single(groups!.AsArray())!["hooks"]!.AsArray())!;
+            Assert.Equal($"cmd.exe /d /c \"%LOCALAPPDATA%\\NexusKeypad\\hook\\nexuskeypad-hook.exe\" codex {eventName}", (string?)hook["command"]);
+            Assert.False((bool?)hook["async"]);
+        }
     }
 }

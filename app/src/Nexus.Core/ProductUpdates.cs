@@ -1,4 +1,3 @@
-using System.IO.Pipes;
 using System.Net;
 using System.Text.Json;
 
@@ -44,7 +43,7 @@ public enum UpdateRequest
 }
 
 /// <summary>
-/// The hub requests the installed NexusSystem maintenance task when available for Browser and Windows.
+/// The hub requests the installed NexusSystem maintenance task when available for Browser, Windows and Keypad.
 /// Older installations retain the product-owned update interfaces. The hub never executes an installer.
 /// </summary>
 public static class ProductUpdates
@@ -96,7 +95,6 @@ public static class ProductUpdates
     {
         "relay" => Environment.GetEnvironmentVariable("NEXUS_MCP_TOKEN") is { Length: > 0 } || UserToken() is not null,
         "browser" => File.Exists(BrowserBridge.TokenFile(folders)),
-        "keypad" => Directory.Exists(Path.Combine(folders.LocalAppData, "Logi", "LogiPluginService", "Plugins", "NexusKeypad")),
         _ => false,
     };
 
@@ -109,15 +107,11 @@ public static class ProductUpdates
     {
         "relay" => RelayAsync(http, cancel),
         "browser" => BrowserAsync(http, cancel),
-        "keypad" => KeypadAsync(cancel),
         _ => Task.FromResult(UpdateRequest.Unreachable),
     };
 
     /// <summary>NexusRelay's daemon API (tests point it at a stand-in).</summary>
     public static string RelayApi { get; set; } = "http://127.0.0.1:16181";
-
-    /// <summary>NexusKeypad's pipe (tests point it at a stand-in).</summary>
-    public static string KeypadPipe { get; set; } = "nexus-trinite-pad";
 
     // NexusRelay 1.3.1: 202 started (or already running), 200 up to date, 409 an install that does not update itself.
     static async Task<UpdateRequest> RelayAsync(HttpClient http, CancellationToken cancel)
@@ -166,24 +160,4 @@ public static class ProductUpdates
 
     // The installer sets NEXUS_MCP_TOKEN as a user variable: an app started before it does not have it yet.
     static string? UserToken() => Environment.GetEnvironmentVariable("NEXUS_MCP_TOKEN", EnvironmentVariableTarget.User) is { Length: > 0 } token ? token : null;
-
-    // NexusKeypad's complete edition: one command per connection, one line back ("started" or "already running").
-    // Only "update" is ever sent: the pipe's other commands drive the pad.
-    static async Task<UpdateRequest> KeypadAsync(CancellationToken cancel)
-    {
-        try
-        {
-            await using var pipe = new NamedPipeClientStream(".", KeypadPipe, PipeDirection.InOut, PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
-            await pipe.ConnectAsync(3000, cancel);
-            using var reader = new StreamReader(pipe, leaveOpen: true);
-            await using var writer = new StreamWriter(pipe, leaveOpen: true) { AutoFlush = true };
-            await writer.WriteLineAsync("update".AsMemory(), cancel);
-            var answer = (await reader.ReadLineAsync(cancel) ?? "").Trim();
-            return answer is "started" or "already running" ? UpdateRequest.Started : UpdateRequest.Unreachable;
-        }
-        catch (Exception e) when (e is TimeoutException or IOException or UnauthorizedAccessException or OperationCanceledException)
-        {
-            return UpdateRequest.Unreachable;
-        }
-    }
 }

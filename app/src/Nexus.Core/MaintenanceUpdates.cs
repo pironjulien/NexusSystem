@@ -43,7 +43,8 @@ public static class MaintenanceUpdates
         }
         catch (Exception error) when (error is Win32Exception or IOException or InvalidOperationException) { return false; }
     }
-    public static bool Supports(Product product) => product == Products.Windows || product == Products.Browser;
+    /// <summary>NexusKeypad no longer updates itself (1.8.12): its published installer, run by the task, does it.</summary>
+    public static bool Supports(Product product) => product == Products.Windows || product == Products.Browser || product == Products.Keypad;
 
     public static MaintenanceState? Read(UserFolders folders)
     {

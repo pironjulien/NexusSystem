@@ -422,14 +422,17 @@ public class ProductUpdatesTests
     }
 
     [Fact]
-    public void OnlyRelayAndKeypadCompleteAreAsked()
+    public void KeypadIsUpdatedByTheMaintenanceTaskOnly()
     {
+        // NexusKeypad no longer updates itself: only the maintenance task (its published get.ps1) updates it.
         using var profile = new FakeProfile();
         Assert.False(ProductUpdates.CanRequest(Products.Windows, profile.Folders));
         Assert.False(ProductUpdates.CanRequest(Products.Android, profile.Folders));
-        Assert.False(ProductUpdates.CanRequest(Products.Keypad, profile.Folders));
         Directory.CreateDirectory(Path.Combine(profile.Folders.LocalAppData, "Logi", "LogiPluginService", "Plugins", "NexusKeypad"));
+        Assert.False(ProductUpdates.CanRequest(Products.Keypad, profile.Folders));
+        profile.Write(@".nexus\nexussystem\maintenance\get-nexus.ps1", "# maintenance");
         Assert.True(ProductUpdates.CanRequest(Products.Keypad, profile.Folders));
+        Assert.False(ProductUpdates.CanRequest(Products.Android, profile.Folders));
     }
 
     [Theory]
@@ -466,46 +469,6 @@ public class ProductUpdatesTests
             listener.Stop();
         }
         await serve;
-    }
-
-    [Fact]
-    public async Task KeypadPipeGetsOnlyUpdate()
-    {
-        var name = "nexus-test-" + Guid.NewGuid().ToString("N");
-        string? received = null;
-        var serve = Task.Run(async () =>
-        {
-            await using var pipe = new System.IO.Pipes.NamedPipeServerStream(name, System.IO.Pipes.PipeDirection.InOut, 1,
-                System.IO.Pipes.PipeTransmissionMode.Byte, System.IO.Pipes.PipeOptions.Asynchronous | System.IO.Pipes.PipeOptions.CurrentUserOnly);
-            await pipe.WaitForConnectionAsync();
-            using var reader = new StreamReader(pipe, leaveOpen: true);
-            await using var writer = new StreamWriter(pipe, leaveOpen: true) { AutoFlush = true };
-            received = await reader.ReadLineAsync();
-            await writer.WriteLineAsync("started");
-        }, TestContext.Current.CancellationToken);
-        var saved = ProductUpdates.KeypadPipe;
-        ProductUpdates.KeypadPipe = name;
-        try
-        {
-            using var http = new HttpClient();
-            Assert.Equal(UpdateRequest.Started, await ProductUpdates.RequestAsync(Products.Keypad, http, TestContext.Current.CancellationToken));
-            await serve;
-            Assert.Equal("update", received);
-        }
-        finally { ProductUpdates.KeypadPipe = saved; }
-    }
-
-    [Fact]
-    public async Task KeypadPipeAbsent()
-    {
-        var saved = ProductUpdates.KeypadPipe;
-        ProductUpdates.KeypadPipe = "nexus-test-absent-" + Guid.NewGuid().ToString("N");
-        try
-        {
-            using var http = new HttpClient();
-            Assert.Equal(UpdateRequest.Unreachable, await ProductUpdates.RequestAsync(Products.Keypad, http, TestContext.Current.CancellationToken));
-        }
-        finally { ProductUpdates.KeypadPipe = saved; }
     }
 }
 

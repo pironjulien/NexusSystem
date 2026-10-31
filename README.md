@@ -97,7 +97,7 @@ native engine, installed by NexusSystem (the app or the line above) or by the pr
 | `nexus-windows` | Windows desktop apps in the background: look, click, type, menus, shortcuts, launch, without your mouse or foreground | the [NexusWindows](https://github.com/pironjulien/NexusWindows) engine, `%USERPROFILE%\.nexus\nexus-windows\NexusWindows.exe` |
 | `nexus-browser` | Your real Chrome with your sessions, in background tabs: forms, network, dialogs, iframes, exports, downloads | the [NexusBrowser](https://github.com/pironjulien/NexusBrowser) daemon, `127.0.0.1:16182` |
 | `nexus-relay` | A direct line between Claude, Codex and Antigravity: topic rooms, reviews, delegated tasks | the [NexusRelay](https://github.com/pironjulien/NexusRelay) daemon, `127.0.0.1:16181` |
-| `nexus-keypad` (Claude Code) | Live states and exact usage for the Logitech MX Creative Keypad, peers' reachability under the prompt | [NexusKeypad](https://github.com/pironjulien/NexusKeypad)'s native helper |
+| `nexus-keypad` | Live states for the Logitech MX Creative Keypad; for Claude, its exact usage and peers' reachability under the prompt | [NexusKeypad](https://github.com/pironjulien/NexusKeypad)'s native helper |
 
 The daemons accept only local connections carrying the access token their installer creates; the plugins read it from
 your user variable `NEXUS_MCP_TOKEN` and never contain it.
@@ -134,7 +134,7 @@ plugins from another catalog; it migrates only the official installers' direct d
 one) after the installed plugin and its guide have been verified. It never adds a second server beside a custom one.
 
 The same repository is a Codex plugin marketplace (`.agents/plugins/marketplace.json`): `nexus-windows`,
-`nexus-android`, `nexus-browser` and `nexus-relay`, the same native forms as for Claude Code (Codex reads no variable
+`nexus-android`, `nexus-browser`, `nexus-relay` and `nexus-keypad`, the same native forms as for Claude Code (Codex reads no variable
 in a plugin's command, so `nexus-windows` starts the engine from its stable folder through `cmd.exe`). In the Codex
 app: **Settings > Plugins > Add > Add a marketplace**, source `pironjulien/NexusSystem`, then install the plugins; or
 from a terminal:
@@ -145,6 +145,7 @@ codex plugin add nexus-windows@nexus-plugins
 codex plugin add nexus-android@nexus-plugins
 codex plugin add nexus-browser@nexus-plugins
 codex plugin add nexus-relay@nexus-plugins
+codex plugin add nexus-keypad@nexus-plugins
 ```
 
 Antigravity's plugins are written by each product's own installer, in Antigravity's plugin folder.
