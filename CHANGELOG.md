@@ -8,6 +8,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 ## [Unreleased]
 
 ### Changed (app 1.0.14.0)
+- No developer guide in the app: NexusAGYmail shows "Gmail connected" or its "Connect Gmail" button only, without the
+  GitHub page and its PowerShell lines; the keypad step no longer links to GitHub.
 - A product's page uses the whole window: under its banner, its julienpiron.fr page (video and explanations) on the
   left, and on the right "On this PC", what the AI apps did with it in the last 24 hours (its journal, failures in red)
   and the guides.
