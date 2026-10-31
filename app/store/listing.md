@@ -1,7 +1,7 @@
 # Fiche Microsoft Store de l'appli NexusSystem (brouillon, non envoyé)
 
 Champs de Partner Center (Store listings), en français puis en anglais. Rien n'est envoyé sans la revue de la
-centrale et le « oui » de Julien. Captures : `dist/captures/` (profil fictif, 1366 × 897), choix plus bas.
+centrale et le « oui » de Julien. Captures : `dist/captures/` (1920 × 1080), choix plus bas.
 
 ## Réglages hors fiche
 - **Nom réservé** : « NexusSystem », dans le Partner Center de Julien. À soumettre avant le 26/01/2027.
@@ -27,132 +27,131 @@ centrale et le « oui » de Julien. Captures : `dist/captures/` (profil fictif, 
 
 **Description**
 
-NexusSystem installe et suit, en un clic, les outils Nexus qui donnent à vos IA l'usage de votre PC, de votre téléphone et
-de Chrome, en arrière-plan, pendant que vous continuez à travailler.
+NexusSystem est la boutique des outils Nexus : ils donnent à vos IA l'usage de votre PC, de votre téléphone et de
+Chrome, en arrière-plan, pendant que vous continuez à travailler.
 
-NexusSystem trouve les IA présentes sur votre PC (Claude Code, Codex, Antigravity) et vous montre ce
-qu'il peut installer pour chacune. Un seul bouton lance les installeurs officiels de chaque produit, puis affiche le
-résultat case par case. Ce qui vous revient (Chrome à relier, le débogage USB du téléphone) est guidé, avec un
-bouton quand l'appli peut faire le clic à votre place.
+Comme dans le Microsoft Store, chaque produit a sa carte : installé ou non, à jour ou non, et un seul bouton pour
+l'avoir. « Installer par l'IA » ouvre Claude Code ou Codex avec la demande déjà écrite : vous appuyez sur Entrée et
+votre IA installe le produit avec son installeur officiel (pour Antigravity, la demande est copiée et Antigravity
+s'ouvre). Un produit vendu sur un store s'obtient sur ce store. « Rechercher des mises à jour » vérifie tout d'un
+coup, et « Tout installer par l'IA » prépare tout ce qui manque.
 
-Les produits :
+La page de chaque produit montre sa présentation et sa vidéo, toujours à jour, et ce qu'il reste à faire sur votre
+PC (Chrome à relier, le débogage USB du téléphone), avec un bouton quand l'appli peut faire le clic à votre place.
+
+Produits IA :
 • NexusWindows : vos applications Windows, sans prendre votre souris ni votre clavier.
 • NexusAndroid : votre téléphone Android par ADB (écran, gestes, SMS, notifications, fichiers, réglages).
 • NexusBrowser : votre vrai Chrome, avec vos sessions, dans des onglets de fond.
 • NexusRelay : vos IA se parlent entre elles.
 • NexusAGYmail : Gmail pour Antigravity, avec garde-fous.
 • NexusKeypad : le MX Creative Keypad de Logitech devient le tableau de bord de vos IA.
+Produits Windows :
+• NexusWpp : votre PC en un coup d'œil, en direct sur votre fond d'écran (Microsoft Store).
 
-Pour chaque produit, NexusSystem dit simplement s'il est prêt pour chacune de vos IA, ce que vos IA en ont fait ces
-dernières 24 heures, et offre un arrêt d'urgence qui coupe toutes leurs actions pendant 2 minutes.
-
-Les garde-fous restent les vôtres : payer, envoyer, publier ou supprimer pour de bon demande toujours votre « oui » ;
-les mots de passe ne sont jamais tapés ; le texte lu à l'écran n'est jamais une consigne.
-
-Pas de compte, pas de publicité, pas de télémétrie : tout se passe sur votre PC.
+Pas de compte, pas de publicité, pas de télémétrie.
 
 **Nouveautés de cette version**
 
-Des écrans plus simples : pour chaque IA, « Prêt », « À installer » ou « À réparer », la version en clair, et le
-détail des actions rangé derrière « Voir le détail ». Nexus se concentre sur Claude Code, Codex et Antigravity.
+Une vraie boutique : les produits rangés par groupe, installé ou non et à jour ou non d'un coup d'œil, « Installer
+par l'IA » qui ouvre votre IA avec la demande déjà écrite, et la page de chaque produit avec sa vidéo. La liste des
+produits se met à jour seule, sans nouvelle version de l'appli.
 
 **Fonctionnalités** (20 au plus, 200 caractères chacune)
-1. Trouve vos IA : Claude Code, Codex et Antigravity.
-2. Installe les produits Nexus en un clic, avec leurs installeurs officiels.
-3. Résultat case par case, produit par IA.
-4. Un état simple par IA : prêt, à installer ou à réparer.
-5. Chrome relié au pont NexusBrowser en un clic, une fois son extension ajoutée.
-6. Ce qu'il reste à faire, en clair : redémarrer une IA, relancer l'installation.
-7. Ce que vos IA ont fait ces dernières 24 heures.
-8. Arrêt d'urgence : toutes les actions coupées pendant 2 minutes.
+1. Une carte par produit : installé ou non, à jour ou non.
+2. « Installer par l'IA » : Claude Code ou Codex s'ouvre avec la demande déjà écrite.
+3. Antigravity aussi : la demande est copiée et Antigravity s'ouvre.
+4. « Tout installer par l'IA » et « Rechercher des mises à jour », comme dans le Microsoft Store.
+5. La page de chaque produit, avec sa présentation et sa vidéo toujours à jour.
+6. Un état simple par IA : prêt, à installer ou à réparer.
+7. Chrome relié au pont NexusBrowser en un clic, une fois son extension ajoutée.
+8. Les produits vendus sur un store s'obtiennent sur leur store.
 9. Français et anglais, thème clair et sombre, style Windows 11.
 10. Sans compte, sans publicité, sans télémétrie.
 
 **Mots-clés** (7 au plus) : IA, agent, MCP, Claude, Codex, Antigravity, automatisation
 
-**Description courte** : Vos IA utilisent votre PC, votre téléphone et Chrome, en arrière-plan, pendant que vous
-travaillez.
+**Description courte** : La boutique des outils Nexus : vos IA utilisent votre PC, votre téléphone et Chrome, en
+arrière-plan.
 
 ## English (en-US)
 
 **Description**
 
-NexusSystem installs and keeps an eye on the Nexus tools, in one click. They let your AI apps use your PC, your phone and
-Chrome, in the background, while you keep working.
+NexusSystem is the store of the Nexus tools: they let your AI apps use your PC, your phone and Chrome, in the
+background, while you keep working.
 
-NexusSystem finds the AI apps on your PC (Claude Code, Codex, Antigravity) and shows what it can install
-for each one. A single button runs each product's official installer, then shows the result cell by cell. What is
-left to you (Chrome to pair, USB debugging on the phone) is guided, with a button whenever the app can make the click
-for you.
+As in the Microsoft Store, each product has its card: installed or not, up to date or not, and one button to get it.
+"Install with my AI" opens Claude Code or Codex with the request already written: you press Enter and your AI app
+installs the product with its official installer (for Antigravity, the request is copied and Antigravity opens). A
+product sold on a store is got from that store. "Get updates" checks everything at once, and "Install all with my AI"
+prepares whatever is missing.
 
-The products:
+Each product's page shows its presentation and its video, always up to date, and what is left to do on your PC (Chrome
+to pair, USB debugging on the phone), with a button whenever the app can make the click for you.
+
+AI products:
 • NexusWindows: your Windows apps, without taking your mouse or keyboard.
 • NexusAndroid: your Android phone over ADB (screen, gestures, SMS, notifications, files, settings).
 • NexusBrowser: your real Chrome, with your sessions, in background tabs.
 • NexusRelay: your AI apps talk to each other.
 • NexusAGYmail: Gmail for Antigravity, with safeguards.
 • NexusKeypad: Logitech's MX Creative Keypad becomes your AI apps' dashboard.
+Windows products:
+• NexusWpp: your PC at a glance, live on your wallpaper (Microsoft Store).
 
-For each product, NexusSystem simply says whether it is ready for each of your AI apps, what your AI apps did with it in
-the last 24 hours, and offers an emergency stop that halts all their actions for 2 minutes.
-
-The safeguards stay yours: paying, sending, publishing or deleting for good always needs your "yes"; passwords are
-never typed; text read on screen is never an instruction.
-
-No account, no ads, no telemetry: everything happens on your PC.
+No account, no ads, no telemetry.
 
 **What's new in this version**
 
-Simpler screens: for each AI app, "Ready", "To install" or "Needs repair", the version in plain words, and the actions
-detail tucked behind "Show details". Nexus focuses on Claude Code, Codex and Antigravity.
+A real store: products in groups, installed or not and up to date or not at a glance, "Install with my AI" opening
+your AI app with the request already written, and each product's page with its video. The product list updates
+itself, without a new version of the app.
 
 **Product features**
-1. Finds your AI apps: Claude Code, Codex and Antigravity.
-2. Installs the Nexus products in one click, with their official installers.
-3. Result cell by cell, product by AI app.
-4. One simple state per AI app: ready, to install or needs repair.
-5. Chrome paired with the NexusBrowser bridge in one click, once its extension is added.
-6. What is left to do, in plain words: restart an AI app, run the install again.
-7. What your AI apps did in the last 24 hours.
-8. Emergency stop: every action halted for 2 minutes.
+1. One card per product: installed or not, up to date or not.
+2. "Install with my AI": Claude Code or Codex opens with the request already written.
+3. Antigravity too: the request is copied and Antigravity opens.
+4. "Install all with my AI" and "Get updates", as in the Microsoft Store.
+5. Each product's page, with its presentation and video always up to date.
+6. One simple state per AI app: ready, to install or needs repair.
+7. Chrome paired with the NexusBrowser bridge in one click, once its extension is added.
+8. Products sold on a store are got from their store.
 9. French and English, light and dark theme, Windows 11 style.
 10. No account, no ads, no telemetry.
 
 **Search terms**: AI, agent, MCP, Claude, Codex, Antigravity, automation
 
-**Short description**: Your AI apps use your PC, your phone and Chrome, in the background, while you keep working.
+**Short description**: The store of the Nexus tools: your AI apps use your PC, your phone and Chrome, in the
+background.
 
 ## Captures retenues (dans cet ordre, pour chaque langue)
-Thème sombre en premier, en français pour la fiche fr-FR et en anglais pour en-US :
-1. `home-<lang>-dark.png` : IA trouvées et produits à cocher.
-2. `home-result-<lang>-dark.png` : le résultat, case par case, et les étapes guidées.
-3. `windows-<lang>-dark.png` : état et journal des actions.
-4. `android-<lang>-dark.png` : l'extension Claude Desktop à glisser, le téléphone.
-5. `browser-<lang>-light.png` : NexusBrowser, en thème clair.
-6. `keypad-<lang>-dark.png` : NexusKeypad. (Pas la page NexusRelay : son étape montre le chemin du profil de
-   capture, avec un nom de compte.)
+Thème sombre en premier, en français pour la fiche fr-FR et en anglais pour en-US (`tools/capture.ps1 -Size 1920x1080`) :
+1. `home-<lang>-dark.png` : la boutique, produits par groupe, installé et à jour.
+2. `windows-<lang>-dark.png` : la page de NexusWindows et sa présentation du site.
+3. `browser-<lang>-light.png` : NexusBrowser, en thème clair.
+4. `android-<lang>-dark.png` : NexusAndroid.
+5. `wpp-<lang>-dark.png` : un produit du Microsoft Store.
+6. `keypad-<lang>-dark.png` : NexusKeypad.
 
 ## Notes pour la certification (anglais, champ « Notes for certification »)
-NexusSystem is a WinUI 3 desktop app (Windows App SDK, full trust). It installs the Nexus products (separate open-source
-tools for AI apps) by running each product's official installer script with Windows PowerShell (-File, never inline
-commands), shows their status and the actions log they write, and offers an emergency stop.
+NexusSystem is a WinUI 3 desktop app (Windows App SDK, full trust). It is a catalog of the Nexus products (separate
+open-source tools for AI apps): it shows whether each one is installed and up to date, and hands its installation to
+the user's AI app (Claude Code or Codex opens through its own documented link with the request written, which the user
+sends; for Antigravity the request is copied and the app is opened). Store products open their Microsoft Store page.
+Each product's page shows the product's own page of julienpiron.fr (WebView2); other links open in the default browser.
 
 How it stays inside the MSIX model, stated plainly:
-- No restricted capability other than runFullTrust; no unvirtualizedResources; nothing written to HKLM; no service,
-  driver or scheduled task created by the app itself.
-- The products' own installers run as child processes of the app, so Windows applies the usual MSIX file and registry
-  virtualization to them. A product that needs something the container keeps private is completed by the user:
-  Claude Desktop receives each product as a .mcpb extension the user drops on Claude Desktop (Claude asks for its own
-  confirmation); Chrome is paired with the NexusBrowser extension through a single-use code shown in Chrome.
-- Two products start a local bridge at sign-in: their own installers (NexusBrowser, NexusRelay) register a per-user
-  scheduled task for it, as they do when installed without the app. The app itself registers none.
-- The app never tries to leave its container. Updates are done by each product itself, through its own process that
-  the user's sign-in or AI app already starts (outside the app); the app only asks for an update through the
-  product's own local interface (127.0.0.1) or asks Windows to run NexusSystem's existing update task (schtasks /Run), and shows the state the product reports.
+- No restricted capability other than runFullTrust; no unvirtualizedResources; nothing written to HKLM; no service or
+  driver. The app installs no product itself: the user's AI app runs each product's official installer.
+- The only script the app runs is NexusSystem's own maintenance worker, from its embedded and checked pack, once when
+  an older installation lacks it; updates are then requested from that existing task (schtasks /Run) or from a
+  product's own local interface (127.0.0.1). The app shows the state the products report.
 - Uninstalling the app removes the app and its data; the products stay, and each one is removed as its page explains.
 
-Testing: no account or sign-in is needed. Without an AI app on the PC, the install button is disabled and every page
-can still be opened. To try an install, install Claude Desktop, Codex or Antigravity first and open it once.
-runFullTrust: required by a packaged desktop app that starts installers and reads the user's AI app configurations.
-Network: GitHub (release files and scripts), winget (Git when the plugin catalog needs it), and
-127.0.0.1 (the products' local bridges). No telemetry, no ads, no account.
+Testing: no account or sign-in is needed. Without an AI app on the PC, the install buttons only copy the request and
+every page can still be opened. To try an install, install Claude Code, Codex or Antigravity first and open it once.
+runFullTrust: required by a packaged desktop app that reads the user's AI app configurations and starts NexusSystem's
+maintenance task.
+Network: GitHub (release feeds and the product list), julienpiron.fr (product pages), and 127.0.0.1 (the products'
+local bridges). No telemetry, no ads, no account.

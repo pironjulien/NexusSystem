@@ -27,10 +27,10 @@ public sealed partial class ProductPage : UserControl
         var top = new Grid { ColumnSpacing = 16 };
         top.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         top.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        var header = Ui.Header(Ui.Logo(product.Key, 56), product.Name, Catalog.About(product));
+        var header = Ui.Header(Ui.Logo(product, 56), product.Name, Catalog.About(product));
         ((StackPanel)header.Children[1]).Children.Add(Catalog.State(view));
         top.Children.Add(header);
-        if (Catalog.Action(view, text => { notice.Message = text; notice.IsOpen = text.Length > 0; }) is { } action)
+        if (Catalog.Action(view, ais, text => { notice.Message = text; notice.IsOpen = text.Length > 0; }) is { } action)
         {
             action.VerticalAlignment = VerticalAlignment.Center;
             Grid.SetColumn(action, 1);
@@ -89,47 +89,74 @@ public sealed partial class ProductPage : UserControl
     static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(15) };
 
     /// <summary>
-    /// The product's page of julienpiron.fr inside the app, without the site's own header and footer. Any other
+    /// The product's page of julienpiron.fr inside the app, without the site's own header, footer and install section. Any other
     /// address (another page, GitHub, a store) opens in the default browser.
     /// </summary>
     FrameworkElement Site(string page)
     {
-        var web = new WebView2 { Source = new Uri(page), DefaultBackgroundColor = Ui.Transparent };
+        var web = new WebView2 { DefaultBackgroundColor = Ui.Transparent };
         var failed = Ui.Card(Ui.Column(8, Ui.Body(Text.Get("PageOffline"), secondary: true),
             new HyperlinkButton { Content = page, NavigateUri = new Uri(page), Padding = new Thickness(0) }), padding: 16);
         failed.VerticalAlignment = VerticalAlignment.Top;
         failed.Visibility = Visibility.Collapsed;
         var holder = new Grid { CornerRadius = new CornerRadius(8, 8, 0, 0), Children = { web, failed } };
-        web.CoreWebView2Initialized += async (_, args) =>
+        web.Loaded += async (_, _) =>
         {
-            if (args.Exception is not null || web.CoreWebView2 is not { } core) return;
-            core.Settings.AreDevToolsEnabled = false;
-            core.Settings.IsStatusBarEnabled = false;
-            await core.AddScriptToExecuteOnDocumentCreatedAsync(
-                "document.addEventListener('DOMContentLoaded',()=>{const s=document.createElement('style');" +
-                "s.textContent='.site-header,.site-footer{display:none!important}';document.head.appendChild(s);});");
-            core.NavigationStarting += (_, e) =>
+            if (web.CoreWebView2 is not null) return;
+            try
             {
-                if (SamePage(e.Uri, page)) return;
-                e.Cancel = true;
-                Open(e.Uri);
-            };
-            core.NewWindowRequested += (_, e) =>
+                // The site picks its language from the browser's: the app's own, so the English app stays in English.
+                var environment = await CoreWebView2Environment.CreateWithOptionsAsync("",
+                    Path.Combine(folders.LocalAppData, "NexusSystem", "WebView2"),
+                    new CoreWebView2EnvironmentOptions { Language = Text.French ? "fr-FR" : "en-US" });
+                await web.EnsureCoreWebView2Async(environment);
+                var core = web.CoreWebView2!;
+                core.Settings.AreDevToolsEnabled = false;
+                core.Settings.IsStatusBarEnabled = false;
+                // Registered before the first page: the site's own install section never shows.
+                // Hidden element by element: the site's content security policy refuses an added style sheet.
+                await core.AddScriptToExecuteOnDocumentCreatedAsync(
+                    "document.addEventListener('DOMContentLoaded',()=>document.querySelectorAll('" + HiddenOnSite + "')" +
+                    ".forEach(e=>e.style.setProperty('display','none','important')));");
+                core.NavigationStarting += (_, e) =>
+                {
+                    if (SamePage(e.Uri, page)) return;
+                    e.Cancel = true;
+                    Open(e.Uri);
+                };
+                core.NewWindowRequested += (_, e) =>
+                {
+                    e.Handled = true;
+                    Open(e.Uri);
+                };
+                core.NavigationCompleted += (_, e) =>
+                {
+                    failed.Visibility = e.IsSuccess ? Visibility.Collapsed : Visibility.Visible;
+                    web.Visibility = e.IsSuccess ? Visibility.Visible : Visibility.Collapsed;
+                };
+                core.Navigate(page);
+            }
+            catch (Exception error)
             {
-                e.Handled = true;
-                Open(e.Uri);
-            };
-            core.NavigationCompleted += (_, e) =>
-            {
-                failed.Visibility = e.IsSuccess ? Visibility.Collapsed : Visibility.Visible;
-                web.Visibility = e.IsSuccess ? Visibility.Visible : Visibility.Collapsed;
-            };
+                AppLog.Error("site page", error);
+                failed.Visibility = Visibility.Visible;
+                web.Visibility = Visibility.Collapsed;
+            }
         };
         return holder;
     }
 
+    // In the app, the site's own install section and the links to it would be a second way in, beside the app's own
+    // button; the site's header, footer and family section are the app's menu already.
+    const string HiddenOnSite = ".site-header,.site-footer,#installation,#ecosysteme,section[aria-labelledby=installation-title]," +
+        "a[href$=\"#installation\"],a[href$=\"#ecosysteme\"]";
+
+    // The page itself, in either language (the site may switch to the reader's language).
     static bool SamePage(string address, string page) =>
-        Uri.TryCreate(address, UriKind.Absolute, out var uri) && uri.GetLeftPart(UriPartial.Path).Equals(page, StringComparison.OrdinalIgnoreCase);
+        Uri.TryCreate(address, UriKind.Absolute, out var uri) &&
+        Twin(uri.GetLeftPart(UriPartial.Path)).Equals(Twin(page), StringComparison.OrdinalIgnoreCase);
+
+    static string Twin(string address) => address.Replace("julienpiron.fr/en/", "julienpiron.fr/", StringComparison.OrdinalIgnoreCase);
 
     static void Open(string address)
     {

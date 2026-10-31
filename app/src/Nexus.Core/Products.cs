@@ -13,14 +13,6 @@ public enum Availability
     NotPublic,
 }
 
-/// <summary>The groups of the app's menu and home page.</summary>
-public enum Category
-{
-    Ai,
-    Adobe,
-    Windows,
-}
-
 /// <summary>
 /// A Nexus product as the apps show it: name, color and icon of the julienpiron.fr site, its MCP server, the AI apps
 /// it serves (none for a device), and what it needs on the PC. Same facts as the product table of get-nexus.ps1.
@@ -42,9 +34,15 @@ public sealed record Product(
     string? StoreUrl = null,
     // Former names of the Antigravity plugin, still recognised while public installations carry them.
     IReadOnlyList<string>? AntigravityFormerPlugins = null,
-    Category Category = Category.Ai,
+    // The group of the app's menu and home page (ProductCatalog's groups: ai, adobe, windows, or one the online catalog adds).
+    string Group = "ai",
     // A store app's package family: installed when Windows has its folder under %LOCALAPPDATA%\Packages.
-    string? PackageFamily = null)
+    string? PackageFamily = null,
+    // From the online catalog: its icon on the site (a product the app has no picture of), its short text, its repository.
+    string? Icon = null,
+    string? AboutFr = null,
+    string? AboutEn = null,
+    string? Repository = null)
 {
     /// <summary>The product's page on julienpiron.fr in the app's language (the English site lives under /en/).</summary>
     public string? PageFor(bool french) => Page is null || french ? Page : Page.Replace("julienpiron.fr/", "julienpiron.fr/en/", StringComparison.Ordinal);
@@ -83,12 +81,12 @@ public static class Products
 
     // Adobe InDesign driven by the AI apps: still private, shown as coming soon.
     public static readonly Product InDesign = new("indesign", "NexusInDesign", "#e749a0", Availability.NotPublic,
-        null, [], Category: Category.Adobe);
+        null, [], Group: "adobe");
 
     // A live hardware dashboard as the Windows wallpaper: not an AI tool, published on the Microsoft Store.
     public static readonly Product Wpp = new("wpp", "NexusWpp", "#53fff4", Availability.OtherStore,
         "https://julienpiron.fr/nexuswpp/", [], StoreUrl: "ms-windows-store://pdp/?productid=9N2VCVDH7QDX",
-        Category: Category.Windows, PackageFamily: "julienpiron.fr.NexusWpp_yq2nr3sn86fpg");
+        Group: "windows", PackageFamily: "julienpiron.fr.NexusWpp_yq2nr3sn86fpg");
 
     public static readonly IReadOnlyList<Product> All = [Windows, Android, Browser, Keypad, Relay, AgyMail, InDesign, Wpp];
 
@@ -112,12 +110,13 @@ public static class Products
 
     /// <summary>
     /// Builds the prompt the user can paste into Claude Code, Codex or Antigravity to install or repair the selected
-    /// products through the same official pack script (get-nexus.ps1 -Only ...) and INSTALL-AI.md guide.
+    /// products through the same official pack script (get-nexus.ps1 -Only ...) and INSTALL-AI.md guide. The products
+    /// are those shown (<paramref name="among"/>: the online catalog's), the built-in ones by default.
     /// </summary>
-    public static string AiPrompt(IEnumerable<string> chosenKeys, bool french = false)
+    public static string AiPrompt(IEnumerable<string> chosenKeys, bool french = false, IReadOnlyList<Product>? among = null)
     {
         var chosen = chosenKeys.Select(k => k.Trim().ToLowerInvariant()).ToHashSet();
-        var ordered = All.Where(p => chosen.Contains(p.Key)).ToList();
+        var ordered = (among ?? All).Where(p => p.Availability == Availability.Ready && chosen.Contains(p.Key)).ToList();
         if (ordered.Count == 0) return "";
         // Put windows before browser when both are selected so desktop tools are set up first.
         var keys = string.Join(",", ordered.Select(p => p.Key));

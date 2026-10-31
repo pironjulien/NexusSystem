@@ -27,7 +27,7 @@ public static class ReleaseFeed
         ["keypad"] = "NexusKeypad",
     };
 
-    public static string? Repository(Product product) => Repositories.GetValueOrDefault(product.Key);
+    public static string? Repository(Product product) => product.Repository ?? Repositories.GetValueOrDefault(product.Key);
 
     public static string Channel(UserFolders folders)
     {

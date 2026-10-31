@@ -42,7 +42,8 @@ public sealed partial class HomePage : UserControl
         foreach (var app in found) aiLine.Children.Add(Ui.AiPill(app, declared: true, compact: true));
         if (found.Count == 0) aiLine.Children.Add(Ui.Body(Text.Get("NoAi")));
 
-        installAll.Click += (_, _) => InstallAll();
+        Catalog.HandOff(installAll, AllKeys, found, Say);
+        installAll.IsEnabled = found.Count > 0;
         checkUpdates.Click += async (_, _) => await CheckUpdatesAsync();
 
         Content = Ui.Page(Ui.Column(16, top, aiLine, notice, groups));
@@ -72,9 +73,9 @@ public sealed partial class HomePage : UserControl
     void Fill()
     {
         groups.Children.Clear();
-        foreach (var group in Products.All.GroupBy(product => product.Category))
+        foreach (var group in Catalog.Shown.Groups)
         {
-            var cards = group.Select(product => Card(Catalog.Read(product, found, folders))).ToList();
+            var cards = Catalog.Shown.Products.Where(product => product.Group == group.Key).Select(product => Card(Catalog.Read(product, found, folders))).ToList();
             groups.Children.Add(Ui.Column(12, Ui.Subtitle(Catalog.Group(group.Key)), Ui.Flow(cards)));
         }
     }
@@ -89,7 +90,7 @@ public sealed partial class HomePage : UserControl
         grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
         grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
-        var logo = Ui.Logo(product.Key, 56);
+        var logo = Ui.Logo(product, 56);
         logo.VerticalAlignment = VerticalAlignment.Top;
         Grid.SetRowSpan(logo, 3);
         grid.Children.Add(logo);
@@ -112,7 +113,7 @@ public sealed partial class HomePage : UserControl
         var state = Catalog.State(view);
         state.VerticalAlignment = VerticalAlignment.Center;
         bottom.Children.Add(state);
-        if (Catalog.Action(view, Say) is { } action)
+        if (Catalog.Action(view, found, Say) is { } action)
         {
             Grid.SetColumn(action, 1);
             bottom.Children.Add(action);
@@ -147,18 +148,13 @@ public sealed partial class HomePage : UserControl
 
     void Say(string text) => Say(text, InfoBarSeverity.Success);
 
-    /// <summary>One prompt for every AI product that fits this PC and is missing or out of date (all of them if none).</summary>
-    void InstallAll()
+    /// <summary>Every AI product that fits this PC and is missing or out of date (all of them when none is).</summary>
+    IReadOnlyList<string> AllKeys()
     {
-        var views = Products.All.Where(product => product.Availability == Availability.Ready)
+        var views = Catalog.Shown.Products.Where(product => product.Availability == Availability.Ready)
             .Select(product => Catalog.Read(product, found, folders)).Where(view => view.Unfit is null).ToList();
-        if (views.Count == 0)
-        {
-            Say(Text.Get("NoAi"), InfoBarSeverity.Warning);
-            return;
-        }
         var wanted = views.Where(view => !view.Installed || view.UpdateAvailable).ToList();
-        Say(Catalog.CopyPrompt((wanted.Count > 0 ? wanted : views).Select(view => view.Product.Key).ToList()));
+        return (wanted.Count > 0 ? wanted : views).Select(view => view.Product.Key).ToList();
     }
 
     /// <summary>
@@ -174,7 +170,7 @@ public sealed partial class HomePage : UserControl
             await Catalog.RefreshLatestAsync(folders, lifetime.Token);
             var started = false;
             var maintenanceAsked = false;
-            foreach (var product in Products.All.Where(product => ProductUpdates.IsInstalled(product, found, folders) && ProductUpdates.CanRequest(product, folders)))
+            foreach (var product in Catalog.Shown.Products.Where(product => ProductUpdates.IsInstalled(product, found, folders) && ProductUpdates.CanRequest(product, folders)))
             {
                 // One maintenance run covers every product it manages.
                 var managed = MaintenanceUpdates.Supports(product) && MaintenanceUpdates.IsInstalled(folders);
@@ -184,7 +180,7 @@ public sealed partial class HomePage : UserControl
             }
             if (lifetime.IsCancellationRequested) return;
             Fill();
-            var late = Products.All.Select(product => Catalog.Read(product, found, folders)).Where(view => view.UpdateAvailable).Select(view => view.Product.Name).ToList();
+            var late = Catalog.Shown.Products.Select(product => Catalog.Read(product, found, folders)).Where(view => view.UpdateAvailable).Select(view => view.Product.Name).ToList();
             if (late.Count > 0) Say(Text.Format("Updates.Some", string.Join(", ", late)), InfoBarSeverity.Warning);
             else Say(Text.Get(started ? "Updates.Started" : "Updates.UpToDate"));
         }
