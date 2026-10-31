@@ -63,6 +63,13 @@ static class Ui
 
     public static Image Logo(string key, double size) => new() { Width = size, Height = size, Source = LogoSource(key, size) };
 
+    /// <summary>A product's icon: the app's own picture, or for a product the online catalog added, its icon on the site.</summary>
+    public static ImageSource LogoSource(Product product, double size = 20) =>
+        File.Exists(Path.Combine(AppContext.BaseDirectory, "Assets", "nexus" + product.Key + "-round.png")) || product.Icon is null
+            ? LogoSource(product.Key, size) : new BitmapImage(new Uri(product.Icon));
+
+    public static Image Logo(Product product, double size) => new() { Width = size, Height = size, Source = LogoSource(product, size) };
+
     /// <summary>Official logo of an AI app (Claude, Codex, Antigravity) from Assets/ai-*.png.</summary>
     public static ImageSource AiLogoSource(AiApp app)
     {

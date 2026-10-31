@@ -1,0 +1,120 @@
+{
+  "$comment": "Products shown by the NexusSystem app, in this order. Read at start: no app release is needed to add, move or release a product. state: ready (installed by the AI apps through get-nexus.ps1 -Only key), store (store link), soon.",
+  "schema": 1,
+  "groups": [
+    {
+      "key": "ai",
+      "fr": "Produits IA",
+      "en": "AI products"
+    },
+    {
+      "key": "adobe",
+      "fr": "Produits Adobe",
+      "en": "Adobe products"
+    },
+    {
+      "key": "windows",
+      "fr": "Produits Windows",
+      "en": "Windows products"
+    }
+  ],
+  "products": [
+    {
+      "key": "windows",
+      "name": "NexusWindows",
+      "group": "ai",
+      "state": "ready",
+      "accent": "#6cb6ff",
+      "page": "https://julienpiron.fr/nexuswindows/",
+      "about": {
+        "fr": "Vos applications Windows en arrière-plan : voir une fenêtre, cliquer, taper, menus, raccourcis, sans prendre votre souris.",
+        "en": "Your Windows apps in the background: see a window, click, type, menus, shortcuts, without taking your mouse."
+      }
+    },
+    {
+      "key": "android",
+      "name": "NexusAndroid",
+      "group": "ai",
+      "state": "ready",
+      "accent": "#7ee0a1",
+      "page": "https://julienpiron.fr/nexusandroid/",
+      "about": {
+        "fr": "Votre téléphone Android par ADB : écran, gestes, SMS, notifications, fichiers, réglages.",
+        "en": "Your Android phone over ADB: screen, gestures, SMS, notifications, files, settings."
+      }
+    },
+    {
+      "key": "browser",
+      "name": "NexusBrowser",
+      "group": "ai",
+      "state": "ready",
+      "accent": "#b9a2ff",
+      "page": "https://julienpiron.fr/nexusbrowser/",
+      "about": {
+        "fr": "Votre vrai Chrome, avec vos sessions, dans des onglets de fond.",
+        "en": "Your real Chrome, with your sessions, in background tabs."
+      }
+    },
+    {
+      "key": "keypad",
+      "name": "NexusKeypad",
+      "group": "ai",
+      "state": "ready",
+      "accent": "#f78fb3",
+      "page": "https://julienpiron.fr/nexuskeypad/",
+      "about": {
+        "fr": "Le MX Creative Keypad de Logitech devient le tableau de bord de vos IA.",
+        "en": "Logitech's MX Creative Keypad becomes your AI apps' dashboard."
+      }
+    },
+    {
+      "key": "relay",
+      "name": "NexusRelay",
+      "group": "ai",
+      "state": "ready",
+      "accent": "#a2fff0",
+      "page": "https://julienpiron.fr/nexusrelay/",
+      "about": {
+        "fr": "Vos IA se parlent entre elles.",
+        "en": "Your AI apps talk to each other."
+      }
+    },
+    {
+      "key": "agymail",
+      "name": "NexusAGYmail",
+      "group": "ai",
+      "state": "ready",
+      "accent": "#ffb5a2",
+      "page": "https://julienpiron.fr/nexusagymail/",
+      "about": {
+        "fr": "Gmail pour vos IA, avec garde-fous.",
+        "en": "Gmail for your AI apps, with safeguards."
+      }
+    },
+    {
+      "key": "indesign",
+      "name": "NexusInDesign",
+      "group": "adobe",
+      "state": "soon",
+      "accent": "#e749a0",
+      "about": {
+        "fr": "Adobe InDesign piloté par vos IA : mises en page, styles et exports, avec retour arrière.",
+        "en": "Adobe InDesign driven by your AI apps: layouts, styles and exports, with rollback."
+      }
+    },
+    {
+      "key": "wpp",
+      "name": "NexusWpp",
+      "group": "windows",
+      "state": "store",
+      "accent": "#53fff4",
+      "page": "https://julienpiron.fr/nexuswpp/",
+      "store": "ms-windows-store://pdp/?productid=9N2VCVDH7QDX",
+      "package": "julienpiron.fr.NexusWpp_yq2nr3sn86fpg",
+      "about": {
+        "fr": "Votre PC en un coup d'œil : CPU, GPU, NPU, RAM, disque et réseau en direct sur votre fond d'écran.",
+        "en": "Your PC at a glance: CPU, GPU, NPU, RAM, disk and network live on your wallpaper."
+      }
+    }
+  ]
+}

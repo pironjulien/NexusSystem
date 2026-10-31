@@ -23,6 +23,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
   version details, the day's activity, the safeguards text and the emergency stop button leave the pages.
 - Pages use the whole width of the window; cards reflow into as many columns as it allows.
 - `--capture` takes one picture per page, the site's page included; `--frames` and the result picture are gone.
+- The product list comes from `products.json` at the root of this repository, read at start and kept for an offline
+  start: a product is added, moved to another group, released from "coming soon" or given a store without a new
+  version of the app (the built-in list stays the fallback). Products installed by `get-nexus.ps1 -Only <key>` can be
+  added there with the MCP server they install.
+- "Install with my AI" opens Claude Code (`claude://code/new`) or Codex (`codex://threads/new`) with the request
+  already written; Antigravity, which has no such link, opens with the request copied. With several AI apps, the
+  button offers a menu to pick one, or to copy the request.
+- The site's page inside the app follows the app's language and hides the site's own install section; a product with
+  an update no longer breaks its card (`State.Update` took one value too many).
+- The Store listing describes the store-like app; its screenshots are taken at 1920 x 1080.
 
 ## [1.6.41] - 2026-10-31
 

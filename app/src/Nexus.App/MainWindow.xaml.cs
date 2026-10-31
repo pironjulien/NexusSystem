@@ -27,13 +27,32 @@ public sealed partial class MainWindow : Window
         AppWindow.SetIcon(Path.Combine(AppContext.BaseDirectory, "Assets", "nexus.ico"));
         TitleIcon.Source = Ui.LogoSource("hub");
 
+        BuildMenu("home");
+        // The online catalog may add, move or release a product: the menu and the page follow it at once.
+        _ = RefreshCatalogAsync();
+    }
+
+    async Task RefreshCatalogAsync()
+    {
+        try
+        {
+            if (await Catalog.RefreshCatalogAsync())
+                BuildMenu(Nav.SelectedItem is NavigationViewItem { Tag: string tag } && Catalog.Shown.ByKey(tag) is not null ? tag : "home");
+        }
+        catch (Exception error) { AppLog.Error("catalog", error); }
+    }
+
+    void BuildMenu(string selected)
+    {
+        Nav.MenuItems.Clear();
         Nav.MenuItems.Add(Item(Text.Get("Home"), "home", Ui.LogoSource("hub")));
-        foreach (var group in Products.All.GroupBy(product => product.Category))
+        foreach (var group in Catalog.Shown.Groups)
         {
             Nav.MenuItems.Add(new NavigationViewItemHeader { Content = Catalog.Group(group.Key) });
-            foreach (var product in group) Nav.MenuItems.Add(Item(product.Name, product.Key, Ui.LogoSource(product.Key)));
+            foreach (var product in Catalog.Shown.Products.Where(p => p.Group == group.Key))
+                Nav.MenuItems.Add(Item(product.Name, product.Key, Ui.LogoSource(product)));
         }
-        Nav.SelectedItem = Nav.MenuItems[0];
+        Nav.SelectedItem = Nav.MenuItems.OfType<NavigationViewItem>().First(i => (string)i.Tag == selected);
     }
 
     static NavigationViewItem Item(string text, string tag, ImageSource logo) => new()
@@ -43,12 +62,15 @@ public sealed partial class MainWindow : Window
         Icon = new ImageIcon { Source = logo },
     };
 
-    void OnNavigate(NavigationView sender, NavigationViewSelectionChangedEventArgs args) => Show((string)((NavigationViewItem)args.SelectedItem).Tag);
+    void OnNavigate(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
+    {
+        if (args.SelectedItem is NavigationViewItem { Tag: string tag }) Show(tag);
+    }
 
     void Show(string tag)
     {
         // Pages are built in code: shown directly (a Frame only navigates to pages known to the XAML compiler).
-        Body.Content = tag == "home" ? new HomePage() : new ProductPage(Products.ByKey(tag));
+        Body.Content = tag == "home" ? new HomePage() : new ProductPage(Catalog.Shown.ByKey(tag)!);
     }
 
     /// <summary>Called by the home page: show a product's page.</summary>
@@ -68,7 +90,7 @@ public sealed partial class MainWindow : Window
         Root.Background = new SolidColorBrush(Root.ActualTheme == ElementTheme.Light ? Windows.UI.Color.FromArgb(255, 243, 243, 243) : Windows.UI.Color.FromArgb(255, 32, 32, 32));
         var lang = Text.French ? "fr" : "en";
         var theme = Root.ActualTheme == ElementTheme.Light ? "light" : "dark";
-        foreach (var tag in Products.All.Select(product => product.Key).Prepend("home"))
+        foreach (var tag in Catalog.Shown.Products.Select(product => product.Key).Prepend("home"))
         {
             Nav.SelectedItem = Nav.MenuItems.OfType<NavigationViewItem>().First(i => (string)i.Tag == tag);
             await Task.Delay(4000);  // pages read the PC's state and the site in the background

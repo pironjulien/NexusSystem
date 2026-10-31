@@ -134,7 +134,7 @@ try {
     foreach ($run in @('fr dark', 'en dark', 'fr light', 'en light')) {
         $lang, $theme = $run -split ' '
         $process = Start-Process $exe.FullName -ArgumentList "--capture `"$Out`" --size $Size --lang $lang --theme $theme" -PassThru
-        for ($i = 0; $i -lt 120 -and -not $process.HasExited; $i++) {
+        for ($i = 0; $i -lt 360 -and -not $process.HasExited; $i++) {
             Start-Sleep -Milliseconds 250
             $owner = 0
             [void][NexusCapture.Foreground]::GetWindowThreadProcessId([NexusCapture.Foreground]::GetForegroundWindow(), [ref]$owner)

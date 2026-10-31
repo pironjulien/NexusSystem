@@ -18,10 +18,30 @@ sealed record ProductView(Product Product, bool Installed, string? Version, stri
 static class Catalog
 {
     static readonly Dictionary<string, string> Latest = [];
+    static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(15) };
 
-    public static string Group(Category category) => Text.Get("Products." + category);
+    /// <summary>The products shown: the last online catalog read on this PC, or the one built into the app.</summary>
+    public static ProductCatalogData Shown { get; private set; } = ProductCatalog.Load(UserFolders.FromEnvironment());
 
-    public static string About(Product product) => Text.Get(char.ToUpperInvariant(product.Key[0]) + product.Key[1..] + ".About");
+    /// <summary>Reads the online catalog; true when what the app shows changed.</summary>
+    public static async Task<bool> RefreshCatalogAsync(CancellationToken cancel = default)
+    {
+        if (await ProductCatalog.FetchAsync(Http, UserFolders.FromEnvironment(), cancel) is not { } catalog) return false;
+        var changed = !catalog.Groups.SequenceEqual(Shown.Groups) || !catalog.Products.SequenceEqual(Shown.Products, ProductComparer);
+        Shown = catalog;
+        return changed;
+    }
+
+    // Records compare their lists by reference: two reads of the same catalog are equal when every shown fact is.
+    static readonly IEqualityComparer<Product> ProductComparer = EqualityComparer<Product>.Create(
+        (a, b) => a!.Key == b!.Key && a.Name == b.Name && a.Accent == b.Accent && a.Availability == b.Availability && a.Group == b.Group &&
+            a.Page == b.Page && a.StoreUrl == b.StoreUrl && a.Icon == b.Icon && a.AboutFr == b.AboutFr && a.AboutEn == b.AboutEn,
+        p => p.Key.GetHashCode());
+
+    public static string Group(string key) => Shown.Groups.FirstOrDefault(g => g.Key == key) is { } group ? (Text.French ? group.Fr : group.En) : key;
+
+    public static string About(Product product) => (Text.French ? product.AboutFr : product.AboutEn)
+        ?? Text.Get(char.ToUpperInvariant(product.Key[0]) + product.Key[1..] + ".About");
 
     public static ProductView Read(Product product, IReadOnlyList<AiApp> found, UserFolders folders)
     {
@@ -35,7 +55,7 @@ static class Catalog
     public static async Task RefreshLatestAsync(UserFolders folders, CancellationToken cancel = default)
     {
         var channel = ReleaseFeed.Channel(folders);
-        await Task.WhenAll(Products.All.Select(async product =>
+        await Task.WhenAll(Shown.Products.Select(async product =>
         {
             if (ReleaseFeed.Repository(product) is not { } repository) return;
             if (await ReleaseFeed.NewestAsync(repository, channel, cancel) is not { } tag) return;
@@ -70,7 +90,7 @@ static class Catalog
     /// The product's one way in: its store, or the user's AI app (the prompt is copied, to paste in Claude Code, Codex
     /// or Antigravity). None when it is not public, does not fit this PC, or is installed and up to date.
     /// </summary>
-    public static Button? Action(ProductView view, Action<string> said)
+    public static Button? Action(ProductView view, IReadOnlyList<AiApp> found, Action<string> said)
     {
         var product = view.Product;
         if (product.StoreUrl is { } store)
@@ -86,26 +106,77 @@ static class Catalog
             Content = Text.Get(view.Installed ? "UpdateAi" : "InstallAi"),
             Style = (Style)Application.Current.Resources["AccentButtonStyle"],
         };
-        install.Click += (_, _) => said(CopyPrompt([product.Key]));
+        HandOff(install, () => [product.Key], found, said);
         return install;
     }
 
-    /// <summary>Copies the install prompt of these products; returns what to tell the user.</summary>
-    public static string CopyPrompt(IReadOnlyList<string> keys)
+    /// <summary>
+    /// The button hands the install to an AI app: Claude Code and Codex open on a new conversation with the request
+    /// already written (their own links, claude://code/new and codex://threads/new: the user only presses Enter);
+    /// Antigravity has no such link: it is opened with the request copied, to paste in its agent. With several AI apps
+    /// on the PC, the button opens a menu to pick one.
+    /// </summary>
+    public static void HandOff(Button button, Func<IReadOnlyList<string>> keys, IReadOnlyList<AiApp> found, Action<string> said)
     {
-        var prompt = Products.AiPrompt(keys, Text.French);
-        if (prompt.Length == 0) return "";
+        if (found.Count == 1)
+        {
+            button.Click += async (_, _) => said(await HandAsync(keys(), found[0]));
+            return;
+        }
+        var menu = new MenuFlyout { Placement = Microsoft.UI.Xaml.Controls.Primitives.FlyoutPlacementMode.BottomEdgeAlignedRight };
+        foreach (var app in found)
+        {
+            var item = new MenuFlyoutItem { Text = Text.Format("HandTo", AiApps.Name(app)), Icon = new ImageIcon { Source = Ui.AiLogoSource(app) } };
+            item.Click += async (_, _) => said(await HandAsync(keys(), app));
+            menu.Items.Add(item);
+        }
+        if (menu.Items.Count > 0) menu.Items.Add(new MenuFlyoutSeparator());
+        var copy = new MenuFlyoutItem { Text = Text.Get("CopyPromptOnly"), Icon = new FontIcon { Glyph = "" } };
+        copy.Click += (_, _) => said(Copy(keys()) is null ? Text.Get("PromptFailed") : Text.Get("PromptCopied"));
+        menu.Items.Add(copy);
+        button.Flyout = menu;
+    }
+
+    static async Task<string> HandAsync(IReadOnlyList<string> keys, AiApp app)
+    {
+        if (Copy(keys) is not { } prompt) return Text.Get("PromptFailed");
+        var link = app switch
+        {
+            AiApp.ClaudeCode => "claude://code/new?q=" + Uri.EscapeDataString(prompt),
+            AiApp.Codex => "codex://threads/new?prompt=" + Uri.EscapeDataString(prompt),
+            _ => null,
+        };
+        try
+        {
+            if (link is not null && await Windows.System.Launcher.LaunchUriAsync(new Uri(link))) return Text.Format("HandOpened", AiApps.Name(app));
+            var antigravity = Path.Combine(UserFolders.FromEnvironment().LocalAppData, "Programs", "Antigravity", "Antigravity.exe");
+            if (app == AiApp.Antigravity && File.Exists(antigravity))
+            {
+                // Already open: Antigravity comes forward in its own window instead of starting again.
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(antigravity) { UseShellExecute = true })?.Dispose();
+                return Text.Format("HandPaste", AiApps.Name(app));
+            }
+        }
+        catch (Exception error) { AppLog.Error("handoff", error); }
+        return Text.Format("HandCopied", AiApps.Name(app));
+    }
+
+    /// <summary>Copies the install request of these products (also the fallback of every hand-off); null when it fails.</summary>
+    static string? Copy(IReadOnlyList<string> keys)
+    {
+        var prompt = Products.AiPrompt(keys, Text.French, Shown.Products);
+        if (prompt.Length == 0) return null;
         try
         {
             var package = new DataPackage();
             package.SetText(prompt);
             Clipboard.SetContent(package);
-            return Text.Get("PromptCopied");
+            return prompt;
         }
         catch (Exception error)
         {
             AppLog.Error("prompt", error);
-            return Text.Get("PromptFailed");
+            return null;
         }
     }
 }
