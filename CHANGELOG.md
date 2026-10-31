@@ -7,6 +7,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Fixed
+- Pin NexusInDesign v4.0.2 in the Claude Code and Codex catalogs, fixing engine startup with current signed Codex installations.
+
 ### Changed (app 1.0.14.0)
 - "Install with AI" > "With Antigravity" opens Antigravity on a new conversation with the request already written in
   its chat box, like Claude Code and Codex: the user only presses Enter. Antigravity has no link that fills its chat,
