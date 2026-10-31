@@ -157,10 +157,53 @@ static class Ui
         return panel;
     }
 
+    /// <summary>A scrolling page that uses the whole width of the window.</summary>
     public static ScrollViewer Page(UIElement content) => new()
     {
-        Content = new Border { Child = content, Padding = new Thickness(32, 16, 32, 24), MaxWidth = 1140, HorizontalAlignment = HorizontalAlignment.Stretch },
+        Content = new Border { Child = content, Padding = new Thickness(32, 16, 32, 24), HorizontalAlignment = HorizontalAlignment.Stretch },
     };
+
+    /// <summary>
+    /// Cards in as many columns as the width allows (at least <paramref name="minWidth"/> each), like the Microsoft
+    /// Store: the grid reflows when the window is resized.
+    /// </summary>
+    public static Grid Flow(IReadOnlyList<FrameworkElement> items, double minWidth = 340, double spacing = 12)
+    {
+        var grid = new Grid { ColumnSpacing = spacing, RowSpacing = spacing };
+        var columns = 0;
+        void Layout(double width)
+        {
+            var count = Math.Max(1, (int)((width + spacing) / (minWidth + spacing)));
+            if (count == columns) return;
+            columns = count;
+            grid.ColumnDefinitions.Clear();
+            grid.RowDefinitions.Clear();
+            for (var c = 0; c < count; c++) grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            for (var r = 0; r < (items.Count + count - 1) / count; r++) grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            for (var i = 0; i < items.Count; i++)
+            {
+                Grid.SetColumn(items[i], i % count);
+                Grid.SetRow(items[i], i / count);
+            }
+        }
+        foreach (var item in items) grid.Children.Add(item);
+        Layout(minWidth * 2);
+        grid.SizeChanged += (_, e) => Layout(e.NewSize.Width);
+        return grid;
+    }
+
+    /// <summary>A colored dot then a short state, as on a store listing ("Installed", "Update available").</summary>
+    public static Grid State(string text, string brush)
+    {
+        var grid = new Grid { ColumnSpacing = 6 };
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        grid.Children.Add(new Microsoft.UI.Xaml.Shapes.Ellipse { Width = 8, Height = 8, Fill = Theme(brush), VerticalAlignment = VerticalAlignment.Center });
+        var words = new TextBlock { Text = text, FontSize = 12.5, TextWrapping = TextWrapping.WrapWholeWords, VerticalAlignment = VerticalAlignment.Center, Foreground = Theme("TextFillColorSecondaryBrush") };
+        Grid.SetColumn(words, 1);
+        grid.Children.Add(words);
+        return grid;
+    }
 
     public static Color Transparent => Colors.Transparent;
 }

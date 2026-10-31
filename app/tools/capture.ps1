@@ -1,7 +1,7 @@
 # Pictures of every page in French and English, dark and light, on the made-up demo profile (Initialize-NexusDemoProfile):
 # never the real user's data. The app's --capture mode shows its window away from the desktop, without activation,
 # and this script checks that it never becomes the foreground window.
-param([string]$Out = (Join-Path $PSScriptRoot '..\dist\captures'), [string]$Size = '1366x860', [switch]$Frames)
+param([string]$Out = (Join-Path $PSScriptRoot '..\dist\captures'), [string]$Size = '1366x860')
 $ErrorActionPreference = 'Stop'
 function Resolve-NexusCaptureOutput([string]$Path, [string]$ProjectRoot) {
     $target = [IO.Path]::GetFullPath($Path).TrimEnd('\')
@@ -36,7 +36,7 @@ function Resolve-NexusCaptureOutput([string]$Path, [string]$ProjectRoot) {
         }
         foreach ($entry in Get-ChildItem -LiteralPath $target -Force) {
             if ($entry.Name -eq '.nexus-captures.json' -and -not $entry.PSIsContainer -and -not $entry.LinkType) { continue }
-            if ($entry.PSIsContainer -or $entry.LinkType -or $entry.Name -notmatch '^(?:(?:home(?:-result)?|windows|android|browser|keypad|relay|agymail)-(?:fr|en)-(?:dark|light)|frame-(?:fr|en)-(?:dark|light)-\d{2})\.png$') {
+            if ($entry.PSIsContainer -or $entry.LinkType -or $entry.Name -notmatch '^(?:home|windows|android|browser|keypad|relay|agymail|indesign|wpp)-(?:fr|en)-(?:dark|light)\.png$') {
                 throw 'Capture output contains foreign content; nothing was removed.'
             }
             $pictures += $entry.FullName
@@ -133,7 +133,7 @@ try {
     $env:CODEX_HOME = "$demo\.codex"; $env:NEXUS_JOURNAL_HOME = "$demo\AppData\Local\NexusJournal"
     foreach ($run in @('fr dark', 'en dark', 'fr light', 'en light')) {
         $lang, $theme = $run -split ' '
-        $process = Start-Process $exe.FullName -ArgumentList "--capture `"$Out`" --size $Size $(if ($Frames) { '--frames' }) --lang $lang --theme $theme" -PassThru
+        $process = Start-Process $exe.FullName -ArgumentList "--capture `"$Out`" --size $Size --lang $lang --theme $theme" -PassThru
         for ($i = 0; $i -lt 120 -and -not $process.HasExited; $i++) {
             Start-Sleep -Milliseconds 250
             $owner = 0

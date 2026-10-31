@@ -78,9 +78,16 @@ public static class ProductUpdates
 
     /// <summary>Installed already: it reports a state, or an AI app here declares it, or its device plugin is there.</summary>
     public static bool IsInstalled(Product product, IReadOnlyList<AiApp> found, UserFolders folders) =>
+        Products.StoreInstalled(product, folders) ||
         (product == Products.Windows && WindowsRuntime.ReadInstallation(folders) is not null) ||
         Read(product, folders).Count > 0 || Declarations.DeviceInstalled(product, folders) ||
         found.Where(product.Targets.Contains).Any(app => Declarations.IsDeclared(product, app, folders));
+
+    /// <summary>The installed version as maintenance, the shared Windows engine or the product itself records it, or null.</summary>
+    public static string? InstalledVersion(Product product, UserFolders folders) =>
+        MaintenanceUpdates.Read(folders)?.Products.FirstOrDefault(item => item.Key == product.Key)?.InstalledVersion
+        ?? (product == Products.Windows ? WindowsRuntime.ReadInstallation(folders)?.Version : null)
+        ?? Read(product, folders).Select(state => state.Version).FirstOrDefault(version => version is not null);
 
     /// <summary>Whether an installed maintenance worker or a product-owned interface can accept a request.</summary>
     public static bool CanRequest(Product product, UserFolders folders) =>

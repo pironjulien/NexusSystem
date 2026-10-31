@@ -24,7 +24,7 @@ public partial class App : Application
     }
 
     /// <summary>Command line: --lang fr|en, --theme light|dark, --capture &lt;folder&gt; (pictures of every page, then exit),
-    /// --size WxH (the capture's window size, 1366x860 by default), --frames (video frames of the home page too),
+    /// --size WxH (the capture's window size, 1366x860 by default),
     /// --quiet (shown away from the desktop without activation, for tests driven in the background).</summary>
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
@@ -63,7 +63,7 @@ public partial class App : Application
         if (Option("--capture") is { } folder)
         {
             var size = (Option("--size") ?? "1366x860").Split('x');
-            _ = window.CaptureAsync(folder, new SizeInt32(int.Parse(size[0]), int.Parse(size[1])), argv.Contains("--frames"));
+            _ = window.CaptureAsync(folder, new SizeInt32(int.Parse(size[0]), int.Parse(size[1])));
         }
         else if (argv.Contains("--quiet")) window.ShowQuietly();  // tests: never takes the user's foreground
         else window.Activate();
