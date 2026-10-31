@@ -41,14 +41,10 @@ static class Steps
                 yield return (Card(product, Text.Get("Relay.Step"), Text.Format("Relay.StepText", RelayProject(folders)),
                     Action(Text.Get("CopyPath"), () => Copy(RelayProject(folders)))), false);
                 break;
-            case "agymail":
-                yield return (Card(product, Text.Get("Agymail.Step"), Text.Get("Agymail.StepText"),
-                    Link(Text.Get("Guide"), "https://github.com/pironjulien/NexusAGYmail#quick-start")), true);
-                break;
+            // NexusAGYmail: no guide, "Gmail connected" or the "Connect Gmail" button of "On this PC" (its own sign-in).
             // The keys only while they are not on the pad yet (an install placed them, or the user did).
             case "keypad" when Declarations.DeviceInstalled(product, folders) && !Declarations.KeypadKeysPlaced(folders):
-                yield return (Card(product, Text.Get("Keypad.Step"), Text.Get("Keypad.StepText"),
-                    Link(Text.Get("Guide"), "https://github.com/pironjulien/NexusKeypad#install")), false);
+                yield return (Card(product, Text.Get("Keypad.Step"), Text.Get("Keypad.StepText")), false);
                 break;
         }
     }
@@ -97,8 +93,6 @@ static class Steps
         };
         return button;
     }
-
-    static HyperlinkButton Link(string text, string url) => new() { Content = text, NavigateUri = new Uri(url), Padding = new Thickness(0) };
 
     static void Copy(string text)
     {
