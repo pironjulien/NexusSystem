@@ -7,6 +7,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Changed
+- `RELEASING.md`: the Chrome Web Store gets the extension from the AI on request (`scripts/publish-store.ps1` of
+  NexusBrowser), no longer from GitHub at promotion; NexusKeypad is promoted on push like the other products (no
+  offline signature).
+
 ## [1.6.40] - 2026-10-31
 
 ### Changed
