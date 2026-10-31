@@ -10,7 +10,7 @@
         "source": "git-subdir",
         "url": "https://github.com/pironjulien/NexusAndroid.git",
         "path": "plugin",
-        "ref": "v0.22.6"
+        "ref": "v0.22.7"
       },
       "policy": {
         "installation": "AVAILABLE",
