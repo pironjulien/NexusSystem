@@ -8,6 +8,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 ## [Unreleased]
 
 ### Fixed
+- Normal launches share one window per user/session across local build paths; launching again activates the existing
+  window instead of opening another copy. Isolated captures and quiet tests keep their separate lifetime.
+- The desktop executable embeds the existing product icon so shortcuts and taskbar entries display the Nexus logo.
+
+### Fixed
 - Maintenance preserves installed repository engines and refreshes their public catalogue plugins separately.
   A newer public release, a deferred activation or missing provenance never silently changes a development engine
   into a public installation. The author's workstation uses the existing local app installer and repository
