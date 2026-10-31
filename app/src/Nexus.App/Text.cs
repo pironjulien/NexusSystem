@@ -125,6 +125,8 @@ public static class Text
         ["Version.Title"] = ("Version", "Version"),
         ["Version.Current"] = ("{0} · version {1}", "{0} · version {1}"),
         ["Version.Newer"] = ("{0} · mise à jour prête : {1} → {2}", "{0} · update ready: {1} → {2}"),
+        ["Version.Release"] = ("Dernière version publiée ({0}) : {1}", "Latest published version ({0}): {1}"),
+        ["Version.ReleaseNewer"] = ("Nouvelle version publiée ({0}) : {1}, installée : {2}", "New version published ({0}): {1}, installed: {2}"),
         ["Version.None"] = ("La version s'affiche quand le produit a démarré une fois.", "The version shows once the product has started."),
         ["Version.Failed"] = ("La dernière mise à jour a échoué.", "The last update failed."),
         ["Version.Auto"] = ("Cette installation n'est pas encore suivie par le gestionnaire automatique.",

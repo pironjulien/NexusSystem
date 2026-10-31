@@ -71,6 +71,7 @@ public sealed partial class ProductPage : UserControl
             version.Children.Add(Ui.Body(Text.Get("Version.Managed"), secondary: true));
         version.Children.Add(updateNote);
         RefreshVersions(product, versions);
+        _ = RefreshReleaseAsync(product, versions);
         page.Children.Add(Ui.Card(version));
 
         // What the AI apps did (products that write the common journal).
@@ -197,9 +198,34 @@ public sealed partial class ProductPage : UserControl
         finally { refreshingStatus = false; }
     }
 
+    // The newest release on this PC's channel (stable, or dev on a development PC), read once per page.
+    (string Channel, string Tag)? release;
+
+    async Task RefreshReleaseAsync(Product product, StackPanel versions)
+    {
+        if (ReleaseFeed.Repository(product) is not { } repository) return;
+        var channel = ReleaseFeed.Channel(folders);
+        if (await ReleaseFeed.NewestAsync(repository, channel, lifetime.Token) is not { } tag) return;
+        release = (channel, tag);
+        RefreshVersions(product, versions);
+    }
+
+    /// <summary>The installed version as the product or maintenance records it, or null.</summary>
+    string? InstalledVersion(Product product, MaintainedProduct? maintained) =>
+        maintained?.InstalledVersion
+        ?? (product == Products.Windows ? WindowsRuntime.ReadInstallation(folders)?.Version : null)
+        ?? ProductUpdates.Read(product, folders).Select(state => state.Version).FirstOrDefault(version => version is not null);
+
     void RefreshVersions(Product product, StackPanel versions)
     {
         versions.Children.Clear();
+        if (release is var (channel, tag))
+        {
+            var installed = InstalledVersion(product, MaintenanceUpdates.Read(folders)?.Products.FirstOrDefault(item => item.Key == product.Key));
+            versions.Children.Add(Ui.Body(installed is not null && ReleaseFeed.IsNewer(tag, installed)
+                ? Text.Format("Version.ReleaseNewer", channel, ReleaseFeed.Version(tag), installed)
+                : Text.Format("Version.Release", channel, ReleaseFeed.Version(tag))));
+        }
         var maintenance = MaintenanceUpdates.Read(folders);
         var maintained = maintenance?.Products.FirstOrDefault(item => item.Key == product.Key);
         if (maintained is null && maintenance?.State == "failed")
@@ -257,7 +283,8 @@ public sealed partial class ProductPage : UserControl
             // Never "up to date": products refresh their check date even when the check fails, and their message mixes
             // successes and diagnostics. Only the running version, or an update known to be ready.
             var current = state.Version ?? "?";
-            var line = state.UpdateAvailable && latest is { } newer && newer != current ? Text.Format("Version.Newer", edition, current, newer)
+            // The channel's published release, when known, already says whether a newer version exists.
+            var line = release is null && state.UpdateAvailable && latest is { } newer && newer != current ? Text.Format("Version.Newer", edition, current, newer)
                 : Text.Format("Version.Current", edition, current);
             versions.Children.Add(Ui.Body(line));
             if (state.State == "failed") versions.Children.Add(Ui.Mark(false, Text.Get("Version.Failed")));
