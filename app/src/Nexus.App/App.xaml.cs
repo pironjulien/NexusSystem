@@ -6,6 +6,7 @@ namespace Nexus.App;
 
 public partial class App : Application
 {
+    AppInstanceGate? instanceGate;
     public App()
     {
         InitializeComponent();
@@ -34,7 +35,31 @@ public partial class App : Application
             return i >= 0 && i + 1 < argv.Length ? argv[i + 1] : null;
         }
         if (Option("--lang") is { } lang) Text.French = lang == "fr";
+        if (Option("--capture") is null && !argv.Contains("--quiet"))
+        {
+            instanceGate = new AppInstanceGate();
+            if (!instanceGate.IsFirst)
+            {
+                instanceGate.RequestActivation();
+                instanceGate.Dispose();
+                instanceGate = null;
+                Exit();
+                return;
+            }
+        }
         var window = new MainWindow();
+        if (instanceGate is { } gate)
+        {
+            var dispatcher = window.DispatcherQueue;
+            gate.Listen(() => dispatcher.TryEnqueue(() =>
+            {
+                if (instanceGate is null) return;
+                if (window.AppWindow.Presenter is Microsoft.UI.Windowing.OverlappedPresenter presenter &&
+                    presenter.State == Microsoft.UI.Windowing.OverlappedPresenterState.Minimized) presenter.Restore();
+                window.Activate();
+            }));
+            window.Closed += (_, _) => { var closing = instanceGate; instanceGate = null; closing?.Dispose(); };
+        }
         if (Option("--capture") is { } folder)
         {
             var size = (Option("--size") ?? "1366x860").Split('x');

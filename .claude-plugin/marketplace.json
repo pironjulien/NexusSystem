@@ -6,14 +6,19 @@
   },
   "metadata": {
     "description": "Computer use in the background for Claude Code: your Android phone, your Windows desktop apps, your real Chrome, a direct line to Codex and Antigravity, your Logitech keypad. Each plugin connects to its product's native Windows engine (no Python), installed by NexusSystem.",
-    "version": "1.6.37"
+    "version": "1.6.38"
   },
   "plugins": [
     {
       "name": "nexus-android",
-      "source": "./plugins/nexus-android",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/pironjulien/NexusAndroid.git",
+        "path": "plugin",
+        "ref": "v0.22.6"
+      },
       "description": "Android phone over plain ADB (no root, no app): screen, gestures, SMS/RCS, notifications, files, settings. Served by the local NexusAndroid daemon, installed by NexusSystem (or NexusAndroid's get.ps1); needs USB debugging on the phone.",
-      "version": "0.22.5",
+      "version": "0.22.6",
       "category": "productivity",
       "keywords": [
         "android",
@@ -28,9 +33,14 @@
     },
     {
       "name": "nexus-windows",
-      "source": "./plugins/nexus-windows",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/pironjulien/NexusWindows.git",
+        "path": "plugin",
+        "ref": "v3.9.6"
+      },
       "description": "Windows desktop apps through native UI Automation: observe, click, type, menus, shortcuts and launch. Foreground interaction is explicit when required. Starts the native NexusWindows engine installed by NexusSystem (or NexusWindows' get.ps1).",
-      "version": "3.9.5",
+      "version": "3.9.6",
       "category": "productivity",
       "keywords": [
         "windows",
@@ -45,9 +55,14 @@
     },
     {
       "name": "nexus-browser",
-      "source": "./plugins/nexus-browser",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/pironjulien/NexusBrowser.git",
+        "path": "plugin",
+        "ref": "v2.33.6"
+      },
       "description": "Your real Chrome (your sessions) driven in background tabs: forms, network, dialogs, cross-origin iframes, exports, downloads. Served by the local NexusBrowser daemon; requires its Chrome extension, both installed by NexusSystem (or NexusBrowser's get.ps1).",
-      "version": "2.33.5",
+      "version": "2.33.6",
       "category": "productivity",
       "keywords": [
         "chrome",
@@ -62,9 +77,14 @@
     },
     {
       "name": "nexus-relay",
-      "source": "./plugins/nexus-relay",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/pironjulien/NexusRelay.git",
+        "path": "plugin",
+        "ref": "v1.10.5"
+      },
       "description": "Direct link between Claude, Codex and Antigravity on one Windows PC: topic rooms, multi-agent review, delegated tasks. Served by the local NexusRelay daemon, installed by NexusSystem (or NexusRelay's get.ps1).",
-      "version": "1.10.4",
+      "version": "1.10.5",
       "category": "productivity",
       "keywords": [
         "multi-agent",
@@ -81,7 +101,7 @@
       "name": "nexus-keypad",
       "source": "./plugins/nexus-keypad",
       "description": "NexusKeypad in Claude: live states for the Logitech keypad (hooks), exact usage (5-hour and weekly) and, under the prompt, whether Codex and Antigravity are reachable through Nexus Relay. No alert, no network. Needs NexusKeypad, installed by NexusSystem (or NexusKeypad's get.ps1).",
-      "version": "1.0.0",
+      "version": "1.8.8",
       "category": "productivity",
       "keywords": [
         "logitech",

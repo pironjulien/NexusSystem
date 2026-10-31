@@ -8,6 +8,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="System.Management" Version="10.0.12" />
+    <InternalsVisibleTo Include="Nexus.Core.Tests" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="..\..\pack\get-nexus.ps1" LogicalName="get-nexus.ps1" Condition="Exists('..\..\pack\get-nexus.ps1')" />

@@ -57,12 +57,38 @@ try{
         [IO.File]::WriteAllText((Join-Path $native $name),"fixture $name")
         $artifacts[$name]=(Get-FileHash -LiteralPath (Join-Path $native $name) -Algorithm SHA256).Hash
     }
-    $record=@{Schema=2;Version='3.9.4';NativeHash=('a'*64);NativeExecutable=(Join-Path $native 'NexusWindows.exe');NativeArtifacts=$artifacts}
+    $record=@{Schema=2;Version='3.9.4';SourceRoot='release v3.9.4';NativeHash=('a'*64);NativeExecutable=(Join-Path $native 'NexusWindows.exe');NativeArtifacts=$artifacts}
     $record|ConvertTo-Json -Depth 5|Set-Content -LiteralPath (Join-Path $env:USERPROFILE '.nexus\nexus-windows\installation.json')
     Assert ((Get-NexusInstalledVersion $windows) -eq '3.9.4') 'Valid installation rejected.'
     [IO.File]::WriteAllText((Join-Path $native 'NexusWindows.dll'),'modified')
     Assert (-not(Get-NexusInstalledVersion $windows)) 'Modified assembly was reported as installed and verified.'
     Write-Host 'OK installed version requires matching manifest bytes'
+
+    # Provenance is the installer's existing receipt. No checkout lookup, git pull or rebuild is needed to keep it.
+    $windowsRecord=Join-Path $env:USERPROFILE '.nexus\nexus-windows\installation.json'
+    Assert ((Get-NexusInstallationSource $windows) -eq 'release') 'Public Windows provenance was missed.'
+    $record.SourceRoot=Join-Path $work 'moved-repository\NexusWindows'
+    $record|ConvertTo-Json -Depth 5|Set-Content -LiteralPath $windowsRecord
+    Assert ((Get-NexusInstallationSource $windows) -eq 'repository') 'Windows repository provenance was lost when its source directory was absent.'
+    $record.SourceRoot='unrecognised provenance';$record|ConvertTo-Json -Depth 5|Set-Content -LiteralPath $windowsRecord
+    Assert ((Get-NexusInstallationSource $windows) -eq 'unknown') 'Unproved Windows provenance was accepted as public.'
+    $record.SourceRoot='release v3.9.4';$record|ConvertTo-Json -Depth 5|Set-Content -LiteralPath $windowsRecord
+    $browserNative=Join-Path $env:LOCALAPPDATA ('NexusBrowser\versions\'+('b'*16));New-Item -ItemType Directory -Force $browserNative|Out-Null
+    $browserCurrent=Join-Path $env:LOCALAPPDATA 'NexusBrowser\current.json'
+    @{version='2.33.4';exe=(Join-Path $browserNative 'NexusBrowser.exe');fingerprint=('b'*64)}|ConvertTo-Json|Set-Content -LiteralPath $browserCurrent
+    $browserRecord=Join-Path $browserNative 'installation.json'
+    @{repository_root=(Join-Path $work 'moved-repository\NexusBrowser')}|ConvertTo-Json|Set-Content -LiteralPath $browserRecord
+    Assert ((Get-NexusInstallationSource $browser) -eq 'repository') 'Browser repository provenance was lost when its source directory was absent.'
+    $publicBrowser=Join-Path $env:LOCALAPPDATA 'NexusBrowser\app'
+    @{repository_root=$publicBrowser}|ConvertTo-Json|Set-Content -LiteralPath $browserRecord
+    Assert ((Get-NexusInstallationSource $browser) -eq 'release') 'Public Browser payload provenance was missed.'
+    New-Item -ItemType Directory -Force $publicBrowser|Out-Null
+    [IO.File]::WriteAllText((Join-Path $publicBrowser '.git'),'gitdir: a checkout marker')
+    Assert ((Get-NexusInstallationSource $browser) -eq 'repository') 'A checkout in the public payload location was treated as a release.'
+    Remove-Item -LiteralPath (Join-Path $publicBrowser '.git')
+    Remove-Item -LiteralPath $browserRecord
+    Assert ((Get-NexusInstallationSource $browser) -eq 'unknown') 'Missing Browser provenance was accepted as public.'
+    Write-Host 'OK repository provenance survives moved sources; unknown origins never imply public ownership'
 
     # A receipt counts only for the live process birth, loaded assembly and immediate real host chain.
     $birth=[DateTime]::UtcNow
@@ -138,6 +164,30 @@ try{
     Assert ($script:maintenanceStarts -eq 1) 'A disabled maintenance task was started by bootstrap.'
     Write-Host 'OK durable single updater is hidden, hourly and resumes missed runs'
 
+    # The explicit development choice survives future bootstrap calls without another task or public copy.
+    $coordinatorFolder=Join-Path $work 'development NexusSystem';New-Item -ItemType Directory -Force $coordinatorFolder|Out-Null
+    [IO.File]::WriteAllText((Join-Path $coordinatorFolder '.git'),'gitdir: local-worktree-metadata')
+    $coordinator=Join-Path $coordinatorFolder 'get-nexus.ps1';Copy-Item -LiteralPath $pack -Destination $coordinator
+    $choices=Join-Path $env:USERPROFILE '.nexus\nexussystem.json'
+    @{developmentCoordinator=$coordinator}|ConvertTo-Json|Set-Content -LiteralPath $choices
+    $durable=Join-Path (Get-NexusMaintenanceRoot) 'get-nexus.ps1';$publicBefore=[IO.File]::ReadAllText($durable)
+    Install-NexusMaintenance $pack -Start
+    Assert ($script:task.Action.Arguments -like ('*-File "'+$coordinator+'" -Maintain -MaintenanceCurrent') -and $script:task.Name -eq 'NexusSystem Update') 'Explicit development coordinator was not kept as the existing task action.'
+    Assert (-not $script:task.Settings.Enabled -and $script:maintenanceStarts -eq 1 -and $script:task.Triggers[0].User -eq $script:task.Principal.UserId) 'Development bootstrap overrode task disablement, started it, or lost the per-user trigger.'
+    Assert ([IO.File]::ReadAllText($durable) -ceq $publicBefore) 'Development bootstrap copied a public manager over the existing durable payload.'
+    Remove-Item -LiteralPath (Join-Path $coordinatorFolder '.git')
+    $previousArguments=$script:task.Action.Arguments;$refused=$false
+    try{Install-NexusMaintenance $pack}catch{$refused=$true}
+    Assert ($refused -and $script:task.Action.Arguments -ceq $previousArguments -and [IO.File]::ReadAllText($durable) -ceq $publicBefore) 'Invalid development selection fell back to the public manager or changed the task.'
+    @{developmentCoordinator='relative\get-nexus.ps1'}|ConvertTo-Json|Set-Content -LiteralPath $choices
+    $refused=$false;try{Install-NexusMaintenance $pack}catch{$refused=$true}
+    Assert $refused 'Relative development coordinator was accepted.'
+    @{autoUpdate=$false;developmentCoordinator=$coordinator}|ConvertTo-Json|Set-Content -LiteralPath $choices
+    Install-NexusMaintenance $pack -Start
+    Assert ($script:task.Action.Arguments -ceq $previousArguments -and $script:maintenanceStarts -eq 1) 'Automatic-update opt-out changed or started the development task.'
+    Remove-Item -LiteralPath $choices
+    Write-Host 'OK explicit repository coordinator survives bootstrap; invalid selection and update opt-out never fall back'
+
     # Real orchestration with inert release and product implementations. A new connection is never fabricated.
     function Get-NexusMaintenanceToken {return 'fixture credential'}
     Assert (Test-NexusOwnedJsonRoute $browser ([pscustomobject]@{serverUrl='http://127.0.0.1:16182/mcp?agent=antigravity';headers=[pscustomobject]@{Authorization='Bearer fixture credential'}}) 'antigravity') 'Route inspection did not use the same current user credential as maintenance.'
@@ -150,7 +200,7 @@ try{
         $tag=if($Repo -eq 'NexusSystem'){'v1.6.36'}else{Get-LatestTag $Repo}
         return [pscustomobject]@{file=$pack;tag=$tag;version=$tag.Substring(1);sha256=(Get-FileHash -LiteralPath $pack).Hash}
     }
-    function Get-NexusInstalledVersion($Product){if($Product.Key -eq 'windows'){return $script:installed};return $null}
+    function Get-NexusInstalledVersion($Product){if($Product.Key -eq 'windows'){return $script:installed};if($Product.Key -eq 'browser'){return $script:browserInstalled};return $null}
     function Invoke-ScriptFile([string]$What,[string]$File,[string[]]$Arguments=@()){
         Assert (($Arguments -join ',') -eq '-UpdateOnly') 'Maintenance used a broad installer.'
         Assert ($env:NEXUS_PACK_TARGETS -eq 'codex') 'Maintenance widened the active profile selection.'
@@ -160,7 +210,7 @@ try{
     }
     function Invoke-NexusPluginMaintenance($Product,$Profiles){$script:pluginRefresh++;Assert ($Profiles.Count -eq 1 -and $Profiles[0].key -eq 'codex') 'Plugin refresh widened selection.'; $Profiles[0].pluginVersion=$script:pluginVersion}
     function Get-NexusLoadedVersion($Product){return [pscustomobject]@{versions=@($script:loaded);unknown=$false;agents=@([pscustomobject]@{agent='codex';version=$script:loaded})}}
-    $script:pluginVersion='3.9.5';$script:installed='3.9.4';$script:loaded='3.9.4';$script:installs=0;$script:pluginRefresh=0;$script:downloads=@();$script:networkFailure=$false;$script:installerFailure=$false;$script:installerThrows=$false
+    $script:pluginVersion='3.9.5';$script:installed='3.9.4';$script:browserInstalled=$null;$script:loaded='3.9.4';$script:installs=0;$script:pluginRefresh=0;$script:downloads=@();$script:networkFailure=$false;$script:installerFailure=$false;$script:installerThrows=$false
     $env:NEXUS_MCP_TOKEN='inherited-before-installation'
     Assert ((Invoke-NexusMaintenance -Current) -eq 2) 'Old loaded connection was falsely reported current.'
     Assert ($env:NEXUS_MCP_TOKEN -ceq 'inherited-before-installation') 'Successful maintenance did not restore its caller environment.'
@@ -185,6 +235,35 @@ try{
     Assert ((Invoke-NexusMaintenance -Current) -eq 0 -and (Get-NexusMaintenanceStatus).products.Count -eq 0) 'Multiple local skip choices were ignored.'
     Remove-Item -LiteralPath $choices
     Write-Host 'OK update preserves occupied runtime, distinguishes versions and retries activation without reinstalling'
+
+    $record.SourceRoot=Join-Path $work 'moved-repository\NexusWindows';$record|ConvertTo-Json -Depth 5|Set-Content -LiteralPath $windowsRecord
+    $script:installed='3.9.4';$script:loaded='3.9.4'
+    $beforeInstalls=$script:installs;$beforeRefresh=$script:pluginRefresh;$beforeDownloads=$script:downloads.Count
+    $beforeRecord=[IO.File]::ReadAllText($windowsRecord)
+    Assert ((Invoke-NexusMaintenance -Current) -eq 0) 'A local Windows engine was required to equal the public release.'
+    $local=Get-NexusMaintenanceStatus
+    Assert ($script:installs -eq $beforeInstalls -and $script:downloads.Count -eq $beforeDownloads -and $script:pluginRefresh -eq ($beforeRefresh+1)) 'A Windows repository build downloaded an installer or skipped public catalogue maintenance.'
+    Assert ($local.products[0].state -eq 'kept' -and $local.products[0].publishedVersion -eq '3.9.5' -and $local.products[0].installedVersion -eq '3.9.4' -and $local.products[0].loadedVersions[0] -eq '3.9.4') 'Windows repository observation conflated published, installed or loaded versions.'
+    Assert ([IO.File]::ReadAllText($windowsRecord) -ceq $beforeRecord) 'Maintenance rewrote the local Windows source receipt.'
+    $record.SourceRoot='unknown';$record|ConvertTo-Json -Depth 5|Set-Content -LiteralPath $windowsRecord
+    Assert ((Invoke-NexusMaintenance -Current) -eq 2 -and $script:installs -eq $beforeInstalls -and (Get-NexusMaintenanceStatus).products[0].message -like 'Installation provenance is unknown*') 'Unknown Windows provenance allowed a public replacement.'
+    $record.SourceRoot='release v3.9.4';$record|ConvertTo-Json -Depth 5|Set-Content -LiteralPath $windowsRecord
+
+    $Products=@($browser)
+    [IO.File]::WriteAllText((Join-Path $env:CODEX_HOME 'config.toml'),"[plugins.`"nexus-browser@nexus-plugins`"]`nenabled=true")
+    @{repository_root=(Join-Path $work 'moved-repository\NexusBrowser')}|ConvertTo-Json|Set-Content -LiteralPath $browserRecord
+    $script:browserInstalled='2.33.4';$script:loaded='2.33.4';$script:pluginVersion='2.33.5'
+    $beforeRefresh=$script:pluginRefresh;$beforeRecord=[IO.File]::ReadAllText($browserRecord)
+    Assert ((Invoke-NexusMaintenance -Current) -eq 0) 'A local Browser engine was required to equal the public release.'
+    $local=Get-NexusMaintenanceStatus
+    Assert ($script:installs -eq $beforeInstalls -and $script:downloads.Count -eq $beforeDownloads -and $script:pluginRefresh -eq ($beforeRefresh+1) -and $local.products[0].state -eq 'kept') 'A Browser repository build was replaced or its public catalogue was skipped.'
+    Assert ([IO.File]::ReadAllText($browserRecord) -ceq $beforeRecord) 'Maintenance rewrote the Browser source receipt.'
+    $script:loaded='2.33.3'
+    Assert ((Invoke-NexusMaintenance -Current) -eq 2 -and -not (Get-NexusMaintenanceStatus).products[0].retryable) 'A local Browser activation wait scheduled a public installer retry.'
+    Assert ((Invoke-NexusMaintenance -Current) -eq 2 -and $script:installs -eq $beforeInstalls -and $script:downloads.Count -eq $beforeDownloads) 'A later local Browser cycle ran the public installer.'
+    $Products=@($windows,$browser);$script:browserInstalled=$null;$script:pluginVersion='3.9.5';$script:loaded='3.9.5'
+    [IO.File]::WriteAllText((Join-Path $env:CODEX_HOME 'config.toml'),"[plugins.`"nexus-windows@nexus-plugins`"]`nenabled=true")
+    Write-Host 'OK repository engines are observed and preserved while their public catalogue plugins are refreshed'
 
     $lock=[IO.File]::Open((Join-Path (Get-NexusMaintenanceRoot) 'maintenance.lock'),[IO.FileMode]::OpenOrCreate,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None)
     try{Assert ((Invoke-NexusMaintenance -Current) -eq 2) 'Concurrent maintenance was not excluded.'}finally{$lock.Dispose()}

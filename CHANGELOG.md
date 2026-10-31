@@ -7,6 +7,31 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.6.38] - 2026-10-31
+
+### Changed
+- One plugin folder per product, shared by Claude Code, Codex and Antigravity: each product's repository keeps its
+  `plugin/` folder (common guide and icons, plus each AI app's small manifest and server file). Both catalogs point
+  to that folder at the product's release tag (`git-subdir`) instead of keeping copies here, so a product release no
+  longer needs a NexusSystem release and the guide cannot drift between AI apps. `app/tools/pin-plugin.ps1` pins a
+  release in both catalogs. The catalog tests fetch each pinned folder and check what the AI apps really install.
+
+### Added
+- `app/tools/dev-catalog.ps1`: the development channel of the catalog. Plugins whose product repository is checked
+  out next to this one are served from that checkout (Claude Code reads a local marketplace live), the others from
+  their release; `-Register` points Claude Code and Codex at it.
+
+### Fixed
+- Normal launches share one window per user/session across local build paths; launching again activates the existing
+  window instead of opening another copy. Isolated captures and quiet tests keep their separate lifetime.
+- The desktop executable embeds the existing product icon so shortcuts and taskbar entries display the Nexus logo.
+
+### Fixed
+- Maintenance preserves installed repository engines and refreshes their public catalogue plugins separately.
+  A newer public release, a deferred activation or missing provenance never silently changes a development engine
+  into a public installation. The author's workstation uses the existing local app installer and repository
+  coordinator for development; no extra watcher, service or automatic Git pull is introduced.
+
 ### Changed
 - Next Store app (1.0.13.0): request the installed public maintenance task and display dated published, installed,
   observed and pending versions. First launch establishes the same maintenance task for existing product installs,
@@ -52,6 +77,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 ### Changed
 - NexusWindows plugins follow native release 3.9.4 and NexusBrowser plugins follow release 2.33.4, refreshing their
   installed guides. This targeted catalog release leaves the pending 1.6.34 and Windows app changes separate.
+
+## [1.6.34] - 2026-10-30
+
+### Fixed
+- Discover Claude Desktop's installed, signed Claude Code engine when it is not on PATH. Only known Desktop data
+  layouts, semantic version directories and immutable build directories are inspected. Bundled engines require a
+  valid Anthropic signature and matching Claude Code identity before selection; discovery runs no executable and
+  changes no profile, plugin, cache or trust setting. Existing PATH and user-local installations remain supported.
+- NexusKeypad's Claude plugin follows native release 1.8.8, whose connector preserves an existing public
+  `nexus-plugins` selection instead of reactivating the retired private catalog. The version change refreshes the
+  public plugin cache; the helper still comes from NexusKeypad's signed release.
 
 ## [1.6.33] - 2026-10-30
 
@@ -149,11 +185,21 @@ on a local branch to be applied product by product.
 - `INSTALL-AI.md`: structured installation and verification guide for AI coding agents (Claude Code, Codex, Antigravity), supporting à-la-carte product selection (`-Only ... -NoGuide`).
 - Updated `README.md` to put AI-driven installation first alongside the `NexusSystem` app and the one-line PowerShell installer.
 
+## [app 1.0.12.0] - 2026-10-30
+
+Prepared for the Microsoft Store; not submitted yet.
+
+### Fixed
+- Embeds corrected catalog 1.6.34, including Keypad's selected public marketplace and the signed Claude Code
+  engine bundled with Claude Desktop when it is not on PATH. The app uses the same verified installer script as
+  the standalone pack.
+
 ## [app 1.0.11.0] - 2026-10-30
 
-Submitted to the Microsoft Store on 2026-10-30 (submission 9); in certification. The x64 and Arm64 bundle embeds
-the exact released catalog script. French and English native smoke checks and all 24 Windows App Certification Kit
-checks passed in disposable Windows Sandbox sessions; no development certificate was installed on the host.
+Submitted to the Microsoft Store on 2026-10-30 (submission 9), then certification cancelled before publishing when
+the Keypad public/private marketplace regression was confirmed. The submission returned to a private draft for the
+corrected package. French and English native smoke checks and all 24 Windows App Certification Kit checks passed
+in disposable Windows Sandbox sessions; no development certificate was installed on the host.
 
 ### Fixed
 - Home cards reserve the full remaining width for product names and installation states; the page link sits below
