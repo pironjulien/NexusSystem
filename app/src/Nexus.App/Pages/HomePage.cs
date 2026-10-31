@@ -41,13 +41,6 @@ public sealed partial class HomePage : UserControl
         aiLine.Children.Add(aiLabel);
         foreach (var app in found) aiLine.Children.Add(Ui.AiPill(app, declared: true, compact: true));
         if (found.Count == 0) aiLine.Children.Add(Ui.Body(Text.Get("NoAi")));
-        // A development PC sees development builds as new versions: said once, plainly.
-        if (ReleaseFeed.Channel(folders) == ReleaseFeed.Development)
-        {
-            var channel = Ui.Body("· " + Text.Get("Channel.Dev"), secondary: true);
-            channel.VerticalAlignment = VerticalAlignment.Center;
-            aiLine.Children.Add(channel);
-        }
 
         Catalog.HandOff(installAll, AllKeys, found, Say);
         installAll.IsEnabled = found.Count > 0;

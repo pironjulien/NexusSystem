@@ -44,8 +44,6 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - A card follows an install as it happens: once handed to an AI app it says "Your AI app is installing it", then
   "Installed" or "Up to date" as soon as the product reports it (checked every few seconds), like the Microsoft Store.
 - A product's page shows its picture (its video's poster on the site, `banner` in `products.json`) beside its name.
-- A PC on the development channel says so on the home page, so that development builds shown as new versions are
-  expected.
 
 ## [1.6.41] - 2026-10-31
 
