@@ -293,7 +293,32 @@ function Invoke-Native([string]$What, [scriptblock]$Command) {
     return [int]$code
 }
 
+function Get-NexusChannel {
+    # "channel": "dev" in %USERPROFILE%\.nexus\nexussystem.json (a development PC): the newest development build
+    # vX.Y.Z-dev.N of each product. Anything else, or no file: stable, GitHub's latest release.
+    $choices = Read-Json (Join-Path $env:USERPROFILE '.nexus\nexussystem.json')
+    if ($choices -and $choices.PSObject.Properties['channel'] -and $choices.channel -eq 'dev') { return 'dev' }
+    return 'stable'
+}
+
+function Get-NexusTagVersion([string]$Tag) {
+    # The x.y.z a release tag carries: a development build carries the version it will be promoted as.
+    if ($Tag -notmatch '^v(\d+\.\d+\.\d+)(-dev\.\d+)?$') { throw "Unsupported release tag: $Tag" }
+    return $Matches[1]
+}
+
 function Get-LatestTag([string]$Repo) {
+    # Development channel: the newest entry of the public releases feed (no GitHub API), a development build or a
+    # stable release.
+    if ((Get-NexusChannel) -eq 'dev') {
+        try {
+            $feed = [xml][Text.Encoding]::UTF8.GetString((Invoke-WebRequest -UseBasicParsing "https://github.com/pironjulien/$Repo/releases.atom" -TimeoutSec 30).RawContentStream.ToArray())
+            foreach ($entry in @($feed.feed.entry)) {
+                $href = @($entry.link | ForEach-Object { $_.href }) | Where-Object { $_ -match '/releases/tag/(v\d+\.\d+\.\d+(-dev\.\d+)?)$' } | Select-Object -First 1
+                if ($href -and $href -match '/releases/tag/(v\d+\.\d+\.\d+(-dev\.\d+)?)$') { return $Matches[1] }
+            }
+        } catch { Write-Verbose "Releases feed failed: $($_.Exception.Message)" }
+    }
     # The latest release's tag from the redirect of github.com/<repo>/releases/latest: no GitHub API (60 anonymous
     # requests an hour per IP); the API stays as a fallback.
     try {
@@ -353,6 +378,8 @@ function Invoke-Installer([string]$What, [string]$Repo, [string]$Work) {
         }
         $file = Join-Path $folder 'get.ps1'
         Save-VerifiedFile "$base/get.ps1" $file (Get-ExpectedSha256 $manifest 'get.ps1')
+        # A development build's installer installs that build, not the latest stable release.
+        $env:NEXUS_RELEASE_TAG = if ($tag -match '-dev\.\d+$') { $tag } else { $null }
     } catch {
         Say ''
         Say "== $What" Cyan
@@ -1000,7 +1027,7 @@ function Assert-NexusOfficialUpdateEnvironment([string]$Product) {
 }
 function Get-NexusPublishedInstaller([string]$Repo,[string]$Work,[string]$Name='get.ps1') {
     $tag=Get-LatestTag $Repo
-    if ($tag -notmatch '^v\d+\.\d+\.\d+$') { throw "Unsupported release tag for $Repo." }
+    if ($tag -notmatch '^v\d+\.\d+\.\d+(-dev\.\d+)?$') { throw "Unsupported release tag for $Repo." }
     $folder=Join-Path $Work $Repo
     New-Item -ItemType Directory -Force $folder | Out-Null
     $base="https://github.com/pironjulien/$Repo/releases/download/$tag"
@@ -1019,9 +1046,12 @@ function Get-NexusPublishedInstaller([string]$Repo,[string]$Work,[string]$Name='
     # attestation is fatal; it never silently degrades to checksums. No gh installation or authentication is added.
     $gh=Get-Command gh.exe -ErrorAction SilentlyContinue
     if ($gh) {
-        if (Invoke-Native "$Repo build provenance" { & $gh.Source attestation verify $file --repo "pironjulien/$Repo" --source-ref "refs/tags/$tag" }) { throw "Build provenance failed for $Repo $tag." }
+        # Built from its tag (older releases), or from main (a development build, and a stable release promoted from it
+        # with the same files).
+        if ((Invoke-Native "$Repo build provenance" { & $gh.Source attestation verify $file --repo "pironjulien/$Repo" --source-ref "refs/tags/$tag" }) -and
+            (Invoke-Native "$Repo build provenance (main)" { & $gh.Source attestation verify $file --repo "pironjulien/$Repo" --source-ref 'refs/heads/main' })) { throw "Build provenance failed for $Repo $tag." }
     }
-    return [pscustomobject]@{tag=$tag; version=$tag.Substring(1); file=$file; sha256=(Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant()}
+    return [pscustomobject]@{tag=$tag; version=(Get-NexusTagVersion $tag); file=$file; sha256=(Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant()}
 }
 function Get-NexusInstalledVersion($Product) {
     switch ($Product.Key) {
@@ -1316,8 +1346,9 @@ function Invoke-NexusMaintenance([switch]$Current,[switch]$Force) {
                     if (-not $active.Count) { $row.state='kept'; $row.message='No active owned route; disabled and custom routes were preserved.' }
                     else {
                         $tag=Get-LatestTag $product.Repo
-                        if ($tag -notmatch '^v\d+\.\d+\.\d+$') { throw 'Invalid published version.' }
-                        $published=$tag.Substring(1); $row.publishedVersion=$published
+                        if ($tag -notmatch '^v\d+\.\d+\.\d+(-dev\.\d+)?$') { throw 'Invalid published version.' }
+                        $published=Get-NexusTagVersion $tag; $row.publishedVersion=$tag.Substring(1)
+                        $env:NEXUS_RELEASE_TAG = if ($tag -match '-dev\.\d+$') { $tag } else { $null }
                         $source=Get-NexusInstallationSource $product
                         # UpdateOnly is a qualified release contract, never sent to older installers.
                         $minimum=switch($product.Key){'windows'{'3.9.5'} 'browser'{'2.33.5'} default{$null}}

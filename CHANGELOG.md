@@ -12,6 +12,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
   newer than the installed version. Stable follows GitHub's latest release; `"channel": "dev"` in
   `~\.nexus\nexussystem.json` (a development PC) follows the newest development build `vX.Y.Z-dev.N`. Read from
   GitHub's public pages (latest-release redirect, releases feed), without the rate-limited API.
+- `get-nexus.ps1` follows the same channel: on a development PC it installs and maintains each product's newest
+  development build (passing `NEXUS_RELEASE_TAG` to the product's installer, still checked against that release's
+  checksums). Build provenance is accepted from the release tag or from `main`, where development builds, and the
+  stable releases promoted from them unchanged, are attested.
 
 ## [1.6.38] - 2026-10-31
 
