@@ -46,6 +46,8 @@ Then pin the stable plugin in both catalogs and merge it through a pull request 
 pwsh app/tools/pin-plugin.ps1 -Name nexus-<product> -Product <Product> -Tag vX.Y.Z
 ```
 
+NexusKeypad's plugin folder is `connecteurs/` (its `plugin/` is the Logitech plugin): add `-Path connecteurs`.
+
 Claude Code and Codex read the catalog from `main`: no NexusSystem release is needed for a plugin or engine update.
 A NexusSystem release (`vX.Y.Z` here) is needed only when `get-nexus.ps1` changes; the Store app is resubmitted only
 for its own interface or features.

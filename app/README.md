@@ -66,7 +66,7 @@ The previous `NexusWindows.Antigravity.exe` MCP client is still recognized while
   the app package, using verified official release installers. The app requests that task and reads its result;
   it distinguishes published, installed and actually loaded versions. Existing AI sessions can remain on an older
   engine until their normal reload. Older installations retain the product's own update interface where available
-  (Relay and Browser HTTP APIs, Keypad's pipe). See [Updates](../UPDATES.md); an absent update path is never shown
+  (Relay and Browser HTTP APIs); NexusKeypad is updated by the task only. See [Updates](../UPDATES.md); an absent update path is never shown
   as a promise that the product will update itself.
 
 `store/` holds the listing (FR/EN), the privacy text and the certification notes. `probe/` measures what an installed

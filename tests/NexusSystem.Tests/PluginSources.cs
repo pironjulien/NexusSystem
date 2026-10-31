@@ -6,7 +6,7 @@ namespace NexusSystem.Tests;
 
 /// <summary>
 /// Where a catalog entry's plugin lives. A relative source is a folder of this repository. A git-subdir source is the
-/// `plugin` folder of a product's public repository at an exact release tag: it is fetched once (sparse, shallow) into
+/// plugin folder of a product's public repository at an exact release tag: it is fetched once (sparse, shallow) into
 /// the build cache, so the same checks apply to what the AI apps really install.
 /// </summary>
 static class PluginSources
@@ -15,8 +15,9 @@ static class PluginSources
     static readonly Regex Repo = new(@"^(?:https://github\.com/)?pironjulien/(Nexus[A-Za-z]+?)(?:\.git)?$");
     static readonly string Cache = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".nexus", "build", "NexusSystem", "plugin-sources");
 
-    /// <summary>A published plugin is pinned: a product repository, its `plugin` folder, an exact release tag, and the
-    /// entry's version (when it has one) equal to that tag.</summary>
+    /// <summary>A published plugin is pinned: a product repository, its plugin folder (`plugin`, or NexusKeypad's
+    /// `connecteurs`, since its `plugin` is the Logitech plugin), an exact release tag, and the entry's version (when
+    /// it has one) equal to that tag.</summary>
     public static void AssertPinned(JsonNode entry)
     {
         var name = (string?)entry["name"];
@@ -24,7 +25,7 @@ static class PluginSources
         Assert.True(source is JsonObject, $"{name}: a published plugin comes from its product repository (git-subdir), not a copy here");
         Assert.Equal("git-subdir", (string?)source["source"]);
         Assert.Matches(Repo, (string?)source["url"] ?? "");
-        Assert.Equal("plugin", (string?)source["path"]);
+        Assert.Equal(name == "nexus-keypad" ? "connecteurs" : "plugin", (string?)source["path"]);
         Assert.Matches(Tag, (string?)source["ref"] ?? "");
         if (entry["version"] is { } version) Assert.Equal(((string?)source["ref"])![1..], (string?)version);
     }

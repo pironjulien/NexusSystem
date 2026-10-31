@@ -7,7 +7,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.6.41] - 2026-10-31
+
 ### Changed
+- NexusKeypad joins both catalogs like the other products: Claude Code and Codex install `nexus-keypad` from
+  NexusKeypad's `connecteurs/` folder at its release tag (v1.8.13); the copy under `plugins/` is gone, and Codex now
+  lists it in the NexusSystem group. `pin-plugin.ps1 -Path connecteurs` pins it.
+- Maintenance updates NexusKeypad too: when a newer release is published, the task runs its verified `get.ps1`
+  unattended (the plugin is replaced, keys left in place, enabled AI connections refreshed). The app's update button
+  for NexusKeypad requests that task (next Store app, 1.0.13.0) instead of the pipe command NexusKeypad 1.8.12 removed.
 - `RELEASING.md`: the Chrome Web Store gets the extension from the AI on request (`scripts/publish-store.ps1` of
   NexusBrowser), no longer from GitHub at promotion; NexusKeypad is promoted on push like the other products (no
   offline signature).

@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Computer use in the background for Claude Code: your Android phone, your Windows desktop apps, your real Chrome, a direct line to Codex and Antigravity, your Logitech keypad. Each plugin connects to its product's native Windows engine (no Python), installed by NexusSystem.",
-    "version": "1.6.40"
+    "version": "1.6.41"
   },
   "plugins": [
     {
@@ -99,16 +99,22 @@
     },
     {
       "name": "nexus-keypad",
-      "source": "./plugins/nexus-keypad",
-      "description": "NexusKeypad in Claude: live states for the Logitech keypad (hooks), exact usage (5-hour and weekly) and, under the prompt, whether Codex and Antigravity are reachable through Nexus Relay. No alert, no network. Needs NexusKeypad, installed by NexusSystem (or NexusKeypad's get.ps1).",
-      "version": "1.8.8",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/pironjulien/NexusKeypad.git",
+        "path": "connecteurs",
+        "ref": "v1.8.13"
+      },
+      "description": "NexusKeypad in Claude and Codex: live states for the Logitech keypad (hooks), Claude's exact usage (5-hour and weekly) and, under Claude's prompt, whether Codex and Antigravity are reachable through Nexus Relay. No alert, no network. Needs NexusKeypad, installed by NexusSystem (or NexusKeypad's get.ps1).",
+      "version": "1.8.13",
       "category": "productivity",
       "keywords": [
         "logitech",
         "keypad",
         "hooks",
         "usage",
-        "claude"
+        "claude",
+        "codex"
       ],
       "homepage": "https://julienpiron.fr/nexuskeypad/",
       "repository": "https://github.com/pironjulien/NexusKeypad",
