@@ -38,6 +38,24 @@ function Get-NexusLocalDestination([string]$LocalAppData, [string]$Version, [str
     Join-Path ([IO.Path]::GetFullPath($LocalAppData)) "NexusApps\local\$Version\$Hash"
 }
 
+# Earlier local copies (other versions, other payloads, old publish folders) go once the new one is installed; a copy a
+# running process still uses is kept for the next installation.
+function Remove-NexusLocalStale([string]$Destination, [string[]]$Running = @()) {
+    $local = Split-Path (Split-Path $Destination)
+    foreach ($folder in @(Get-ChildItem -LiteralPath $local -Directory -ErrorAction SilentlyContinue)) {
+        # <version>\<payload hash>\ copies; an older layout put the files directly in <version>\.
+        $layered = $folder.Name -match '^\d+\.\d+\.\d+\.0$' -and -not (Test-Path -LiteralPath (Join-Path $folder.FullName 'NexusSystem.exe'))
+        $copies = if ($layered) { @(Get-ChildItem -LiteralPath $folder.FullName -Directory) } else { @($folder) }
+        foreach ($copy in $copies) {
+            if ($copy.FullName -eq $Destination) { continue }
+            if ($Running | Where-Object { $_ -and $_.StartsWith($copy.FullName + '\', [StringComparison]::OrdinalIgnoreCase) }) { continue }
+            Remove-Item -LiteralPath $copy.FullName -Recurse -Force -ErrorAction SilentlyContinue
+        }
+        if ($folder.FullName -ne (Split-Path $Destination) -and (Test-Path -LiteralPath $folder.FullName) -and
+            -not (Get-ChildItem -LiteralPath $folder.FullName -Force)) { Remove-Item -LiteralPath $folder.FullName -Force }
+    }
+}
+
 function Copy-NexusLocalPayload($Payload, [string]$Destination) {
     if (Test-Path -LiteralPath $Destination) {
         if ((Get-NexusLocalPayload $Destination).Hash -ne $Payload.Hash) { throw 'Existing immutable local release differs; nothing was overwritten.' }
@@ -109,6 +127,7 @@ try {
     $shortcut.Description = 'NexusSystem local - ' + $version; $shortcut.IconLocation = $executable + ',0'; $shortcut.Save()
     $physicalShortcut = [NexusLocalNative]::Physical($shortcutPath)
     if (-not $physicalShortcut.Equals($shortcutPath, [StringComparison]::OrdinalIgnoreCase)) { throw 'The local shortcut was virtualized.' }
+    Remove-NexusLocalStale $destination @(Get-CimInstance Win32_Process -Filter "Name='NexusSystem.exe'" | ForEach-Object ExecutablePath)
     $processId = $null
     if ($Start) {
         $process = Start-Process -FilePath $executable -WorkingDirectory $destination -ArgumentList '--lang fr' -PassThru -WindowStyle Normal
