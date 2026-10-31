@@ -7,6 +7,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Fixed
+- Local app install (`app/tools/install-local.ps1`): earlier local copies (other versions and payloads, the older flat
+  layout and old `publish-*` folders) are removed once the new copy is installed, unless a running NexusSystem uses
+  them. They had grown to 6.6 GB on the author's PC.
+
 ## [1.6.47] - 2026-10-31
 
 ### Changed

@@ -32,6 +32,17 @@ try {
     if ($physical -ne (Join-Path $source 'NexusSystem.exe')) { throw 'A file handle did not resolve the physical fixture.' }; $checks++
     Set-Content -LiteralPath (Join-Path $source 'foreign.txt') -Value 'extra file'
     if ((Get-NexusLocalPayload $source).Hash -eq $payload.Hash) { throw 'The digest ignored an additional file.' }; $checks++
+    $root = Join-Path $fixture 'local'
+    $current = Get-NexusLocalDestination $root '1.0.14.0' ('A' * 64)
+    $busy = Get-NexusLocalDestination $root '1.0.13.0' ('B' * 64)
+    $stale = Get-NexusLocalDestination $root '1.0.14.0' ('C' * 64)
+    $flat = Join-Path $root 'NexusApps\local\1.0.8.0'  # older layout: files directly in the version folder
+    foreach ($folder in $current, $busy, $stale, $flat, (Join-Path $root 'NexusApps\local\publish-20261030-111026')) { [IO.Directory]::CreateDirectory($folder) | Out-Null }
+    Set-Content -LiteralPath (Join-Path $flat 'NexusSystem.exe') -Value 'fixture'
+    Remove-NexusLocalStale $current @((Join-Path $busy 'NexusSystem.exe'))
+    $left = @(Get-ChildItem -LiteralPath (Join-Path $root 'NexusApps\local') -Directory -Recurse | ForEach-Object FullName)
+    if (($left -notcontains $current) -or ($left -notcontains $busy) -or ($left -contains $stale) -or
+        ($left -like '*publish-*') -or ($left -like '*1.0.9.0*') -or ($left -like '*1.0.8.0*')) { throw "Stale local copies were not pruned as expected: $($left -join ', ')" }; $checks++
     Write-Host "Local installer: $checks guards passed (fixtures only)."
 }
 finally {
