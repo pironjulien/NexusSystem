@@ -27,7 +27,9 @@ public sealed partial class ProductPage : UserControl
         var top = new Grid { ColumnSpacing = 24 };
         top.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         top.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        var header = Ui.Header(Ui.Logo(product, 56), product.Name, Catalog.About(product));
+        var logo = Ui.Logo(product, 56);
+        logo.VerticalAlignment = VerticalAlignment.Top;
+        var header = Ui.Header(logo, product.Name, Catalog.About(product));
         var words = (StackPanel)header.Children[1];
         var stateHost = new ContentControl();
         var actionHost = new ContentControl { HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 8, 0, 0) };
