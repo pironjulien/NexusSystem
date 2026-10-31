@@ -17,6 +17,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
   engine, Chrome bridge...) apply to it again.
 - `--capture` also takes each product's "On this PC" tab.
 
+### Security
+- CodeQL (GitHub default setup) and the OpenSSF Scorecard workflow run again on every push to main.
+
+## [1.6.44] - 2026-10-31
+
+### Fixed
+- The NexusSystem app shows the real installed versions of NexusAndroid, NexusRelay and NexusAGYmail: maintenance now
+  keeps their `~\.nexus\status\<product>.json` up to date (it showed NexusAndroid 0.21.0 while 0.22.9 was installed).
+
 ### Changed
 - `RELEASING.md`: after every app change merged to `main`, the AI reinstalls the local copy on the user's PC
   (`install-local.ps1`), so the change shows at once instead of after Store certification.
