@@ -8,6 +8,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 ## [Unreleased]
 
 ### Changed
+- Plugins follow NexusAndroid 0.22.8, NexusBrowser 2.33.10 and NexusRelay 1.10.7 (CodeQL findings fixed).
+
+### Changed
 - `product-promote.yml`: `mcp-registry: true` publishes every `.mcpb` package the product's `server.json` lists at
   the promoted tag (one per architecture if need be), each checked against `SHA256SUMS.txt`; products no longer
   keep their own registry job. `mcp-package` stays accepted.
