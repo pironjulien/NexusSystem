@@ -88,9 +88,10 @@ public static class Products
     public static readonly Product AgyMail = new("agymail", "NexusAGYmail", "#ffb5a2", Availability.Ready,
         "https://julienpiron.fr/nexusagymail/", [AiApp.Antigravity], Server: "nexus-agymail", AntigravityPlugin: "nexus-agymail");
 
-    // Adobe InDesign driven by the AI apps: still private, shown as coming soon.
-    public static readonly Product InDesign = new("indesign", "NexusInDesign", "#e749a0", Availability.NotPublic,
-        null, [], Group: "adobe");
+    // Adobe InDesign through its COM automation (NexusInDesign 4.0.0): the engine from its get.ps1, the plugin for
+    // Claude Code and Codex from the catalog.
+    public static readonly Product InDesign = new("indesign", "NexusInDesign", "#e749a0", Availability.Ready,
+        null, [AiApp.ClaudeCode, AiApp.Codex], Server: "nexus-indesign", ClaudePlugin: "nexus-indesign", Group: "adobe");
 
     // A live hardware dashboard as the Windows wallpaper: not an AI tool, published on the Microsoft Store.
     public static readonly Product Wpp = new("wpp", "NexusWpp", "#53fff4", Availability.OtherStore,

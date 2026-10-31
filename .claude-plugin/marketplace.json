@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Computer use in the background for Claude Code: your Android phone, your Windows desktop apps, your real Chrome, a direct line to Codex and Antigravity, your Logitech keypad. Each plugin connects to its product's native Windows engine (no Python), installed by NexusSystem.",
-    "version": "1.6.44"
+    "version": "1.6.45"
   },
   "plugins": [
     {
@@ -118,6 +118,28 @@
       ],
       "homepage": "https://julienpiron.fr/nexuskeypad/",
       "repository": "https://github.com/pironjulien/NexusKeypad",
+      "license": "MIT"
+    },
+    {
+      "name": "nexus-indesign",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/pironjulien/NexusInDesign.git",
+        "path": "plugin",
+        "ref": "v4.0.1"
+      },
+      "description": "Adobe InDesign for Claude Code and Codex through its COM automation only (no panel, no UXP plugin, no network): open, script, preview, preflight and export, every change backed up and checked. Starts the native NexusInDesign engine installed by NexusSystem (or NexusInDesign's get.ps1).",
+      "version": "4.0.1",
+      "category": "productivity",
+      "keywords": [
+        "indesign",
+        "adobe",
+        "layout",
+        "desktop-publishing",
+        "mcp"
+      ],
+      "homepage": "https://github.com/pironjulien/NexusInDesign",
+      "repository": "https://github.com/pironjulien/NexusInDesign",
       "license": "MIT"
     }
   ]
