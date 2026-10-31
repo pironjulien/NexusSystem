@@ -7,6 +7,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Changed (catalogs)
+- The Keypad plugin follows NexusKeypad 1.8.14: a copy updated by Claude or Codex is re-attested by the keypad without
+  asking again.
+
 ### Changed (app 1.0.13.0)
 - The app looks and works like a store library. The menu and the home page group the products: AI products,
   Adobe products (NexusInDesign, coming soon) and Windows products (NexusWpp, on the Microsoft Store). Each card says
