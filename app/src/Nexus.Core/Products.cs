@@ -43,9 +43,16 @@ public sealed record Product(
     string? AboutFr = null,
     string? AboutEn = null,
     string? Repository = null,
-    // From the online catalog: the picture of its page (its video's poster on the site).
-    string? Banner = null)
+    // From the online catalog: the picture of its page (its video's poster on the site), and its video.
+    string? Banner = null,
+    string? Video = null)
 {
+    // A product is its key: the online catalog's copy of a product (other text, group or picture) is the same product,
+    // so the code's checks (product == Products.Windows...) hold for it.
+    public bool Equals(Product? other) => other is not null && Key == other.Key;
+
+    public override int GetHashCode() => Key.GetHashCode(StringComparison.Ordinal);
+
     /// <summary>The product's page on julienpiron.fr in the app's language (the English site lives under /en/).</summary>
     public string? PageFor(bool french) => Page is null || french ? Page : Page.Replace("julienpiron.fr/", "julienpiron.fr/en/", StringComparison.Ordinal);
 }

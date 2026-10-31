@@ -7,6 +7,34 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Changed (app 1.0.14.0)
+- "Install with AI" > "With Antigravity" opens Antigravity on a new conversation with the request already written in
+  its chat box, like Claude Code and Codex: the user only presses Enter. Antigravity has no link that fills its chat,
+  so the app writes it through the local debugging port Antigravity opens for itself; it never sends, and never
+  overwrites a draft. When that fails, the request stays copied to paste, as before.
+- No developer guide in the app: NexusAGYmail shows "Gmail connected" or its "Connect Gmail" button only, without the
+  GitHub page and its PowerShell lines; the keypad step no longer links to GitHub.
+- A product's page uses the whole window: under its banner, its julienpiron.fr page (video and explanations) on the
+  left, and on the right "On this PC", what the AI apps did with it in the last 24 hours (its journal, failures in red)
+  and the guides.
+- Home: the banner shows each product's picture whole (never cropped) beside its words; product tiles are wider (three
+  columns on a large screen) and laid out like store tiles (icon, name and group, two lines, then the state and the
+  button on one line).
+- The app is laid out like the Microsoft Store. Every product has the same page, without tabs: a banner in its color
+  (large icon, name, publisher and group, one sentence, one large button and its state), its video played in place
+  (or its picture), "About" with "See the full page" (its julienpiron.fr page inside the app) and "On this PC". The
+  home page opens with a banner that shows the products in turn; "Updates" has its own page at the bottom of the
+  menu, as in the Store: every installed product, its state and its button, and "Get updates". `products.json`
+  gives each product its `video`.
+- "On this PC" opens with one answer: "Everything is ready on this PC", or "One thing is left to do, just below".
+  Each product checks what it needs the way the product itself does: Gmail connected or a "Connect Gmail" button
+  (NexusAGYmail's own sign-in), the phone connected or waiting for "Allow USB debugging?" (adb), the keypad's 18 keys
+  on the pad (its Logi Options+ profile), Chrome connected or simply closed (it reconnects by itself). A step shows only
+  while something is left to do; guides stay under "Help and guides".
+- A product of the online catalog is the same product as the built-in one (equality by key): its own checks (Windows
+  engine, Chrome bridge...) apply to it again.
+- `--capture` also takes each product's "On this PC" tab.
+
 ### Security
 - CodeQL (GitHub default setup) and the OpenSSF Scorecard workflow run again on every push to main.
 

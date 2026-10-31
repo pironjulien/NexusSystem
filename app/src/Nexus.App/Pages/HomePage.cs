@@ -7,9 +7,10 @@ using Nexus.Core;
 namespace Nexus.App.Pages;
 
 /// <summary>
-/// The hub's home, like a store library: the AI apps found, then the products by group (AI, Adobe, Windows), each with
-/// its state on this PC (installed or not, up to date or not) and its one way in (the user's AI app or a store), a
-/// button that has the AI install them all, and one that checks for updates.
+/// The hub's home, like the Microsoft Store's: a banner that shows the products one after the other, the AI apps found,
+/// then the products by group (AI, Adobe, Windows), each with its state on this PC (installed or not, up to date or
+/// not) and its one way in (the user's AI app or a store), and a button that has the AI install them all. Updates have
+/// their own page, as in the Store.
 /// </summary>
 public sealed partial class HomePage : UserControl
 {
@@ -17,10 +18,8 @@ public sealed partial class HomePage : UserControl
     readonly IReadOnlyList<AiApp> found;
     readonly StackPanel groups = new() { Spacing = 28 };
     readonly InfoBar notice = new() { IsClosable = true, IsOpen = false };
-    readonly Button checkUpdates = new() { Content = Icon("", Text.Get("CheckUpdates")) };
     readonly Button installAll = new() { Content = Text.Get("InstallAllAi"), Style = (Style)Application.Current.Resources["AccentButtonStyle"] };
     readonly CancellationTokenSource lifetime = new();
-    static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(15) };
 
     public HomePage()
     {
@@ -31,7 +30,7 @@ public sealed partial class HomePage : UserControl
         top.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         top.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         top.Children.Add(Ui.Header(Ui.Logo("hub", 48), "NexusSystem", Text.Get("Tagline")));
-        var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, VerticalAlignment = VerticalAlignment.Center, Children = { installAll, checkUpdates } };
+        var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, VerticalAlignment = VerticalAlignment.Center, Children = { installAll } };
         Grid.SetColumn(actions, 1);
         top.Children.Add(actions);
 
@@ -44,9 +43,13 @@ public sealed partial class HomePage : UserControl
 
         Catalog.HandOff(installAll, AllKeys, found, Say);
         installAll.IsEnabled = found.Count > 0;
-        checkUpdates.Click += async (_, _) => await CheckUpdatesAsync();
 
-        Content = Ui.Page(Ui.Column(16, top, aiLine, notice, groups));
+        var page = Ui.Column(16, top);
+        if (Hero() is { } hero) page.Children.Add(hero);
+        page.Children.Add(aiLine);
+        page.Children.Add(notice);
+        page.Children.Add(groups);
+        Content = Ui.Page(page);
         Fill();
         // Like the Store, a card follows an install as it happens: the products write their state as they go.
         timer.Tick += (_, _) =>
@@ -58,12 +61,55 @@ public sealed partial class HomePage : UserControl
         if (!Catalog.HasLatest) _ = RefreshAsync();
     }
 
-    static StackPanel Icon(string glyph, string text) => new()
+    /// <summary>
+    /// The Store's banner: each product with a picture in turn (its video's poster), its name, its sentence and a button
+    /// to its page; it turns every few seconds, and the arrows or the dots move it by hand.
+    /// </summary>
+    FrameworkElement? Hero()
     {
-        Orientation = Orientation.Horizontal,
-        Spacing = 8,
-        Children = { new FontIcon { Glyph = glyph, FontSize = 14 }, new TextBlock { Text = text } },
-    };
+        var featured = Catalog.Shown.Products.Where(product => product.Banner is not null).ToList();
+        if (featured.Count == 0) return null;
+        var flip = new FlipView { Height = 340, CornerRadius = new CornerRadius(12), Background = Ui.Theme("CardBackgroundFillColorDefaultBrush") };
+        foreach (var product in featured)
+        {
+            // The picture whole (never cropped), on the dark of the posters; the product's words beside it.
+            var slide = new Grid { Background = Ui.Theme("SolidBackgroundFillColorBaseBrush") };
+            slide.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(420) });
+            slide.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            var words = Ui.Column(10,
+                Ui.Logo(product, 64),
+                new TextBlock { Text = product.Name, Style = (Style)Application.Current.Resources["TitleTextBlockStyle"] },
+                Ui.Body(Catalog.About(product), secondary: true));
+            ((Image)words.Children[0]).HorizontalAlignment = HorizontalAlignment.Left;
+            var see = new Button { Content = Text.Get("Hero.See"), Style = (Style)Application.Current.Resources["AccentButtonStyle"] };
+            see.Click += (_, _) => MainWindow.Instance?.Open(product);
+            words.Children.Add(see);
+            var panel = new Border { Child = words, Padding = new Thickness(36, 28, 28, 28), Background = Ui.Tint(product.Accent) };
+            words.VerticalAlignment = VerticalAlignment.Center;
+            slide.Children.Add(panel);
+            var picture = new Image
+            {
+                Source = new Microsoft.UI.Xaml.Media.Imaging.BitmapImage(new Uri(product.Banner!)),
+                Stretch = Stretch.Uniform,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+            };
+            Grid.SetColumn(picture, 1);
+            slide.Children.Add(picture);
+            flip.Items.Add(slide);
+        }
+        var pager = new PipsPager { NumberOfPages = featured.Count, HorizontalAlignment = HorizontalAlignment.Center };
+        pager.SelectedIndexChanged += (_, _) => flip.SelectedIndex = pager.SelectedPageIndex;
+        flip.SelectionChanged += (_, _) => pager.SelectedPageIndex = Math.Max(0, flip.SelectedIndex);
+        var turn = new DispatcherTimer { Interval = TimeSpan.FromSeconds(7) };
+        turn.Tick += (_, _) => flip.SelectedIndex = (flip.SelectedIndex + 1) % featured.Count;
+        flip.Loaded += (_, _) => turn.Start();
+        flip.Unloaded += (_, _) => turn.Stop();
+        // A pointer on the banner keeps the slide still, as in the Store.
+        flip.PointerEntered += (_, _) => turn.Stop();
+        flip.PointerExited += (_, _) => turn.Start();
+        return Ui.Column(8, flip, pager);
+    }
 
     async Task RefreshAsync()
     {
@@ -88,38 +134,32 @@ public sealed partial class HomePage : UserControl
         foreach (var group in Catalog.Shown.Groups)
         {
             var cards = Catalog.Shown.Products.Where(product => product.Group == group.Key).Select(product => Card(Catalog.Read(product, found, folders))).ToList();
-            groups.Children.Add(Ui.Column(12, Ui.Subtitle(Catalog.Group(group.Key)), Ui.Flow(cards)));
+            groups.Children.Add(Ui.Column(12, Ui.Subtitle(Catalog.Group(group.Key)), Ui.Flow(cards, minWidth: 460, spacing: 16)));
         }
     }
 
     FrameworkElement Card(ProductView view)
     {
         var product = view.Product;
-        var grid = new Grid { ColumnSpacing = 14, RowSpacing = 6 };
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-
+        // As a store tile: icon, name and group on top, two lines of text, then a line with the state and the button.
+        var head = new Grid { ColumnSpacing = 14 };
+        head.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        head.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         var logo = Ui.Logo(product, 56);
-        logo.VerticalAlignment = VerticalAlignment.Top;
-        Grid.SetRowSpan(logo, 3);
-        grid.Children.Add(logo);
-
-        var title = new TextBlock { Text = product.Name, Style = (Style)Application.Current.Resources["BodyStrongTextBlockStyle"], FontSize = 16 };
-        Grid.SetColumn(title, 1);
-        grid.Children.Add(title);
+        head.Children.Add(logo);
+        var names = Ui.Column(2,
+            new TextBlock { Text = product.Name, Style = (Style)Application.Current.Resources["BodyStrongTextBlockStyle"], FontSize = 17 },
+            Ui.Body(Catalog.Group(product.Group), secondary: true));
+        names.VerticalAlignment = VerticalAlignment.Center;
+        Grid.SetColumn(names, 1);
+        head.Children.Add(names);
 
         var about = Ui.Body(Catalog.About(product), secondary: true);
-        about.FontSize = 12.5;
         about.MaxLines = 2;
+        about.Height = 42;
         about.TextTrimming = TextTrimming.CharacterEllipsis;
-        Grid.SetColumn(about, 1);
-        Grid.SetRow(about, 1);
-        grid.Children.Add(about);
 
-        var bottom = new Grid { ColumnSpacing = 8 };
+        var bottom = new Grid { ColumnSpacing = 12, MinHeight = 34 };
         bottom.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         bottom.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         var state = Catalog.State(view);
@@ -127,12 +167,11 @@ public sealed partial class HomePage : UserControl
         bottom.Children.Add(state);
         if (Catalog.Action(view, found, Say) is { } action)
         {
+            action.VerticalAlignment = VerticalAlignment.Center;
             Grid.SetColumn(action, 1);
             bottom.Children.Add(action);
         }
-        Grid.SetColumn(bottom, 1);
-        Grid.SetRow(bottom, 2);
-        grid.Children.Add(bottom);
+        var grid = Ui.Column(14, head, about, bottom);
 
         var card = Ui.Card(grid, padding: 16);
         card.MinHeight = 132;
@@ -183,41 +222,5 @@ public sealed partial class HomePage : UserControl
             .Select(product => Catalog.Read(product, found, folders)).Where(view => view.Unfit is null).ToList();
         var wanted = views.Where(view => !view.Installed || view.UpdateAvailable).ToList();
         return (wanted.Count > 0 ? wanted : views).Select(view => view.Product.Key).ToList();
-    }
-
-    /// <summary>
-    /// Like the Store's "Get updates": reads the published versions again and asks the products that update themselves
-    /// (NexusSystem's maintenance, NexusRelay, NexusBrowser) to do it now. Never closes an AI session.
-    /// </summary>
-    async Task CheckUpdatesAsync()
-    {
-        checkUpdates.IsEnabled = false;
-        Say(Text.Get("Updates.Checking"), InfoBarSeverity.Informational);
-        try
-        {
-            await Catalog.RefreshLatestAsync(folders, lifetime.Token);
-            var started = false;
-            var maintenanceAsked = false;
-            foreach (var product in Catalog.Shown.Products.Where(product => ProductUpdates.IsInstalled(product, found, folders) && ProductUpdates.CanRequest(product, folders)))
-            {
-                // One maintenance run covers every product it manages.
-                var managed = MaintenanceUpdates.Supports(product) && MaintenanceUpdates.IsInstalled(folders);
-                if (managed && maintenanceAsked) continue;
-                maintenanceAsked |= managed;
-                started |= await ProductUpdates.RequestManagedAsync(product, folders, Http, lifetime.Token) == UpdateRequest.Started;
-            }
-            if (lifetime.IsCancellationRequested) return;
-            Fill();
-            var late = Catalog.Shown.Products.Select(product => Catalog.Read(product, found, folders)).Where(view => view.UpdateAvailable).Select(view => view.Product.Name).ToList();
-            if (late.Count > 0) Say(Text.Format("Updates.Some", string.Join(", ", late)), InfoBarSeverity.Warning);
-            else Say(Text.Get(started ? "Updates.Started" : "Updates.UpToDate"));
-        }
-        catch (OperationCanceledException) { }
-        catch (Exception error)
-        {
-            AppLog.Error("updates", error);
-            Say(Text.Get("Updates.Failed"), InfoBarSeverity.Error);
-        }
-        finally { checkUpdates.IsEnabled = true; }
     }
 }

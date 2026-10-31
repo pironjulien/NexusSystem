@@ -37,7 +37,7 @@ public sealed partial class MainWindow : Window
         try
         {
             if (await Catalog.RefreshCatalogAsync())
-                BuildMenu(Nav.SelectedItem is NavigationViewItem { Tag: string tag } && Catalog.Shown.ByKey(tag) is not null ? tag : "home");
+                BuildMenu(Nav.SelectedItem is NavigationViewItem { Tag: string tag } && (Catalog.Shown.ByKey(tag) is not null || tag == "updates") ? tag : "home");
         }
         catch (Exception error) { AppLog.Error("catalog", error); }
     }
@@ -46,13 +46,15 @@ public sealed partial class MainWindow : Window
     {
         Nav.MenuItems.Clear();
         Nav.MenuItems.Add(Item(Text.Get("Home"), "home", Ui.LogoSource("hub")));
+        Nav.FooterMenuItems.Clear();
+        Nav.FooterMenuItems.Add(new NavigationViewItem { Content = Text.Get("Updates.Title"), Tag = "updates", Icon = new FontIcon { Glyph = "\uE896" } });
         foreach (var group in Catalog.Shown.Groups)
         {
             Nav.MenuItems.Add(new NavigationViewItemHeader { Content = Catalog.Group(group.Key) });
             foreach (var product in Catalog.Shown.Products.Where(p => p.Group == group.Key))
                 Nav.MenuItems.Add(Item(product.Name, product.Key, Ui.LogoSource(product)));
         }
-        Nav.SelectedItem = Nav.MenuItems.OfType<NavigationViewItem>().First(i => (string)i.Tag == selected);
+        Nav.SelectedItem = MenuItem(selected);
     }
 
     static NavigationViewItem Item(string text, string tag, ImageSource logo) => new()
@@ -70,12 +72,14 @@ public sealed partial class MainWindow : Window
     void Show(string tag)
     {
         // Pages are built in code: shown directly (a Frame only navigates to pages known to the XAML compiler).
-        Body.Content = tag == "home" ? new HomePage() : new ProductPage(Catalog.Shown.ByKey(tag)!);
+        Body.Content = tag switch { "home" => new HomePage(), "updates" => new UpdatesPage(), _ => new ProductPage(Catalog.Shown.ByKey(tag)!) };
     }
 
     /// <summary>Called by the home page: show a product's page.</summary>
-    public void Open(Product product) =>
-        Nav.SelectedItem = Nav.MenuItems.OfType<NavigationViewItem>().First(i => (string)i.Tag == product.Key);
+    public void Open(Product product) => Nav.SelectedItem = MenuItem(product.Key);
+
+    NavigationViewItem MenuItem(string tag) =>
+        Nav.MenuItems.Concat(Nav.FooterMenuItems).OfType<NavigationViewItem>().First(i => (string)i.Tag == tag);
 
     /// <summary>
     /// --capture: pictures of the pages, for the milestone reports and the Store listing drafts. The window is shown
@@ -90,11 +94,16 @@ public sealed partial class MainWindow : Window
         Root.Background = new SolidColorBrush(Root.ActualTheme == ElementTheme.Light ? Windows.UI.Color.FromArgb(255, 243, 243, 243) : Windows.UI.Color.FromArgb(255, 32, 32, 32));
         var lang = Text.French ? "fr" : "en";
         var theme = Root.ActualTheme == ElementTheme.Light ? "light" : "dark";
-        foreach (var tag in Catalog.Shown.Products.Select(product => product.Key).Prepend("home"))
+        foreach (var tag in Catalog.Shown.Products.Select(product => product.Key).Prepend("home").Append("updates"))
         {
-            Nav.SelectedItem = Nav.MenuItems.OfType<NavigationViewItem>().First(i => (string)i.Tag == tag);
+            Nav.SelectedItem = MenuItem(tag);
             await Task.Delay(4000);  // pages read the PC's state and the site in the background
             await SaveAsync(Path.Combine(folder, $"{tag}-{lang}-{theme}.png"));
+            if (Body.Content is ProductPage page && page.ShowHere())
+            {
+                await Task.Delay(4000);  // the product's own checks (phone, Gmail, Chrome) answer in the background
+                await SaveAsync(Path.Combine(folder, $"{tag}-here-{lang}-{theme}.png"));
+            }
         }
         Application.Current.Exit();
     }
@@ -125,7 +134,7 @@ public sealed partial class MainWindow : Window
         var scale = Root.XamlRoot.RasterizationScale;
         // A web page (a product's site page) is drawn by its own browser, never by RenderTargetBitmap: its own
         // picture goes in its place.
-        foreach (var web in Descendants(Root).OfType<WebView2>().Where(web => web.Visibility == Visibility.Visible && web.CoreWebView2 is not null && web.ActualWidth > 0))
+        foreach (var web in Descendants(Root).OfType<WebView2>().Where(web => Shown(web) && web.CoreWebView2 is not null && web.ActualWidth > 0))
         {
             using var preview = new InMemoryRandomAccessStream();
             await web.CoreWebView2.CapturePreviewAsync(Microsoft.Web.WebView2.Core.CoreWebView2CapturePreviewImageFormat.Png, preview);
@@ -146,6 +155,14 @@ public sealed partial class MainWindow : Window
         stream.Seek(0);
         await using var output = File.Create(file);
         await stream.AsStreamForRead().CopyToAsync(output);
+    }
+
+    // Shown on screen: neither it nor any parent is collapsed (a hidden tab keeps its last size).
+    static bool Shown(DependencyObject element)
+    {
+        for (var current = element; current is not null; current = VisualTreeHelper.GetParent(current))
+            if (current is UIElement { Visibility: Visibility.Collapsed }) return false;
+        return true;
     }
 
     static IEnumerable<DependencyObject> Descendants(DependencyObject parent)

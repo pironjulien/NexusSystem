@@ -26,6 +26,13 @@ static class Ui
         return new SolidColorBrush(Color.FromArgb(0xFF, Dark(color.R), Dark(color.G), Dark(color.B)));
     }
 
+    /// <summary>The product's color, faint, behind its page's banner (as a store page tints its header).</summary>
+    public static SolidColorBrush Tint(string hex)
+    {
+        var color = Accent(hex).Color;
+        return new SolidColorBrush(Color.FromArgb(Application.Current.RequestedTheme == ApplicationTheme.Light ? (byte)0x38 : (byte)0x2E, color.R, color.G, color.B));
+    }
+
     public static Border Card(UIElement content, string? accent = null, double padding = 16) => new()
     {
         Child = content,
