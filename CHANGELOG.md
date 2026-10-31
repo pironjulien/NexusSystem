@@ -7,6 +7,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.6.39] - 2026-10-31
+
 ### Added
 - Release channels in the app: each product page shows the newest release of this PC's channel and whether it is
   newer than the installed version. Stable follows GitHub's latest release; `"channel": "dev"` in
