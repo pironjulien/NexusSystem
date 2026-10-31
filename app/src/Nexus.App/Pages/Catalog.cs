@@ -144,7 +144,8 @@ static class Catalog
     /// <summary>
     /// The button hands the install to an AI app: Claude Code and Codex open on a new conversation with the request
     /// already written (their own links, claude://code/new and codex://threads/new: the user only presses Enter);
-    /// Antigravity has no such link: it is opened with the request copied, to paste in its agent. With several AI apps
+    /// Antigravity has no such link: it is opened and the request written in its chat box (AntigravityDraft), or
+    /// copied to paste when that fails. With several AI apps
     /// on the PC, the button opens a menu to pick one.
     /// </summary>
     public static void HandOff(Button button, Func<IReadOnlyList<string>> keys, IReadOnlyList<AiApp> found, Action<string> said)
@@ -184,9 +185,11 @@ static class Catalog
             var antigravity = Path.Combine(UserFolders.FromEnvironment().LocalAppData, "Programs", "Antigravity", "Antigravity.exe");
             if (app == AiApp.Antigravity && File.Exists(antigravity))
             {
-                // Already open: Antigravity comes forward in its own window instead of starting again.
+                // Already open: Antigravity comes forward in its own window instead of starting again. Its chat box is
+                // then filled (never sent); the copied request stays the way back when that fails.
                 System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(antigravity) { UseShellExecute = true })?.Dispose();
-                return Text.Format("HandPaste", AiApps.Name(app));
+                var written = await AntigravityDraft.WriteAsync(prompt, UserFolders.FromEnvironment(), Http, TimeSpan.FromSeconds(45));
+                return Text.Format(written ? "HandOpened" : "HandPaste", AiApps.Name(app));
             }
         }
         catch (Exception error) { AppLog.Error("handoff", error); }

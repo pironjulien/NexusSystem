@@ -8,6 +8,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 ## [Unreleased]
 
 ### Changed (app 1.0.14.0)
+- "Install with AI" > "With Antigravity" opens Antigravity on a new conversation with the request already written in
+  its chat box, like Claude Code and Codex: the user only presses Enter. Antigravity has no link that fills its chat,
+  so the app writes it through the local debugging port Antigravity opens for itself; it never sends, and never
+  overwrites a draft. When that fails, the request stays copied to paste, as before.
 - A product's page uses the whole window: under its banner, its julienpiron.fr page (video and explanations) on the
   left, and on the right "On this PC", what the AI apps did with it in the last 24 hours (its journal, failures in red)
   and the guides.
