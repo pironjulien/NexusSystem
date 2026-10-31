@@ -37,7 +37,7 @@ public sealed partial class MainWindow : Window
         try
         {
             if (await Catalog.RefreshCatalogAsync())
-                BuildMenu(Nav.SelectedItem is NavigationViewItem { Tag: string tag } && Catalog.Shown.ByKey(tag) is not null ? tag : "home");
+                BuildMenu(Nav.SelectedItem is NavigationViewItem { Tag: string tag } && (Catalog.Shown.ByKey(tag) is not null || tag == "updates") ? tag : "home");
         }
         catch (Exception error) { AppLog.Error("catalog", error); }
     }
@@ -46,13 +46,15 @@ public sealed partial class MainWindow : Window
     {
         Nav.MenuItems.Clear();
         Nav.MenuItems.Add(Item(Text.Get("Home"), "home", Ui.LogoSource("hub")));
+        Nav.FooterMenuItems.Clear();
+        Nav.FooterMenuItems.Add(new NavigationViewItem { Content = Text.Get("Updates.Title"), Tag = "updates", Icon = new FontIcon { Glyph = "\uE896" } });
         foreach (var group in Catalog.Shown.Groups)
         {
             Nav.MenuItems.Add(new NavigationViewItemHeader { Content = Catalog.Group(group.Key) });
             foreach (var product in Catalog.Shown.Products.Where(p => p.Group == group.Key))
                 Nav.MenuItems.Add(Item(product.Name, product.Key, Ui.LogoSource(product)));
         }
-        Nav.SelectedItem = Nav.MenuItems.OfType<NavigationViewItem>().First(i => (string)i.Tag == selected);
+        Nav.SelectedItem = MenuItem(selected);
     }
 
     static NavigationViewItem Item(string text, string tag, ImageSource logo) => new()
@@ -70,12 +72,14 @@ public sealed partial class MainWindow : Window
     void Show(string tag)
     {
         // Pages are built in code: shown directly (a Frame only navigates to pages known to the XAML compiler).
-        Body.Content = tag == "home" ? new HomePage() : new ProductPage(Catalog.Shown.ByKey(tag)!);
+        Body.Content = tag switch { "home" => new HomePage(), "updates" => new UpdatesPage(), _ => new ProductPage(Catalog.Shown.ByKey(tag)!) };
     }
 
     /// <summary>Called by the home page: show a product's page.</summary>
-    public void Open(Product product) =>
-        Nav.SelectedItem = Nav.MenuItems.OfType<NavigationViewItem>().First(i => (string)i.Tag == product.Key);
+    public void Open(Product product) => Nav.SelectedItem = MenuItem(product.Key);
+
+    NavigationViewItem MenuItem(string tag) =>
+        Nav.MenuItems.Concat(Nav.FooterMenuItems).OfType<NavigationViewItem>().First(i => (string)i.Tag == tag);
 
     /// <summary>
     /// --capture: pictures of the pages, for the milestone reports and the Store listing drafts. The window is shown
@@ -90,9 +94,9 @@ public sealed partial class MainWindow : Window
         Root.Background = new SolidColorBrush(Root.ActualTheme == ElementTheme.Light ? Windows.UI.Color.FromArgb(255, 243, 243, 243) : Windows.UI.Color.FromArgb(255, 32, 32, 32));
         var lang = Text.French ? "fr" : "en";
         var theme = Root.ActualTheme == ElementTheme.Light ? "light" : "dark";
-        foreach (var tag in Catalog.Shown.Products.Select(product => product.Key).Prepend("home"))
+        foreach (var tag in Catalog.Shown.Products.Select(product => product.Key).Prepend("home").Append("updates"))
         {
-            Nav.SelectedItem = Nav.MenuItems.OfType<NavigationViewItem>().First(i => (string)i.Tag == tag);
+            Nav.SelectedItem = MenuItem(tag);
             await Task.Delay(4000);  // pages read the PC's state and the site in the background
             await SaveAsync(Path.Combine(folder, $"{tag}-{lang}-{theme}.png"));
             if (Body.Content is ProductPage page && page.ShowHere())

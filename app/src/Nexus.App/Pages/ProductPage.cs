@@ -6,9 +6,9 @@ using Nexus.Core;
 namespace Nexus.App.Pages;
 
 /// <summary>
-/// A product's page: its name, state and one way in at the top, then two tabs. "Overview" is the product's own page on
-/// julienpiron.fr (explanation, video), read live so the app never needs an update for it; "On this PC" is its state
-/// per AI app and what is left to the user (pair Chrome, turn on USB debugging...).
+/// A product's page, the same for every product, laid out like a Microsoft Store page: a banner in the product's color
+/// (icon, name, one sentence, the one button and its state), its video, its description with its full page of
+/// julienpiron.fr one click away, and "On this PC" (ready, or what is left to do).
 /// </summary>
 public sealed partial class ProductPage : UserControl
 {
@@ -19,51 +19,26 @@ public sealed partial class ProductPage : UserControl
     readonly FontIcon summaryIcon = new() { FontSize = 26, VerticalAlignment = VerticalAlignment.Center };
     readonly TextBlock summaryTitle = new() { Style = (Style)Application.Current.Resources["SubtitleTextBlockStyle"], TextWrapping = TextWrapping.WrapWholeWords };
     bool refreshingStatus;
-    SelectorBar? tabs;
-    SelectorBarItem? hereTab;
+    DispatcherTimer? timer;
+    ScrollViewer? scroller;
+    FrameworkElement? here;
 
-    /// <summary>--capture: the "On this PC" tab, when the product has one.</summary>
+    /// <summary>--capture: scrolls to "On this PC".</summary>
     public bool ShowHere()
     {
-        if (tabs is null || hereTab is null) return false;
-        tabs.SelectedItem = hereTab;
+        if (scroller is null || here is null) return false;
+        here.StartBringIntoView(new BringIntoViewOptions { VerticalAlignmentRatio = 0, AnimationDesired = false });
         return true;
     }
-    DispatcherTimer? timer;
 
     public ProductPage(Product product)
     {
         Unloaded += (_, _) => { timer?.Stop(); lifetime.Cancel(); };
         var ais = AiApps.Find(folders);
-        var view = Catalog.Read(product, ais, folders);
 
-        var top = new Grid { ColumnSpacing = 24 };
-        top.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        top.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        var logo = Ui.Logo(product, 56);
-        logo.VerticalAlignment = VerticalAlignment.Top;
-        var header = Ui.Header(logo, product.Name, Catalog.About(product));
-        var words = (StackPanel)header.Children[1];
-        var stateHost = new ContentControl();
-        var actionHost = new ContentControl { HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 8, 0, 0) };
-        words.Children.Add(stateHost);
-        words.Children.Add(actionHost);
-        top.Children.Add(header);
-        // The product's picture, as on a store page: its video's poster on the site.
-        if (product.Banner is { } banner)
-        {
-            var picture = new Border
-            {
-                Width = 288,
-                Height = 162,
-                CornerRadius = new CornerRadius(8),
-                BorderBrush = Ui.Theme("CardStrokeColorDefaultBrush"),
-                BorderThickness = new Thickness(1),
-                Child = new Image { Source = new Microsoft.UI.Xaml.Media.Imaging.BitmapImage(new Uri(banner)), Stretch = Microsoft.UI.Xaml.Media.Stretch.UniformToFill },
-            };
-            Grid.SetColumn(picture, 1);
-            top.Children.Add(picture);
-        }
+        // The banner, in the product's color: icon, name, publisher and group, one sentence; the one button and its state.
+        var stateHost = new ContentControl { HorizontalAlignment = HorizontalAlignment.Right };
+        var actionHost = new ContentControl { HorizontalAlignment = HorizontalAlignment.Right };
         var drawn = "";
         void DrawState()
         {
@@ -71,70 +46,130 @@ public sealed partial class ProductPage : UserControl
             if (Catalog.Signature(now) == drawn) return;
             drawn = Catalog.Signature(now);
             stateHost.Content = Catalog.State(now);
-            actionHost.Content = Catalog.Action(now, ais, text => { notice.Message = text; notice.IsOpen = text.Length > 0; });
+            actionHost.Content = Catalog.Action(now, ais, text => { notice.Message = text; notice.IsOpen = text.Length > 0; }, large: true);
         }
         DrawState();
-
-        var layout = new Grid { Padding = new Thickness(32, 16, 32, 0), RowSpacing = 12 };
-        layout.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        layout.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        layout.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        layout.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-        layout.Children.Add(top);
-        Grid.SetRow(notice, 1);
-        layout.Children.Add(notice);
-        Content = layout;
-
-        // The product's page on the site, or "coming soon" for a product that has none yet.
-        UIElement overview = product.PageFor(Text.French) is { } page ? Site(page)
-            : Ui.Card(Ui.Body(Text.Get("NotPublic"), secondary: true), padding: 16);
-        if (product.Availability != Availability.Ready)
+        var hero = new Grid { ColumnSpacing = 24 };
+        hero.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        hero.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        hero.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        var logo = Ui.Logo(product, 104);
+        logo.VerticalAlignment = VerticalAlignment.Center;
+        hero.Children.Add(logo);
+        var about = Ui.Body(Catalog.About(product));
+        about.FontSize = 15;
+        var words = Ui.Column(4,
+            new TextBlock { Text = product.Name, Style = (Style)Application.Current.Resources["TitleLargeTextBlockStyle"] },
+            Ui.Body($"julienpiron.fr · {Catalog.Group(product.Group)}", secondary: true),
+            about);
+        words.VerticalAlignment = VerticalAlignment.Center;
+        Grid.SetColumn(words, 1);
+        hero.Children.Add(words);
+        var side = Ui.Column(10, actionHost, stateHost);
+        side.VerticalAlignment = VerticalAlignment.Center;
+        side.MinWidth = 220;
+        Grid.SetColumn(side, 2);
+        hero.Children.Add(side);
+        var banner = new Border
         {
-            Grid.SetRow((FrameworkElement)overview, 3);
-            layout.Children.Add(overview);
-            // A store app installed meanwhile shows as installed.
-            timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
-            timer.Tick += (_, _) => DrawState();
-            timer.Start();
-            return;
+            Child = hero,
+            Padding = new Thickness(28),
+            CornerRadius = new CornerRadius(12),
+            Background = Ui.Tint(product.Accent),
+            BorderBrush = Ui.Theme("CardStrokeColorDefaultBrush"),
+            BorderThickness = new Thickness(1),
+        };
+
+        var page = Ui.Column(16, banner, notice);
+
+        // Its video (or its picture), then its description beside "On this PC".
+        if (Media(product) is { } media) page.Children.Add(Section(Text.Get(product.Video is null ? "Section.Picture" : "Section.Media"), media));
+
+        var description = Ui.Column(12, Ui.Body(Catalog.About(product)));
+        var fullPage = new ContentControl { HorizontalContentAlignment = HorizontalAlignment.Stretch };
+        if (product.PageFor(Text.French) is { } address)
+        {
+            var more = new HyperlinkButton { Content = Text.Get("Section.FullPage"), Padding = new Thickness(0) };
+            more.Click += (_, _) =>
+            {
+                if (fullPage.Content is not null) return;
+                var site = Site(address);
+                site.Height = 900;
+                fullPage.Content = Section(Text.Get("Section.FullPageTitle"), site);
+                fullPage.StartBringIntoView(new BringIntoViewOptions { VerticalAlignmentRatio = 0 });
+            };
+            description.Children.Add(more);
         }
 
         var summary = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12, Children = { summaryIcon, summaryTitle } };
         summaryTitle.VerticalAlignment = VerticalAlignment.Center;
+        summaryTitle.Style = (Style)Application.Current.Resources["BodyStrongTextBlockStyle"];
+        summaryIcon.FontSize = 20;
         var status = Ui.Column(10);
-        var here = Ui.Column(16, Ui.Card(Ui.Column(16, summary, status), product.Accent, padding: 20));
+        var thisPc = Ui.Column(14, summary, status);
         var help = Ui.Column(12);
-        foreach (var (step, isHelp) in Steps.For(product, folders, ais)) (isHelp ? help : here).Children.Add(step);
+        foreach (var (step, isHelp) in Steps.For(product, folders, ais)) (isHelp ? help : thisPc).Children.Add(step);
         if (help.Children.Count > 0)
-            here.Children.Add(new Expander { Header = Text.Get("Help"), Content = help, HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Stretch });
-        var herePage = new ScrollViewer { Content = new Border { Child = here, Padding = new Thickness(0, 0, 0, 24) }, Visibility = Visibility.Collapsed };
+            thisPc.Children.Add(new Expander { Header = Text.Get("Help"), Content = help, HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Stretch });
 
-        tabs = new SelectorBar();
-        var overviewTab = new SelectorBarItem { Text = Text.Get("Tab.Overview"), IsSelected = true };
-        hereTab = new SelectorBarItem { Text = Text.Get("Tab.ThisPc") };
-        tabs.Items.Add(overviewTab);
-        tabs.Items.Add(hereTab);
-        tabs.SelectionChanged += (_, _) =>
-        {
-            var onHere = tabs.SelectedItem == hereTab;
-            herePage.Visibility = onHere ? Visibility.Visible : Visibility.Collapsed;
-            overview.Visibility = onHere ? Visibility.Collapsed : Visibility.Visible;
-        };
-        Grid.SetRow(tabs, 2);
-        layout.Children.Add(tabs);
-        Grid.SetRow((FrameworkElement)overview, 3);
-        Grid.SetRow(herePage, 3);
-        layout.Children.Add(overview);
-        layout.Children.Add(herePage);
+        var columns = Ui.Flow([Section(Text.Get("Section.About"), description), here = Section(Text.Get("Tab.ThisPc"), thisPc)], minWidth: 420, spacing: 16);
+        page.Children.Add(columns);
+        page.Children.Add(fullPage);
+
+        Content = scroller = Ui.Page(page);
 
         _ = RefreshStatusAsync(product, status);
         timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
         timer.Tick += async (_, _) =>
         {
             DrawState();
-            if (herePage.Visibility == Visibility.Visible) await RefreshStatusAsync(product, status);
+            await RefreshStatusAsync(product, status);
         };
         timer.Start();
+    }
+
+    /// <summary>A titled card of the page, like the sections of a store page.</summary>
+    static Border Section(string title, UIElement content)
+    {
+        var card = Ui.Card(Ui.Column(12, Ui.Subtitle(title), content), padding: 20);
+        card.VerticalAlignment = VerticalAlignment.Stretch;
+        return card;
+    }
+
+    /// <summary>
+    /// The product's video, played in place (its poster first, then the player), or its picture alone; none without one.
+    /// </summary>
+    static FrameworkElement? Media(Product product)
+    {
+        if (product.Banner is not { } poster) return null;
+        var frame = new Grid { MaxWidth = 960, HorizontalAlignment = HorizontalAlignment.Left, CornerRadius = new CornerRadius(8) };
+        var image = new Image { Source = new Microsoft.UI.Xaml.Media.Imaging.BitmapImage(new Uri(poster)), Stretch = Microsoft.UI.Xaml.Media.Stretch.Uniform };
+        frame.Children.Add(image);
+        if (product.Video is not { } video) return frame;
+        var play = new Button
+        {
+            Content = new FontIcon { Glyph = "", FontSize = 28 },
+            Width = 72, Height = 72,
+            CornerRadius = new CornerRadius(36),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+            Style = (Style)Application.Current.Resources["AccentButtonStyle"],
+        };
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(play, Text.Get("Section.Play"));
+        play.Click += (_, _) =>
+        {
+            var player = new MediaPlayerElement
+            {
+                Source = Windows.Media.Core.MediaSource.CreateFromUri(new Uri(video)),
+                AreTransportControlsEnabled = true,
+                AutoPlay = true,
+                Stretch = Microsoft.UI.Xaml.Media.Stretch.Uniform,
+            };
+            frame.Children.Clear();
+            frame.Children.Add(player);
+        };
+        frame.Children.Add(play);
+        return frame;
     }
 
     static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(15) };
@@ -237,7 +272,13 @@ public sealed partial class ProductPage : UserControl
             var installed = ProductUpdates.IsInstalled(product, ais, folders);
             var todo = false;
             status.Children.Clear();
-            if (product.Device is not null)
+            if (product.Availability == Availability.NotPublic)
+                status.Children.Add(Ui.Body(Text.Get("Here.Soon"), secondary: true));
+            else if (product.StoreUrl is not null)
+            {
+                if (installed) status.Children.Add(Ui.Mark(true, Text.Get("Here.FromStore")));
+            }
+            else if (product.Device is not null)
             {
                 if (!Products.LogiService(folders))
                 {
@@ -336,9 +377,16 @@ public sealed partial class ProductPage : UserControl
                     todo = true;
                 }
             }
+            if (product.Availability == Availability.NotPublic)
+            {
+                summaryIcon.Glyph = "";
+                summaryIcon.Foreground = Ui.Theme("TextFillColorSecondaryBrush");
+                summaryTitle.Text = Text.Get("NotPublic");
+                return;
+            }
             summaryIcon.Glyph = !installed ? "" : todo ? "" : "";
             summaryIcon.Foreground = Ui.Theme(!installed ? "TextFillColorSecondaryBrush" : todo ? "SystemFillColorCautionBrush" : "SystemFillColorSuccessBrush");
-            summaryTitle.Text = Text.Get(!installed ? "Here.Missing" : todo ? "Here.Todo" : "Here.Ready");
+            summaryTitle.Text = Text.Get(!installed ? (product.StoreUrl is null ? "Here.Missing" : "Here.MissingStore") : todo ? "Here.Todo" : "Here.Ready");
         }
         catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { }
         catch (Exception error)
