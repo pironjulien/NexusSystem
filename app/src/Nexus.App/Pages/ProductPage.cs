@@ -6,9 +6,10 @@ using Nexus.Core;
 namespace Nexus.App.Pages;
 
 /// <summary>
-/// A product's page, the same for every product, laid out like a Microsoft Store page: a banner in the product's color
-/// (icon, name, one sentence, the one button and its state), its video, its description with its full page of
-/// julienpiron.fr one click away, and "On this PC" (ready, or what is left to do).
+/// A product's page, the same for every product: a banner in the product's color (icon, name, one sentence, the one
+/// button and its state), then the whole window used: on the left the product's own page of julienpiron.fr (its video
+/// and explanations, read live), on the right "On this PC" (ready, or what is left to do), what the AI apps did with it
+/// (its journal, 24 hours) and the guides.
 /// </summary>
 public sealed partial class ProductPage : UserControl
 {
@@ -53,7 +54,7 @@ public sealed partial class ProductPage : UserControl
         hero.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         hero.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         hero.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        var logo = Ui.Logo(product, 104);
+        var logo = Ui.Logo(product, 80);
         logo.VerticalAlignment = VerticalAlignment.Center;
         hero.Children.Add(logo);
         var about = Ui.Body(Catalog.About(product));
@@ -73,34 +74,19 @@ public sealed partial class ProductPage : UserControl
         var banner = new Border
         {
             Child = hero,
-            Padding = new Thickness(28),
+            Padding = new Thickness(24, 18, 24, 18),
             CornerRadius = new CornerRadius(12),
             Background = Ui.Tint(product.Accent),
             BorderBrush = Ui.Theme("CardStrokeColorDefaultBrush"),
             BorderThickness = new Thickness(1),
         };
 
-        var page = Ui.Column(16, banner, notice);
+        // Left: the product's page of the site (video, explanations); without one, its sentence and "coming soon".
+        FrameworkElement left = product.PageFor(Text.French) is { } address ? Site(address)
+            : Section(Text.Get("Section.About"), Ui.Column(12, Ui.Body(Catalog.About(product)), Ui.Body(Text.Get("Here.Soon"), secondary: true)));
+        left.VerticalAlignment = left is Border ? VerticalAlignment.Top : VerticalAlignment.Stretch;
 
-        // Its video (or its picture), then its description beside "On this PC".
-        if (Media(product) is { } media) page.Children.Add(Section(Text.Get(product.Video is null ? "Section.Picture" : "Section.Media"), media));
-
-        var description = Ui.Column(12, Ui.Body(Catalog.About(product)));
-        var fullPage = new ContentControl { HorizontalContentAlignment = HorizontalAlignment.Stretch };
-        if (product.PageFor(Text.French) is { } address)
-        {
-            var more = new HyperlinkButton { Content = Text.Get("Section.FullPage"), Padding = new Thickness(0) };
-            more.Click += (_, _) =>
-            {
-                if (fullPage.Content is not null) return;
-                var site = Site(address);
-                site.Height = 900;
-                fullPage.Content = Section(Text.Get("Section.FullPageTitle"), site);
-                fullPage.StartBringIntoView(new BringIntoViewOptions { VerticalAlignmentRatio = 0 });
-            };
-            description.Children.Add(more);
-        }
-
+        // Right: "On this PC", then the journal, then the guides, in their own scroll.
         var summary = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12, Children = { summaryIcon, summaryTitle } };
         summaryTitle.VerticalAlignment = VerticalAlignment.Center;
         summaryTitle.Style = (Style)Application.Current.Resources["BodyStrongTextBlockStyle"];
@@ -109,14 +95,29 @@ public sealed partial class ProductPage : UserControl
         var thisPc = Ui.Column(14, summary, status);
         var help = Ui.Column(12);
         foreach (var (step, isHelp) in Steps.For(product, folders, ais)) (isHelp ? help : thisPc).Children.Add(step);
-        if (help.Children.Count > 0)
-            thisPc.Children.Add(new Expander { Header = Text.Get("Help"), Content = help, HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Stretch });
+        var panel = Ui.Column(16, here = Section(Text.Get("Tab.ThisPc"), thisPc));
+        if (Activity(product) is { } activity) panel.Children.Add(Section(Text.Get("Activity"), activity));
+        if (help.Children.Count > 0) panel.Children.Add(Section(Text.Get("Help"), help));
+        var sideScroll = new ScrollViewer { Content = new Border { Child = panel, Padding = new Thickness(0, 0, 12, 24) } };
 
-        var columns = Ui.Flow([Section(Text.Get("Section.About"), description), here = Section(Text.Get("Tab.ThisPc"), thisPc)], minWidth: 420, spacing: 16);
-        page.Children.Add(columns);
-        page.Children.Add(fullPage);
+        var body = new Grid { ColumnSpacing = 20 };
+        body.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        body.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(440) });
+        body.Children.Add(left);
+        Grid.SetColumn(sideScroll, 1);
+        body.Children.Add(sideScroll);
 
-        Content = scroller = Ui.Page(page);
+        var layout = new Grid { Padding = new Thickness(24, 16, 12, 0), RowSpacing = 16 };
+        layout.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        layout.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        layout.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+        layout.Children.Add(banner);
+        Grid.SetRow(notice, 1);
+        layout.Children.Add(notice);
+        Grid.SetRow(body, 2);
+        layout.Children.Add(body);
+        Content = layout;
+        scroller = sideScroll;
 
         _ = RefreshStatusAsync(product, status);
         timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
@@ -136,40 +137,42 @@ public sealed partial class ProductPage : UserControl
         return card;
     }
 
-    /// <summary>
-    /// The product's video, played in place (its poster first, then the player), or its picture alone; none without one.
-    /// </summary>
-    static FrameworkElement? Media(Product product)
+    /// <summary>What the AI apps did with the product in the last 24 hours (its journal), newest first; none without one.</summary>
+    FrameworkElement? Activity(Product product)
     {
-        if (product.Banner is not { } poster) return null;
-        var frame = new Grid { MaxWidth = 960, HorizontalAlignment = HorizontalAlignment.Left, CornerRadius = new CornerRadius(8) };
-        var image = new Image { Source = new Microsoft.UI.Xaml.Media.Imaging.BitmapImage(new Uri(poster)), Stretch = Microsoft.UI.Xaml.Media.Stretch.Uniform };
-        frame.Children.Add(image);
-        if (product.Video is not { } video) return frame;
-        var play = new Button
+        if (product.JournalFolder is null) return null;
+        var entries = Journal.Read(product, folders, DateTimeOffset.UtcNow.AddHours(-24), limit: 200);
+        if (entries.Count == 0) return Ui.Body(Text.Get("NoActivity"), secondary: true);
+        var (count, verified, failed, _) = Journal.Summarize(entries);
+        var column = Ui.Column(10, Ui.Body(Text.Format("ActivitySummary", count, verified)));
+        if (failed > 0) column.Children.Add(Ui.Body(Text.Format("ActivityFailed", failed), secondary: true));
+        var list = Ui.Column(6);
+        foreach (var entry in entries.Take(25))
         {
-            Content = new FontIcon { Glyph = "", FontSize = 28 },
-            Width = 72, Height = 72,
-            CornerRadius = new CornerRadius(36),
-            HorizontalAlignment = HorizontalAlignment.Center,
-            VerticalAlignment = VerticalAlignment.Center,
-            Style = (Style)Application.Current.Resources["AccentButtonStyle"],
-        };
-        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(play, Text.Get("Section.Play"));
-        play.Click += (_, _) =>
-        {
-            var player = new MediaPlayerElement
+            var row = new Grid { ColumnSpacing = 10 };
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            row.Children.Add(new TextBlock { Text = entry.At.ToLocalTime().ToString("HH:mm"), Foreground = Ui.Theme("TextFillColorSecondaryBrush"), FontSize = 12.5 });
+            var app = AiApps.All.FirstOrDefault(a => AiApps.Key(a).StartsWith(entry.Agent, StringComparison.OrdinalIgnoreCase));
+            UIElement who = app is { } known ? Ui.AiLogo(known, 16) : new TextBlock { Text = entry.Agent, FontSize = 12.5 };
+            Grid.SetColumn((FrameworkElement)who, 1);
+            row.Children.Add(who);
+            // Failed (✗) in red; done but not read back (~) in grey; done in the text color.
+            var what = new TextBlock
             {
-                Source = Windows.Media.Core.MediaSource.CreateFromUri(new Uri(video)),
-                AreTransportControlsEnabled = true,
-                AutoPlay = true,
-                Stretch = Microsoft.UI.Xaml.Media.Stretch.Uniform,
+                Text = $"{entry.Action} · {entry.App}{(entry.Error is null ? "" : " · " + entry.Error)}",
+                FontSize = 12.5,
+                TextTrimming = TextTrimming.CharacterEllipsis,
+                Foreground = Ui.Theme(entry.Outcome switch { "✗" => "SystemFillColorCriticalBrush", "~" => "TextFillColorSecondaryBrush", _ => "TextFillColorPrimaryBrush" }),
             };
-            frame.Children.Clear();
-            frame.Children.Add(player);
-        };
-        frame.Children.Add(play);
-        return frame;
+            ToolTipService.SetToolTip(what, what.Text);
+            Grid.SetColumn(what, 2);
+            row.Children.Add(what);
+            list.Children.Add(row);
+        }
+        column.Children.Add(list);
+        return column;
     }
 
     static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(15) };

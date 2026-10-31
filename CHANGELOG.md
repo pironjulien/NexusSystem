@@ -8,6 +8,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 ## [Unreleased]
 
 ### Changed (app 1.0.14.0)
+- A product's page uses the whole window: under its banner, its julienpiron.fr page (video and explanations) on the
+  left, and on the right "On this PC", what the AI apps did with it in the last 24 hours (its journal, failures in red)
+  and the guides.
+- Home: the banner shows each product's picture whole (never cropped) beside its words; product tiles are wider (three
+  columns on a large screen) and laid out like store tiles (icon, name and group, two lines, then the state and the
+  button on one line).
 - The app is laid out like the Microsoft Store. Every product has the same page, without tabs: a banner in its color
   (large icon, name, publisher and group, one sentence, one large button and its state), its video played in place
   (or its picture), "About" with "See the full page" (its julienpiron.fr page inside the app) and "On this PC". The
