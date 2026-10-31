@@ -286,11 +286,17 @@ public class CatalogTests
         Assert.Equal(expected.Keys.Order(), events.Select(e => e.Key).Order());
         foreach (var (name, (matcher, arguments)) in expected)
         {
-            var group = Assert.Single(events[name]!.AsArray())!;
+            var group = events[name]!.AsArray()[0]!;
             Assert.Equal(matcher, (string?)group["matcher"]);
             var hook = Assert.Single(group["hooks"]!.AsArray())!;
             Assert.Equal($"\"$HOME/.nexus/nexus-relay/bin/NexusRelay.exe\" {arguments} || true", (string?)hook["command"]);
+            Assert.Equal(name == "Stop" ? 2 : 1, events[name]!.AsArray().Count);
         }
+        // NexusRelay 1.11.0: a second Stop hook wakes the host when a peer answers. It runs in the background and
+        // exits 2 to rewake, so it has no "|| true".
+        var rewake = Assert.Single(events["Stop"]!.AsArray()[1]!["hooks"]!.AsArray())!;
+        Assert.Equal("\"$HOME/.nexus/nexus-relay/bin/NexusRelay.exe\" --await-replies claude", (string?)rewake["command"]);
+        Assert.True((bool?)rewake["asyncRewake"]);
     }
 
 
