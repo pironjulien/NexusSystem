@@ -7,25 +7,27 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
-### Changed
-- Plugins follow NexusAndroid 0.22.8, NexusBrowser 2.33.10 and NexusRelay 1.10.7 (CodeQL findings fixed).
+## [1.6.40] - 2026-10-31
 
 ### Changed
+- No manual validation step: a push whose version is not released yet becomes the stable release right after its
+  development build (same files); "Run workflow" still promotes by hand. `product-promote.yml` leaves a build whose
+  stable version already exists as is (notice, empty `tag`) instead of failing. `RELEASING.md` follows.
+- Plugins follow NexusAndroid 0.22.8, NexusBrowser 2.33.10 and NexusRelay 1.10.7 (CodeQL findings fixed).
 - `product-promote.yml`: `mcp-registry: true` publishes every `.mcpb` package the product's `server.json` lists at
   the promoted tag (one per architecture if need be), each checked against `SHA256SUMS.txt`; products no longer
   keep their own registry job. `mcp-package` stays accepted.
-
-### Changed
 - The Browser plugin follows NexusBrowser 2.33.8, whose stable release submits the extension to the Chrome Web
   Store without a stored secret; `RELEASING.md` says so.
+- The plugins follow the first releases promoted from development builds: NexusAndroid 0.22.7, NexusWindows
+  3.9.7, NexusBrowser 2.33.7, NexusRelay 1.10.6.
 
 ### Added
 - `RELEASING.md`: the one release path for every product and every AI (change and test locally, development build
   on push, promotion of the same files to stable, plugin pin, stores, final checks).
 
-### Changed
-- The plugins follow the first releases promoted from development builds: NexusAndroid 0.22.7, NexusWindows
-  3.9.7, NexusBrowser 2.33.7, NexusRelay 1.10.6.
+### Removed
+- The OpenSSF Scorecard workflow and badge, and CodeQL default setup: they scored the repository, not the products.
 
 ## [1.6.39] - 2026-10-31
 
