@@ -12,8 +12,8 @@ sealed record ProductView(Product Product, bool Installed, string? Version, stri
 }
 
 /// <summary>
-/// The shared pieces of the home and product pages: each product's state, read on this PC and from GitHub (the newest
-/// release of its channel), and its one way in: the user's AI app (a prompt to paste) or a store.
+/// The shared pieces of the home and product pages: each product's state, read on this PC and from GitHub (its latest
+/// release), and its one way in: the user's AI app (a prompt to paste) or a store.
 /// </summary>
 static class Catalog
 {
@@ -54,11 +54,10 @@ static class Catalog
     /// <summary>The newest release of every product on GitHub (no API, no rate limit), in parallel.</summary>
     public static async Task RefreshLatestAsync(UserFolders folders, CancellationToken cancel = default)
     {
-        var channel = ReleaseFeed.Channel(folders);
         await Task.WhenAll(Shown.Products.Select(async product =>
         {
             if (ReleaseFeed.Repository(product) is not { } repository) return;
-            if (await ReleaseFeed.NewestAsync(repository, channel, cancel) is not { } tag) return;
+            if (await ReleaseFeed.NewestAsync(repository, cancel) is not { } tag) return;
             lock (Latest) Latest[product.Key] = ReleaseFeed.Version(tag);
         }));
     }

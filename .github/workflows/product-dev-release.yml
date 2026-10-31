@@ -2,7 +2,7 @@
 # The calling workflow tests and builds, then uploads its release files as the artifact `dist` (packages, get.ps1,
 # SHA256SUMS.txt). This attests their build provenance (Sigstore, keyless: `gh attestation verify <file> --repo
 # pironjulien/<Product>`; the bundle is attached as <Product>-X.Y.Z.intoto.jsonl) and publishes them as the pre-release
-# vX.Y.Z-dev.N at the built commit. Only NexusSystem's development channel installs those; releases/latest never
+# vX.Y.Z-dev.N at the built commit, a build record that nothing installs; releases/latest never
 # points to one. The five newest development builds are kept; a promoted build lives on in its stable release.
 name: product-dev-release
 
@@ -66,7 +66,7 @@ jobs:
           cp "$BUNDLE" "dist/$PRODUCT-$VERSION.intoto.jsonl"
           gh release create "$tag" dist/* --repo "$REPOSITORY" --prerelease --latest=false --target "$GITHUB_SHA" \
             --title "$PRODUCT $VERSION (development build)" \
-            --notes "Development build of $GITHUB_SHA (tests passed). Installed only by NexusSystem's development channel; promoted as is to the stable v$VERSION."
+            --notes "Development build of $GITHUB_SHA (tests passed). Promoted as is to the stable v$VERSION when that version is new."
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           gh release list --repo "$REPOSITORY" --limit 100 --json tagName,isPrerelease,createdAt \
             --jq '[.[] | select(.isPrerelease and (.tagName | test("-dev\\.[0-9]+$")))] | sort_by(.createdAt) | reverse | .[5:] | .[].tagName' |

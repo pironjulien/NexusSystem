@@ -7,6 +7,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.6.42] - 2026-10-31
+
+### Removed
+- The development channel on the PC: `"channel": "dev"` in nexussystem.json, the releases feed lookup and
+  `NEXUS_RELEASE_TAG` in `get-nexus.ps1`, the channel of the app's version check, and `app/tools/dev-catalog.ps1`.
+  A new version is released as stable right after its build, so every PC installs and shows the latest release.
+
 ### Changed (catalogs)
 - The Keypad plugin follows NexusKeypad 1.8.14: a copy updated by Claude or Codex is re-attested by the keypad without
   asking again.

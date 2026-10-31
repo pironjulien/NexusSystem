@@ -53,7 +53,7 @@ $ProgressPreference = 'SilentlyContinue'  # Invoke-WebRequest is many times slow
 $Ok = [string][char]0x2713
 $No = [string][char]0x2717
 $Marketplace = 'nexus-plugins'
-$NexusMaintenanceVersion = '1.6.41'
+$NexusMaintenanceVersion = '1.6.42'
 
 # AI apps, in display order. Claude Desktop also carries Claude Code (its Code tab reads the same ~\.claude).
 $AiNames = [ordered]@{
@@ -293,32 +293,13 @@ function Invoke-Native([string]$What, [scriptblock]$Command) {
     return [int]$code
 }
 
-function Get-NexusChannel {
-    # "channel": "dev" in %USERPROFILE%\.nexus\nexussystem.json (a development PC): the newest development build
-    # vX.Y.Z-dev.N of each product. Anything else, or no file: stable, GitHub's latest release.
-    $choices = Read-Json (Join-Path $env:USERPROFILE '.nexus\nexussystem.json')
-    if ($choices -and $choices.PSObject.Properties['channel'] -and $choices.channel -eq 'dev') { return 'dev' }
-    return 'stable'
-}
-
 function Get-NexusTagVersion([string]$Tag) {
-    # The x.y.z a release tag carries: a development build carries the version it will be promoted as.
-    if ($Tag -notmatch '^v(\d+\.\d+\.\d+)(-dev\.\d+)?$') { throw "Unsupported release tag: $Tag" }
+    # The x.y.z of a release tag vX.Y.Z.
+    if ($Tag -notmatch '^v(\d+\.\d+\.\d+)$') { throw "Unsupported release tag: $Tag" }
     return $Matches[1]
 }
 
 function Get-LatestTag([string]$Repo) {
-    # Development channel: the newest entry of the public releases feed (no GitHub API), a development build or a
-    # stable release.
-    if ((Get-NexusChannel) -eq 'dev') {
-        try {
-            $feed = [xml][Text.Encoding]::UTF8.GetString((Invoke-WebRequest -UseBasicParsing "https://github.com/pironjulien/$Repo/releases.atom" -TimeoutSec 30).RawContentStream.ToArray())
-            foreach ($entry in @($feed.feed.entry)) {
-                $href = @($entry.link | ForEach-Object { $_.href }) | Where-Object { $_ -match '/releases/tag/(v\d+\.\d+\.\d+(-dev\.\d+)?)$' } | Select-Object -First 1
-                if ($href -and $href -match '/releases/tag/(v\d+\.\d+\.\d+(-dev\.\d+)?)$') { return $Matches[1] }
-            }
-        } catch { Write-Verbose "Releases feed failed: $($_.Exception.Message)" }
-    }
     # The latest release's tag from the redirect of github.com/<repo>/releases/latest: no GitHub API (60 anonymous
     # requests an hour per IP); the API stays as a fallback.
     try {
@@ -378,8 +359,6 @@ function Invoke-Installer([string]$What, [string]$Repo, [string]$Work) {
         }
         $file = Join-Path $folder 'get.ps1'
         Save-VerifiedFile "$base/get.ps1" $file (Get-ExpectedSha256 $manifest 'get.ps1')
-        # A development build's installer installs that build, not the latest stable release.
-        $env:NEXUS_RELEASE_TAG = if ($tag -match '-dev\.\d+$') { $tag } else { $null }
     } catch {
         Say ''
         Say "== $What" Cyan
@@ -1353,10 +1332,9 @@ function Invoke-NexusMaintenance([switch]$Current,[switch]$Force) {
                     $row=[ordered]@{key=$product.Key;publishedVersion=$null;installedVersion=$installed;loadedVersions=@();state='pending';activationPending=$false;retryable=$false;message='';profiles=@()}
                     try {
                         $tag=Get-LatestTag $product.Repo
-                        if ($tag -notmatch '^v\d+\.\d+\.\d+(-dev\.\d+)?$') { throw 'Invalid published version.' }
+                        if ($tag -notmatch '^v\d+\.\d+\.\d+$') { throw 'Invalid published version.' }
                         $published=Get-NexusTagVersion $tag; $row.publishedVersion=$tag.Substring(1)
                         if ([version]$published -gt [version]$installed) {
-                            $env:NEXUS_RELEASE_TAG = if ($tag -match '-dev\.\d+$') { $tag } else { $null }
                             $release=Get-NexusPublishedInstaller $product.Repo $work
                             if ($release.tag -ne $tag) { throw 'Release changed while preparing the update; retry on the next cycle.' }
                             if (Invoke-ScriptFile "$($product.Name) maintenance" $release.file) { throw 'The product update failed.' }
@@ -1378,9 +1356,8 @@ function Invoke-NexusMaintenance([switch]$Current,[switch]$Force) {
                     if (-not $active.Count) { $row.state='kept'; $row.message='No active owned route; disabled and custom routes were preserved.' }
                     else {
                         $tag=Get-LatestTag $product.Repo
-                        if ($tag -notmatch '^v\d+\.\d+\.\d+(-dev\.\d+)?$') { throw 'Invalid published version.' }
+                        if ($tag -notmatch '^v\d+\.\d+\.\d+$') { throw 'Invalid published version.' }
                         $published=Get-NexusTagVersion $tag; $row.publishedVersion=$tag.Substring(1)
-                        $env:NEXUS_RELEASE_TAG = if ($tag -match '-dev\.\d+$') { $tag } else { $null }
                         $source=Get-NexusInstallationSource $product
                         # UpdateOnly is a qualified release contract, never sent to older installers.
                         $minimum=switch($product.Key){'windows'{'3.9.5'} 'browser'{'2.33.5'} default{$null}}
