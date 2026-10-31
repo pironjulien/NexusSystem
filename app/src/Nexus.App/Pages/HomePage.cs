@@ -69,30 +69,30 @@ public sealed partial class HomePage : UserControl
     {
         var featured = Catalog.Shown.Products.Where(product => product.Banner is not null).ToList();
         if (featured.Count == 0) return null;
-        var flip = new FlipView { Height = 300, CornerRadius = new CornerRadius(12), Background = Ui.Theme("CardBackgroundFillColorDefaultBrush") };
+        var flip = new FlipView { Height = 340, CornerRadius = new CornerRadius(12), Background = Ui.Theme("CardBackgroundFillColorDefaultBrush") };
         foreach (var product in featured)
         {
-            var slide = new Grid();
-            slide.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2, GridUnitType.Star) });
-            slide.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(3, GridUnitType.Star) });
-            slide.Background = Ui.Tint(product.Accent);
+            // The picture whole (never cropped), on the dark of the posters; the product's words beside it.
+            var slide = new Grid { Background = Ui.Theme("SolidBackgroundFillColorBaseBrush") };
+            slide.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(420) });
+            slide.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             var words = Ui.Column(10,
                 Ui.Logo(product, 64),
                 new TextBlock { Text = product.Name, Style = (Style)Application.Current.Resources["TitleTextBlockStyle"] },
-                Ui.Body(Catalog.About(product)));
+                Ui.Body(Catalog.About(product), secondary: true));
+            ((Image)words.Children[0]).HorizontalAlignment = HorizontalAlignment.Left;
             var see = new Button { Content = Text.Get("Hero.See"), Style = (Style)Application.Current.Resources["AccentButtonStyle"] };
             see.Click += (_, _) => MainWindow.Instance?.Open(product);
             words.Children.Add(see);
-            ((Image)words.Children[0]).HorizontalAlignment = HorizontalAlignment.Left;
-            words.Padding = new Thickness(32, 24, 24, 24);
+            var panel = new Border { Child = words, Padding = new Thickness(36, 28, 28, 28), Background = Ui.Tint(product.Accent) };
             words.VerticalAlignment = VerticalAlignment.Center;
-            slide.Children.Add(words);
+            slide.Children.Add(panel);
             var picture = new Image
             {
                 Source = new Microsoft.UI.Xaml.Media.Imaging.BitmapImage(new Uri(product.Banner!)),
-                Stretch = Stretch.UniformToFill,
-                HorizontalAlignment = HorizontalAlignment.Stretch,
-                VerticalAlignment = VerticalAlignment.Stretch,
+                Stretch = Stretch.Uniform,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
             };
             Grid.SetColumn(picture, 1);
             slide.Children.Add(picture);
@@ -134,38 +134,32 @@ public sealed partial class HomePage : UserControl
         foreach (var group in Catalog.Shown.Groups)
         {
             var cards = Catalog.Shown.Products.Where(product => product.Group == group.Key).Select(product => Card(Catalog.Read(product, found, folders))).ToList();
-            groups.Children.Add(Ui.Column(12, Ui.Subtitle(Catalog.Group(group.Key)), Ui.Flow(cards)));
+            groups.Children.Add(Ui.Column(12, Ui.Subtitle(Catalog.Group(group.Key)), Ui.Flow(cards, minWidth: 460, spacing: 16)));
         }
     }
 
     FrameworkElement Card(ProductView view)
     {
         var product = view.Product;
-        var grid = new Grid { ColumnSpacing = 14, RowSpacing = 6 };
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-
+        // As a store tile: icon, name and group on top, two lines of text, then a line with the state and the button.
+        var head = new Grid { ColumnSpacing = 14 };
+        head.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        head.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         var logo = Ui.Logo(product, 56);
-        logo.VerticalAlignment = VerticalAlignment.Top;
-        Grid.SetRowSpan(logo, 3);
-        grid.Children.Add(logo);
-
-        var title = new TextBlock { Text = product.Name, Style = (Style)Application.Current.Resources["BodyStrongTextBlockStyle"], FontSize = 16 };
-        Grid.SetColumn(title, 1);
-        grid.Children.Add(title);
+        head.Children.Add(logo);
+        var names = Ui.Column(2,
+            new TextBlock { Text = product.Name, Style = (Style)Application.Current.Resources["BodyStrongTextBlockStyle"], FontSize = 17 },
+            Ui.Body(Catalog.Group(product.Group), secondary: true));
+        names.VerticalAlignment = VerticalAlignment.Center;
+        Grid.SetColumn(names, 1);
+        head.Children.Add(names);
 
         var about = Ui.Body(Catalog.About(product), secondary: true);
-        about.FontSize = 12.5;
         about.MaxLines = 2;
+        about.Height = 42;
         about.TextTrimming = TextTrimming.CharacterEllipsis;
-        Grid.SetColumn(about, 1);
-        Grid.SetRow(about, 1);
-        grid.Children.Add(about);
 
-        var bottom = new Grid { ColumnSpacing = 8 };
+        var bottom = new Grid { ColumnSpacing = 12, MinHeight = 34 };
         bottom.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         bottom.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         var state = Catalog.State(view);
@@ -173,12 +167,11 @@ public sealed partial class HomePage : UserControl
         bottom.Children.Add(state);
         if (Catalog.Action(view, found, Say) is { } action)
         {
+            action.VerticalAlignment = VerticalAlignment.Center;
             Grid.SetColumn(action, 1);
             bottom.Children.Add(action);
         }
-        Grid.SetColumn(bottom, 1);
-        Grid.SetRow(bottom, 2);
-        grid.Children.Add(bottom);
+        var grid = Ui.Column(14, head, about, bottom);
 
         var card = Ui.Card(grid, padding: 16);
         card.MinHeight = 132;
