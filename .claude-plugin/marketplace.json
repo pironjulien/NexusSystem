@@ -13,7 +13,7 @@
       "name": "nexus-android",
       "source": {
         "source": "git-subdir",
-        "url": "pironjulien/NexusAndroid",
+        "url": "https://github.com/pironjulien/NexusAndroid.git",
         "path": "plugin",
         "ref": "v0.22.6"
       },
@@ -35,7 +35,7 @@
       "name": "nexus-windows",
       "source": {
         "source": "git-subdir",
-        "url": "pironjulien/NexusWindows",
+        "url": "https://github.com/pironjulien/NexusWindows.git",
         "path": "plugin",
         "ref": "v3.9.6"
       },
@@ -57,7 +57,7 @@
       "name": "nexus-browser",
       "source": {
         "source": "git-subdir",
-        "url": "pironjulien/NexusBrowser",
+        "url": "https://github.com/pironjulien/NexusBrowser.git",
         "path": "plugin",
         "ref": "v2.33.6"
       },
@@ -79,7 +79,7 @@
       "name": "nexus-relay",
       "source": {
         "source": "git-subdir",
-        "url": "pironjulien/NexusRelay",
+        "url": "https://github.com/pironjulien/NexusRelay.git",
         "path": "plugin",
         "ref": "v1.10.5"
       },

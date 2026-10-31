@@ -669,10 +669,14 @@ function Test-CodexPluginInstalled([string]$Name, [string]$InstalledPath) {
                 else { @(Get-ChildItem -LiteralPath $cache -Directory -ErrorAction SilentlyContinue) }
     foreach ($version in $versions) {
         if (-not $version.PSIsContainer -or (Split-Path $version.FullName) -ine $cache) { continue }
+        # The guide and server files are the ones the plugin's manifest names (a product's plugin folder serves the
+        # three AI apps, so Codex's files may sit beside Claude Code's).
         $manifest = Read-Json (Join-Path $version.FullName '.codex-plugin\plugin.json')
-        if ($manifest -and $manifest.name -eq $Name -and $manifest.skills -eq './skills/' -and
-            (Test-Path -LiteralPath (Join-Path $version.FullName "skills\$Name\SKILL.md")) -and
-            (Test-Path -LiteralPath (Join-Path $version.FullName '.mcp.json'))) { return $true }
+        if (-not $manifest -or $manifest.name -ne $Name -or $manifest.skills -isnot [string] -or $manifest.mcpServers -isnot [string] -or
+            -not $manifest.skills.StartsWith('./') -or -not $manifest.mcpServers.StartsWith('./')) { continue }
+        $skills = Join-Path $version.FullName $manifest.skills.Substring(2)
+        $servers = Join-Path $version.FullName $manifest.mcpServers.Substring(2)
+        if ((Test-Path -LiteralPath (Join-Path $skills "$Name\SKILL.md")) -and (Test-Path -LiteralPath $servers -PathType Leaf)) { return $true }
     }
     return $false
 }

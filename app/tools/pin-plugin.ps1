@@ -21,7 +21,7 @@ function Edit-Catalog([string]$Relative, [scriptblock]$Change) {
 
 $claude = Edit-Catalog '.claude-plugin\marketplace.json' {
     param($entry)
-    $entry.source = [ordered]@{ source = 'git-subdir'; url = "pironjulien/$Product"; path = 'plugin'; ref = $Tag }
+    $entry.source = [ordered]@{ source = 'git-subdir'; url = "https://github.com/pironjulien/$Product.git"; path = 'plugin'; ref = $Tag }
     $entry.version = $Tag.Substring(1)
 }
 if (-not $claude) { throw "$Name is not in the Claude Code catalog" }
