@@ -53,7 +53,7 @@ $ProgressPreference = 'SilentlyContinue'  # Invoke-WebRequest is many times slow
 $Ok = [string][char]0x2713
 $No = [string][char]0x2717
 $Marketplace = 'nexus-plugins'
-$NexusMaintenanceVersion = '1.6.43'
+$NexusMaintenanceVersion = '1.6.44'
 
 # AI apps, in display order. Claude Desktop also carries Claude Code (its Code tab reads the same ~\.claude).
 $AiNames = [ordered]@{
@@ -1034,6 +1034,18 @@ function Get-NexusPublishedInstaller([string]$Repo,[string]$Work,[string]$Name='
     }
     return [pscustomobject]@{tag=$tag; version=(Get-NexusTagVersion $tag); file=$file; sha256=(Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant()}
 }
+function Write-NexusProductStatus([string]$Key,[string]$Installed,[string]$Published) {
+    # The product state the NexusSystem app shows (~\.nexus\status\<key>.json): its other fields are kept.
+    $path=Join-Path $env:USERPROFILE ".nexus\status\$Key.json"
+    $record=[ordered]@{}
+    $old=Read-Json $path
+    if ($old) { foreach ($property in $old.PSObject.Properties) { $record[$property.Name]=$property.Value } }
+    $record.product=$Key; $record.version=$Installed; $record.latest=$Published; $record.state='idle'
+    $record.checked_at=[DateTimeOffset]::UtcNow.ToString('o'); $record.message='up to date'
+    New-Item -ItemType Directory -Force (Split-Path $path) | Out-Null
+    [IO.File]::WriteAllText("$path.$PID.tmp", ($record | ConvertTo-Json -Depth 8) + "`n")
+    Move-Item -LiteralPath "$path.$PID.tmp" -Destination $path -Force
+}
 function Get-NexusInstalledVersion($Product) {
     switch ($Product.Key) {
         'windows' {
@@ -1351,6 +1363,7 @@ function Invoke-NexusMaintenance([switch]$Current,[switch]$Force) {
                             if (-not $installed -or [version]$installed -lt [version]$published) { throw 'The installed version did not reach the published version.' }
                         }
                         $row.state='success'; $row.message='Published version installed.'
+                        if ($product.Key -in 'android','relay','agymail') { Write-NexusProductStatus $product.Key $installed $row.publishedVersion }
                     } catch { $row.state='failed'; $row.message=$_.Exception.Message }
                     $state.products += [pscustomobject]$row
                     Write-NexusMaintenanceStatus $state
