@@ -38,8 +38,7 @@ files, checked against their checksums, as `vX.Y.Z` with the CHANGELOG section, 
 the MCP registry. Nothing is rebuilt; the build provenance of each file stays valid (`gh attestation verify <file>
 --repo pironjulien/<Product> --source-ref refs/heads/main`). A push that keeps an already released version stays a
 development build. "Run workflow" (`gh workflow run release.yml -R pironjulien/<Product> -f promote=vX.Y.Z-dev.N`;
-empty = the newest) still promotes by hand. NexusKeypad needs its offline signature first:
-`outils/signer_release.ps1 -Tag vX.Y.Z-dev.N` signs, then starts the promotion.
+empty = the newest) still promotes by hand.
 
 Then pin the stable plugin in both catalogs and merge it through a pull request here:
 
@@ -59,7 +58,7 @@ Store reviews never block local tests or the GitHub channels.
 |---|---|---|
 | MCP registry | MCP products | Automatic, at promotion (GitHub OIDC). |
 | Microsoft Store | NexusSystem app | Partner Center submission by the AI; the submission API needs a Microsoft Entra app the user authorizes once. |
-| Chrome Web Store | NexusBrowser extension | Automatic at promotion: the `cws-publisher` service account, reached by GitHub OIDC (workload identity federation, no stored secret), uploads and submits for review. |
+| Chrome Web Store | NexusBrowser extension | Sent by the AI when the user asks, never by GitHub: `scripts/publish-store.ps1` (NexusBrowser) sends the latest stable release's extension as the `cws-publisher` service account (gcloud token, no stored secret) and says when an earlier version is still in review. The developer dashboard, when a step has no API, through NexusWindows. |
 | Logitech Marketplace | NexusKeypad | Logitech's developer portal (no public API). |
 
 Prefer keyless access (GitHub OIDC with the store's identity federation) over stored secrets. Pages that Chrome
