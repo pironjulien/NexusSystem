@@ -137,6 +137,42 @@ public sealed partial class ProductPage : UserControl
         return card;
     }
 
+    /// <summary>The connected Gmail account, as a connector shows it: its initial, its address, and "Use another account".</summary>
+    FrameworkElement GmailAccount(GmailSignIn signIn)
+    {
+        var account = signIn.Account ?? "Gmail";
+        var initial = new Border
+        {
+            Width = 36, Height = 36, CornerRadius = new CornerRadius(18),
+            Background = Ui.Theme("AccentFillColorDefaultBrush"),
+            Child = new TextBlock
+            {
+                Text = account[..1].ToUpperInvariant(), HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
+                Foreground = Ui.Theme("TextOnAccentFillColorPrimaryBrush"), FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+            },
+        };
+        var words = Ui.Column(0, Ui.Strong(account), Ui.Body(Text.Get("Gmail.Primary"), secondary: true));
+        words.VerticalAlignment = VerticalAlignment.Center;
+        var other = new HyperlinkButton { Content = Text.Get("Gmail.Other"), Padding = new Thickness(0) };
+        other.Click += (_, _) =>
+        {
+            if (signIn.Executable is not { } executable) return;
+            try
+            {
+                SetupChecks.StartGmailSignIn(executable);
+                notice.Message = Text.Get("Gmail.Opened");
+            }
+            catch (Exception error) when (error is System.ComponentModel.Win32Exception or InvalidOperationException)
+            {
+                AppLog.Error("gmail sign-in", error);
+                notice.Message = Text.Get("Gmail.Failed");
+            }
+            notice.IsOpen = true;
+        };
+        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12, Children = { initial, words } };
+        return Ui.Card(Ui.Column(10, Ui.Strong(Text.Get("Gmail.Accounts")), row, other), padding: 14);
+    }
+
     /// <summary>What the AI apps did with the product in the last 24 hours (its journal), newest first; none without one.</summary>
     FrameworkElement? Activity(Product product)
     {
@@ -352,7 +388,8 @@ public sealed partial class ProductPage : UserControl
             }
             if (gmail is { } signIn && installed)
             {
-                if (signIn.Connected) status.Children.Add(Ui.Mark(true, Text.Format("Gmail.Connected", signIn.Account ?? "Gmail")));
+                // As the official connectors show it: the connected account, and a way to sign in with another one.
+                if (signIn.Connected) status.Children.Add(GmailAccount(signIn));
                 else
                 {
                     // Like a connector of Antigravity: "not connected", and the one button that connects.
