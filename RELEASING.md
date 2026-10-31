@@ -52,8 +52,14 @@ On the user's PC, do not wait for the hourly maintenance: once the stable releas
 and check that the product reached the new version. Between releases, changes are tested from the working folder.
 
 Claude Code and Codex read the catalog from `main`: no NexusSystem release is needed for a plugin or engine update.
-A NexusSystem release (`vX.Y.Z` here) is needed only when `get-nexus.ps1` changes; the Store app is resubmitted only
+A NexusSystem release (`vX.Y.Z` here) is needed only when `get-nexus.ps1` changes: raise the version, add its
+`CHANGELOG.md` section, merge, then push the tag `vX.Y.Z` alone (`git tag vX.Y.Z origin/main && git push origin vX.Y.Z`);
+the [`release`](.github/workflows/release.yml) workflow publishes it with its files. The Store app is resubmitted only
 for its own interface or features.
+
+Releases are immutable in every product repository (Settings > General > Releases): a published release gets no file
+added, replaced or removed, and its tag never moves. Every file is attached at creation, as the workflows above do;
+`gh release verify vX.Y.Z -R pironjulien/<Product>` checks GitHub's release attestation.
 
 ## 4. Stores
 

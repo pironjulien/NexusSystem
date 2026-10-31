@@ -1,0 +1,46 @@
+name: release
+on:
+  push:
+    tags: ['v*']
+permissions: {}
+jobs:
+  # A catalog release (vX.Y.Z) is published here, whole, from its tag: get-nexus.ps1, its SHA-256 and a provenance
+  # attestation (gh attestation verify get-nexus.ps1 --repo pironjulien/NexusSystem), with that version's CHANGELOG
+  # section as notes. Releases are immutable: nothing is added once published (gh release verify vX.Y.Z).
+  # A NexusSystem app release (nexussystem-v*) carries the Store app's version, no pack file.
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Version and notes
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          [[ "$TAG" =~ ^v([0-9]+\.[0-9]+\.[0-9]+)$ ]] || { echo "Not a catalog release tag: $TAG"; exit 1; }
+          version="${BASH_REMATCH[1]}"
+          [[ "$(jq -r .metadata.version .claude-plugin/marketplace.json)" == "$version" ]] || { echo "marketplace.json is not $version"; exit 1; }
+          grep -qx "\$NexusMaintenanceVersion = '$version'" get-nexus.ps1 || { echo "get-nexus.ps1 is not $version"; exit 1; }
+          awk -v v="$version" 'index($0, "## [" v "]") == 1 {on=1; next} on && /^## / {exit} on {print}' CHANGELOG.md > "$RUNNER_TEMP/notes.md"
+          [[ -s "$RUNNER_TEMP/notes.md" ]] || { echo "CHANGELOG.md has no [$version] section."; exit 1; }
+          sha256sum get-nexus.ps1 > SHA256SUMS.txt && cat SHA256SUMS.txt
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: get-nexus.ps1
+      - name: Publish the release with its files
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "$TAG already has a release: push the tag alone, the release is made here with its files."; exit 1
+          fi
+          gh release create "$TAG" get-nexus.ps1 SHA256SUMS.txt --repo "$GITHUB_REPOSITORY" --verify-tag --latest \
+            --title "NexusSystem ${TAG#v}" --notes-file "$RUNNER_TEMP/notes.md"

@@ -308,6 +308,35 @@ try {
         Test-Case "NexusKeypad detected: $($case[0])" $result 0 @($expected)
     }
 
+    # Write-JsonWithBackup (taken from the script) killed in the middle of rewriting a large settings.json, again and
+    # again: the file must always read as whole JSON, the old content or the new.
+    $writer = ([System.Management.Automation.Language.Parser]::ParseFile($pack, [ref]$null, [ref]$null)).FindAll({
+            param($ast) $ast -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $ast.Name -eq 'Write-JsonWithBackup' }, $true) | Select-Object -First 1
+    $root = Initialize-Profile 'atomic-settings' @('.claude')
+    $settings = Join-Path $root '.claude\settings.json'
+    [IO.File]::WriteAllText($settings, '{"enabledPlugins": {"old": true}}')
+    $loop = Join-Path $work 'atomic-loop.ps1'
+    [IO.File]::WriteAllText($loop, (@(
+                "`$env:USERPROFILE = '$root'", $writer.Extent.Text,
+                "`$value = [pscustomobject]@{ enabledPlugins = @{ new = `$true }; padding = ('x' * 6MB) }",
+                "while (`$true) { Write-JsonWithBackup '$settings' `$value }") -join "`r`n"))
+    $broken = @()
+    foreach ($delay in 700, 900, 1100, 1300, 1500, 1700, 1900, 2100) {
+        $process = Start-Process powershell.exe -ArgumentList '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', "`"$loop`"" -NoNewWindow -PassThru
+        Start-Sleep -Milliseconds $delay
+        Stop-Process -Id $process.Id -Force
+        $process.WaitForExit()
+        try {
+            $read = [IO.File]::ReadAllText($settings) | ConvertFrom-Json
+            if (-not ($read.enabledPlugins.old -or $read.enabledPlugins.new)) { $broken += "killed after $delay ms: enabledPlugins lost" }
+        } catch { $broken += "killed after $delay ms: $(($_.Exception.Message -split "`n")[0])" }
+    }
+    $rewritten = ([IO.File]::ReadAllText($settings) | ConvertFrom-Json).enabledPlugins.new
+    if ($broken -or -not $rewritten) {
+        $failures++
+        Write-Host "FAIL settings.json killed mid-write`n  $(if ($broken) { $broken -join "`n  " } else { 'never rewritten' })"
+    } else { Write-Host 'OK settings.json: 8 writes killed midway, always whole JSON' }
+
 } finally {
     Remove-Item -LiteralPath $work -Recurse -Force -ErrorAction SilentlyContinue
 }
