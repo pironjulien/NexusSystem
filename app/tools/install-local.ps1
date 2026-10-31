@@ -40,8 +40,11 @@ function Get-NexusLocalDestination([string]$LocalAppData, [string]$Version, [str
 
 # Earlier local copies (other versions, other payloads, old publish folders) go once the new one is installed; a copy a
 # running process still uses is kept for the next installation.
-function Remove-NexusLocalStale([string]$Destination, [string[]]$Running = @()) {
+function Remove-NexusLocalStale {
+    [CmdletBinding(SupportsShouldProcess = $true)]
+    param([string]$Destination, [string[]]$Running = @())
     $local = Split-Path (Split-Path $Destination)
+    if (-not $PSCmdlet.ShouldProcess($local, 'Remove earlier local NexusSystem copies')) { return }
     foreach ($folder in @(Get-ChildItem -LiteralPath $local -Directory -ErrorAction SilentlyContinue)) {
         # <version>\<payload hash>\ copies; an older layout put the files directly in <version>\.
         $layered = $folder.Name -match '^\d+\.\d+\.\d+\.0$' -and -not (Test-Path -LiteralPath (Join-Path $folder.FullName 'NexusSystem.exe'))
