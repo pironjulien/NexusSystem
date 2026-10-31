@@ -24,7 +24,7 @@
         "source": "git-subdir",
         "url": "https://github.com/pironjulien/NexusWindows.git",
         "path": "plugin",
-        "ref": "v3.9.6"
+        "ref": "v3.9.7"
       },
       "policy": {
         "installation": "AVAILABLE",
@@ -38,7 +38,7 @@
         "source": "git-subdir",
         "url": "https://github.com/pironjulien/NexusBrowser.git",
         "path": "plugin",
-        "ref": "v2.33.6"
+        "ref": "v2.33.7"
       },
       "policy": {
         "installation": "AVAILABLE",
@@ -52,7 +52,7 @@
         "source": "git-subdir",
         "url": "https://github.com/pironjulien/NexusRelay.git",
         "path": "plugin",
-        "ref": "v1.10.5"
+        "ref": "v1.10.6"
       },
       "policy": {
         "installation": "AVAILABLE",

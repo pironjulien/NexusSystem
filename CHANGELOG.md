@@ -12,7 +12,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
   on push, promotion of the same files to stable, plugin pin, stores, final checks).
 
 ### Changed
-- The Android plugin follows NexusAndroid 0.22.7, its first release promoted from a development build.
+- The plugins follow the first releases promoted from development builds: NexusAndroid 0.22.7, NexusWindows
+  3.9.7, NexusBrowser 2.33.7, NexusRelay 1.10.6.
 
 ## [1.6.39] - 2026-10-31
 
