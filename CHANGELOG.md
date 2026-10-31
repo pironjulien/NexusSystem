@@ -7,7 +7,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
-### Changed (app 1.0.13.0)
+### Changed (app 1.0.14.0)
 - "On this PC" opens with one answer: "Everything is ready on this PC", or "One thing is left to do, just below".
   Each product checks what it needs the way the product itself does: Gmail connected or a "Connect Gmail" button
   (NexusAGYmail's own sign-in), the phone connected or waiting for "Allow USB debugging?" (adb), the keypad's 18 keys
