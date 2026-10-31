@@ -7,6 +7,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.6.38] - 2026-10-31
+
 ### Changed
 - One plugin folder per product, shared by Claude Code, Codex and Antigravity: each product's repository keeps its
   `plugin/` folder (common guide and icons, plus each AI app's small manifest and server file). Both catalogs point

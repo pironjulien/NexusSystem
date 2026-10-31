@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Computer use in the background for Claude Code: your Android phone, your Windows desktop apps, your real Chrome, a direct line to Codex and Antigravity, your Logitech keypad. Each plugin connects to its product's native Windows engine (no Python), installed by NexusSystem.",
-    "version": "1.6.37"
+    "version": "1.6.38"
   },
   "plugins": [
     {
