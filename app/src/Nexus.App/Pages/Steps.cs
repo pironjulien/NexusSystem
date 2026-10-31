@@ -14,30 +14,43 @@ static class Steps
 {
     static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(60) };
 
-    public static IEnumerable<UIElement> For(Product product, UserFolders folders, IReadOnlyList<AiApp> ais)
+    /// <summary>
+    /// The steps of a product on this PC: to do (shown only while there is something left to do, checked on this PC),
+    /// or help (guides kept one click away, never shown as if something were missing).
+    /// </summary>
+    public static IEnumerable<(UIElement View, bool Help)> For(Product product, UserFolders folders, IReadOnlyList<AiApp> ais)
     {
         if (product.Key == "browser")
         {
-            yield return Extension(product, folders);
-            yield return Pairing(product, folders);
+            // Only while Chrome is open without the extension connected: closed or connected, nothing is left to do.
+            var extension = Extension(product, folders);
+            yield return (extension, false);
+            yield return (Pairing(product, folders, extension), false);
         }
         // Claude Desktop (its chat): the product's extension (.mcpb) of its latest release, which the user drops on Claude
         // Desktop; not offered when this PC's settings skip Claude Desktop or the product (~\.nexus\nexussystem.json).
-        if (DesktopExtension.For(product) is { } extension && extension.Offered(folders, LocalSettings.Read(folders)))
-            yield return Desktop(product, extension, folders);
-        var step = product.Key switch
+        if (DesktopExtension.For(product) is { } desktop && desktop.Offered(folders, LocalSettings.Read(folders)))
+            yield return (Desktop(product, desktop, folders), true);
+        switch (product.Key)
         {
-            "android" => Card(product, Text.Get("Phone"), Text.Get("PhoneSteps")),
+            case "android":
+                yield return (Card(product, Text.Get("Phone"), Text.Get("PhoneSteps")), true);
+                break;
             // The Codex project, only when Codex answers (Claude Code is the host) and no execution space is chosen yet.
-            "relay" when ais.Contains(AiApp.ClaudeCode) && ais.Contains(AiApp.Codex) && !RelaySpaceChosen(folders) => Card(product, Text.Get("Relay.Step"), Text.Format("Relay.StepText", RelayProject(folders)),
-                Action(Text.Get("CopyPath"), () => Copy(RelayProject(folders)))),
-            "agymail" => Card(product, Text.Get("Agymail.Step"), Text.Get("Agymail.StepText"),
-                Link(Text.Get("Guide"), "https://github.com/pironjulien/NexusAGYmail#quick-start")),
-            "keypad" => Card(product, Text.Get("Keypad.Step"), Text.Get("Keypad.StepText"),
-                Link(Text.Get("Guide"), "https://github.com/pironjulien/NexusKeypad#install")),
-            _ => null,
-        };
-        if (step is not null) yield return step;
+            case "relay" when ais.Contains(AiApp.ClaudeCode) && ais.Contains(AiApp.Codex) && !RelaySpaceChosen(folders):
+                yield return (Card(product, Text.Get("Relay.Step"), Text.Format("Relay.StepText", RelayProject(folders)),
+                    Action(Text.Get("CopyPath"), () => Copy(RelayProject(folders)))), false);
+                break;
+            case "agymail":
+                yield return (Card(product, Text.Get("Agymail.Step"), Text.Get("Agymail.StepText"),
+                    Link(Text.Get("Guide"), "https://github.com/pironjulien/NexusAGYmail#quick-start")), true);
+                break;
+            // The keys only while they are not on the pad yet (an install placed them, or the user did).
+            case "keypad" when Declarations.DeviceInstalled(product, folders) && !Declarations.KeypadKeysPlaced(folders):
+                yield return (Card(product, Text.Get("Keypad.Step"), Text.Get("Keypad.StepText"),
+                    Link(Text.Get("Guide"), "https://github.com/pironjulien/NexusKeypad#install")), false);
+                break;
+        }
     }
 
     static string RelayProject(UserFolders folders) => Path.Combine(folders.Home, ".nexus", "relay", "codex-projet");
@@ -108,7 +121,7 @@ static class Steps
     // The extension paired with the bridge without the native host (NexusBrowser 2.25.0): the state read from the
     // bridge, "Pair Chrome" opens the extension's pairing page in the running Chrome, "Show a code" for the popup.
     // A bridge without pairing gets the guided fallback: the official PowerShell line, run by the user.
-    static Border Pairing(Product product, UserFolders folders)
+    static Border Pairing(Product product, UserFolders folders, Border extension)
     {
         var state = new TextBlock { TextWrapping = TextWrapping.WrapWholeWords };
         var note = new TextBlock { TextWrapping = TextWrapping.WrapWholeWords, IsTextSelectionEnabled = true, Visibility = Visibility.Collapsed };
@@ -128,7 +141,9 @@ static class Steps
         {
             var bridge = await BrowserBridge.StateAsync(folders, Http);
             state.Text = Text.Get("Pair." + bridge);
-            card.Visibility = bridge == BridgeState.NotInstalled ? Visibility.Collapsed : Visibility.Visible;  // nothing to pair yet
+            // Both steps only while Chrome runs without the extension connected; a note being read stays in sight.
+            var todo = bridge == BridgeState.Waiting || note.Visibility == Visibility.Visible && bridge != BridgeState.Connected;
+            card.Visibility = extension.Visibility = todo ? Visibility.Visible : Visibility.Collapsed;
             actions.Visibility = bridge == BridgeState.Waiting ? Visibility.Visible : Visibility.Collapsed;
         }
 
@@ -172,6 +187,12 @@ static class Steps
 
         pair.Click += async (_, _) => await Offer(page: true);
         code.Click += async (_, _) => await Offer(page: false);
+        card.Visibility = extension.Visibility = Visibility.Collapsed;
+        // Follows Chrome while the page is open: opened, paired, closed.
+        var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
+        timer.Tick += async (_, _) => await Refresh();
+        card.Loaded += (_, _) => timer.Start();
+        card.Unloaded += (_, _) => timer.Stop();
         _ = Refresh();
         return card;
     }

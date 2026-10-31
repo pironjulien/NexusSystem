@@ -46,6 +46,30 @@ public static partial class Declarations
 
     static readonly string[] KeypadEditions = ["NexusKeypad", "TrinitePad", "AiAgentsPc", "PcDashboard"];
 
+    /// <summary>
+    /// The plugin's keys are on the keypad: its general profile (as NexusKeypad's get.ps1 reads it) holds an action of
+    /// one of its editions. False when Logi Options+ never opened the keypad's profile.
+    /// </summary>
+    public static bool KeypadKeysPlaced(UserFolders folders)
+    {
+        try
+        {
+            var app = Path.Combine(folders.LocalAppData, "Logi", "LogiPluginService", "Applications", "Loupedeck70", "@_defaultwin");
+            var info = Path.Combine(app, "ApplicationInfo.json");
+            if (!File.Exists(info)) return false;
+            using var document = System.Text.Json.JsonDocument.Parse(File.ReadAllText(info));
+            if (!document.RootElement.TryGetProperty("defaultProfileName", out var name) || name.GetString() is not { Length: > 0 } profile) return false;
+            var file = Path.Combine(app, "Profiles", profile, "ProfileInfo.json");
+            if (!File.Exists(file)) return false;
+            var text = File.ReadAllText(file);
+            return KeypadEditions.Any(edition => text.Contains("$" + edition + "___", StringComparison.Ordinal));
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or System.Text.Json.JsonException or InvalidOperationException)
+        {
+            return false;
+        }
+    }
+
     static DeclarationState ClaudeCode(Product product, UserFolders folders)
     {
         // A plugin of that name (this catalog's or another marketplace's): true on, false turned off by the user.
