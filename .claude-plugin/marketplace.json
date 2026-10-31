@@ -59,10 +59,10 @@
         "source": "git-subdir",
         "url": "https://github.com/pironjulien/NexusBrowser.git",
         "path": "plugin",
-        "ref": "v2.33.13"
+        "ref": "v2.33.14"
       },
       "description": "Your real Chrome (your sessions) driven in background tabs: forms, network, dialogs, cross-origin iframes, exports, downloads. Served by the local NexusBrowser daemon; requires its Chrome extension, both installed by NexusSystem (or NexusBrowser's get.ps1).",
-      "version": "2.33.13",
+      "version": "2.33.14",
       "category": "productivity",
       "keywords": [
         "chrome",
