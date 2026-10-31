@@ -35,7 +35,7 @@ static class Catalog
     // Records compare their lists by reference: two reads of the same catalog are equal when every shown fact is.
     static readonly IEqualityComparer<Product> ProductComparer = EqualityComparer<Product>.Create(
         (a, b) => a!.Key == b!.Key && a.Name == b.Name && a.Accent == b.Accent && a.Availability == b.Availability && a.Group == b.Group &&
-            a.Page == b.Page && a.StoreUrl == b.StoreUrl && a.Icon == b.Icon && a.Banner == b.Banner && a.AboutFr == b.AboutFr && a.AboutEn == b.AboutEn,
+            a.Page == b.Page && a.StoreUrl == b.StoreUrl && a.Icon == b.Icon && a.Banner == b.Banner && a.Video == b.Video && a.AboutFr == b.AboutFr && a.AboutEn == b.AboutEn,
         p => p.Key.GetHashCode());
 
     public static string Group(string key) => Shown.Groups.FirstOrDefault(g => g.Key == key) is { } group ? (Text.French ? group.Fr : group.En) : key;
@@ -108,7 +108,20 @@ static class Catalog
     /// The product's one way in: its store, or the user's AI app (the prompt is copied, to paste in Claude Code, Codex
     /// or Antigravity). None when it is not public, does not fit this PC, or is installed and up to date.
     /// </summary>
-    public static Button? Action(ProductView view, IReadOnlyList<AiApp> found, Action<string> said)
+    public static Button? Action(ProductView view, IReadOnlyList<AiApp> found, Action<string> said, bool large = false)
+    {
+        var button = ActionButton(view, found, said);
+        // The product page's one button, as large as a store's "Get" button.
+        if (button is not null && large)
+        {
+            button.MinWidth = 220;
+            button.Padding = new Thickness(24, 10, 24, 10);
+            button.FontSize = 15;
+        }
+        return button;
+    }
+
+    static Button? ActionButton(ProductView view, IReadOnlyList<AiApp> found, Action<string> said)
     {
         var product = view.Product;
         if (product.StoreUrl is { } store)

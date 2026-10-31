@@ -8,6 +8,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 ## [Unreleased]
 
 ### Changed (app 1.0.14.0)
+- The app is laid out like the Microsoft Store. Every product has the same page, without tabs: a banner in its color
+  (large icon, name, publisher and group, one sentence, one large button and its state), its video played in place
+  (or its picture), "About" with "See the full page" (its julienpiron.fr page inside the app) and "On this PC". The
+  home page opens with a banner that shows the products in turn; "Updates" has its own page at the bottom of the
+  menu, as in the Store: every installed product, its state and its button, and "Get updates". `products.json`
+  gives each product its `video`.
 - "On this PC" opens with one answer: "Everything is ready on this PC", or "One thing is left to do, just below".
   Each product checks what it needs the way the product itself does: Gmail connected or a "Connect Gmail" button
   (NexusAGYmail's own sign-in), the phone connected or waiting for "Allow USB debugging?" (adb), the keypad's 18 keys

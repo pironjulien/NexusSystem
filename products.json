@@ -30,7 +30,8 @@
         "fr": "Vos applications Windows en arrière-plan : voir une fenêtre, cliquer, taper, menus, raccourcis, sans prendre votre souris.",
         "en": "Your Windows apps in the background: see a window, click, type, menus, shortcuts, without taking your mouse."
       },
-      "banner": "https://julienpiron.fr/nexuswindows/assets/nexuswindows-video-poster.webp"
+      "banner": "https://julienpiron.fr/nexuswindows/assets/nexuswindows-video-poster.webp",
+      "video": "https://media.julienpiron.fr/videos/nexuswindows.h264.mp4"
     },
     {
       "key": "android",
@@ -43,7 +44,8 @@
         "fr": "Votre téléphone Android par ADB : écran, gestes, SMS, notifications, fichiers, réglages.",
         "en": "Your Android phone over ADB: screen, gestures, SMS, notifications, files, settings."
       },
-      "banner": "https://julienpiron.fr/nexusandroid/assets/nexusandroid-video-poster.webp"
+      "banner": "https://julienpiron.fr/nexusandroid/assets/nexusandroid-video-poster.webp",
+      "video": "https://media.julienpiron.fr/videos/nexusandroid.h264.mp4"
     },
     {
       "key": "browser",
@@ -56,7 +58,8 @@
         "fr": "Votre vrai Chrome, avec vos sessions, dans des onglets de fond.",
         "en": "Your real Chrome, with your sessions, in background tabs."
       },
-      "banner": "https://julienpiron.fr/nexusbrowser/assets/nexusbrowser-video-poster.webp"
+      "banner": "https://julienpiron.fr/nexusbrowser/assets/nexusbrowser-video-poster.webp",
+      "video": "https://media.julienpiron.fr/videos/nexusbrowser.h264.mp4"
     },
     {
       "key": "keypad",
@@ -69,7 +72,8 @@
         "fr": "Le MX Creative Keypad de Logitech devient le tableau de bord de vos IA.",
         "en": "Logitech's MX Creative Keypad becomes your AI apps' dashboard."
       },
-      "banner": "https://julienpiron.fr/nexuskeypad/assets/nexuskeypad-video-poster.webp"
+      "banner": "https://julienpiron.fr/nexuskeypad/assets/nexuskeypad-video-poster.webp",
+      "video": "https://media.julienpiron.fr/videos/nexuskeypad.h264.mp4"
     },
     {
       "key": "relay",
@@ -82,7 +86,8 @@
         "fr": "Vos IA se parlent entre elles.",
         "en": "Your AI apps talk to each other."
       },
-      "banner": "https://julienpiron.fr/nexusrelay/assets/nexusrelay-video-poster.webp"
+      "banner": "https://julienpiron.fr/nexusrelay/assets/nexusrelay-video-poster.webp",
+      "video": "https://media.julienpiron.fr/videos/nexusrelay.h264.mp4"
     },
     {
       "key": "agymail",
@@ -95,7 +100,8 @@
         "fr": "Gmail pour vos IA, avec garde-fous.",
         "en": "Gmail for your AI apps, with safeguards."
       },
-      "banner": "https://julienpiron.fr/nexusagymail/assets/nexusagymail-video-poster.webp"
+      "banner": "https://julienpiron.fr/nexusagymail/assets/nexusagymail-video-poster.webp",
+      "video": "https://media.julienpiron.fr/videos/nexusagymail.h264.mp4"
     },
     {
       "key": "indesign",

@@ -124,6 +124,7 @@ public static class ProductCatalog
             PackageFamily = Text(entry, "package") ?? basis.PackageFamily,
             Icon = Address(Text(entry, "icon"), "https"),
             Banner = Address(Text(entry, "banner"), "https"),
+            Video = Address(Text(entry, "video"), "https"),
             AboutFr = about.ValueKind == JsonValueKind.Object ? Text(about, "fr") : null,
             AboutEn = about.ValueKind == JsonValueKind.Object ? Text(about, "en") : null,
             Repository = Text(entry, "repository") ?? basis.Repository,

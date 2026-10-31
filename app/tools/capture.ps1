@@ -36,7 +36,7 @@ function Resolve-NexusCaptureOutput([string]$Path, [string]$ProjectRoot) {
         }
         foreach ($entry in Get-ChildItem -LiteralPath $target -Force) {
             if ($entry.Name -eq '.nexus-captures.json' -and -not $entry.PSIsContainer -and -not $entry.LinkType) { continue }
-            if ($entry.PSIsContainer -or $entry.LinkType -or $entry.Name -notmatch '^(?:home|(?:windows|android|browser|keypad|relay|agymail|indesign|wpp)(?:-here)?)-(?:fr|en)-(?:dark|light)\.png$') {
+            if ($entry.PSIsContainer -or $entry.LinkType -or $entry.Name -notmatch '^(?:home|updates|(?:windows|android|browser|keypad|relay|agymail|indesign|wpp)(?:-here)?)-(?:fr|en)-(?:dark|light)\.png$') {
                 throw 'Capture output contains foreign content; nothing was removed.'
             }
             $pictures += $entry.FullName
