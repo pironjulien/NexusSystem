@@ -38,6 +38,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 ### Security
 - CodeQL (GitHub default setup) and the OpenSSF Scorecard workflow run again on every push to main.
 
+## [1.6.46] - 2026-10-31
+
+### Fixed
+- The "NexusSystem Update" task no longer opens a window at sign-in and every hour: it starts PowerShell through
+  `conhost.exe --headless`, because Windows Terminal, the default console on Windows 11, ignores
+  `-WindowStyle Hidden`. Installing or updating NexusSystem registers the task again with the new action.
+
 ## [1.6.45] - 2026-10-31
 
 ### Added

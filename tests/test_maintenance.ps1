@@ -153,7 +153,7 @@ try{
     Install-NexusMaintenance $pack
     Assert ($script:task.Name -eq 'NexusSystem Update' -and $script:task.Triggers.Count -eq 2 -and $script:task.Triggers[1].Interval.TotalHours -eq 1) 'Task authority/cadence differs.'
     Assert ($script:task.Triggers[0].User -eq $script:task.Principal.UserId) 'A per-user update task requested an all-users logon trigger.'
-    Assert ($script:task.Action.Arguments -match '-WindowStyle Hidden.*-Maintain' -and $script:task.Settings.MultipleInstances -eq 'IgnoreNew' -and $script:task.Principal.RunLevel -eq 'Limited') 'Task is not hidden, serial and least-privileged.'
+    Assert ($script:task.Action.Execute -like '*\System32\conhost.exe' -and $script:task.Action.Arguments -match '^--headless ".*\\powershell\.exe" .*-Maintain' -and $script:task.Settings.MultipleInstances -eq 'IgnoreNew' -and $script:task.Principal.RunLevel -eq 'Limited') 'Task is not hidden, serial and least-privileged.'
     Assert ((Get-FileHash -LiteralPath (Join-Path (Get-NexusMaintenanceRoot) 'get-nexus.ps1')).Hash -eq (Get-FileHash -LiteralPath $pack).Hash) 'Durable copy differs.'
     Assert ($script:maintenanceStarts -eq 0) 'Normal pack installation unexpectedly started maintenance.'
     Install-NexusMaintenance $pack -Start

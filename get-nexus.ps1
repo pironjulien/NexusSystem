@@ -53,7 +53,7 @@ $ProgressPreference = 'SilentlyContinue'  # Invoke-WebRequest is many times slow
 $Ok = [string][char]0x2713
 $No = [string][char]0x2717
 $Marketplace = 'nexus-plugins'
-$NexusMaintenanceVersion = '1.6.45'
+$NexusMaintenanceVersion = '1.6.46'
 
 # AI apps, in display order. Claude Desktop also carries Claude Code (its Code tab reads the same ~\.claude).
 $AiNames = [ordered]@{
@@ -982,10 +982,12 @@ function Install-NexusMaintenance([string]$Source,[switch]$Start) {
             Move-Item -LiteralPath "$destination.$PID.tmp" -Destination $destination -Force
         }
     }
+    # conhost --headless: Windows Terminal, the default console host, ignores -WindowStyle Hidden; no window ever opens.
+    $console=Join-Path $env:SystemRoot 'System32\conhost.exe'
     $shell=Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
-    $arguments='-NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -File "'+$destination+'" -Maintain'
+    $arguments='--headless "'+$shell+'" -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "'+$destination+'" -Maintain'
     if ($development) {$arguments+=' -MaintenanceCurrent'}
-    $action=New-ScheduledTaskAction -Execute $shell -Argument $arguments
+    $action=New-ScheduledTaskAction -Execute $console -Argument $arguments
     $currentUser=[Security.Principal.WindowsIdentity]::GetCurrent().Name
     $triggers=@((New-ScheduledTaskTrigger -AtLogOn -User $currentUser), (New-ScheduledTaskTrigger -Once -At (Get-Date).AddHours(1) -RepetitionInterval (New-TimeSpan -Hours 1)))
     $settings=New-ScheduledTaskSettingsSet -Hidden -StartWhenAvailable -MultipleInstances IgnoreNew -ExecutionTimeLimit (New-TimeSpan -Minutes 30) -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 15) -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
