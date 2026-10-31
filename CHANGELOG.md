@@ -7,6 +7,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.6.43] - 2026-10-31
+
+### Fixed
+- Maintenance updates NexusAndroid, NexusRelay and NexusAGYmail again: their installed version is read from the
+  engine they unpacked (no longer a stale status file), and a newer release runs their published installer
+  unattended, as for NexusKeypad. They were skipped as "unsupported" and stayed behind.
+- Build provenance of every current release is accepted: they are signed by NexusSystem's shared release workflow
+  (`--signer-repo pironjulien/NexusSystem`), which made every product update fail its check.
+- A NexusWindows installation whose record names the build tag (`release vX.Y.Z-dev.N`, the same files as the stable
+  release) counts as a release installation, so maintenance updates it.
+
 ## [1.6.42] - 2026-10-31
 
 ### Removed

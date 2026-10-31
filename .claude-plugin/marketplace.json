@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Computer use in the background for Claude Code: your Android phone, your Windows desktop apps, your real Chrome, a direct line to Codex and Antigravity, your Logitech keypad. Each plugin connects to its product's native Windows engine (no Python), installed by NexusSystem.",
-    "version": "1.6.42"
+    "version": "1.6.43"
   },
   "plugins": [
     {
@@ -59,10 +59,10 @@
         "source": "git-subdir",
         "url": "https://github.com/pironjulien/NexusBrowser.git",
         "path": "plugin",
-        "ref": "v2.33.10"
+        "ref": "v2.33.11"
       },
       "description": "Your real Chrome (your sessions) driven in background tabs: forms, network, dialogs, cross-origin iframes, exports, downloads. Served by the local NexusBrowser daemon; requires its Chrome extension, both installed by NexusSystem (or NexusBrowser's get.ps1).",
-      "version": "2.33.10",
+      "version": "2.33.11",
       "category": "productivity",
       "keywords": [
         "chrome",

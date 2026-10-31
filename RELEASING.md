@@ -31,7 +31,8 @@ The local test is the validation: when the pushed version is not released yet, t
 development build at once. The shared [`product-promote`](.github/workflows/product-promote.yml) publishes the SAME
 files, checked against their checksums, as `vX.Y.Z` with the CHANGELOG section, then the product's `server.json` to
 the MCP registry. Nothing is rebuilt; the build provenance of each file stays valid (`gh attestation verify <file>
---repo pironjulien/<Product> --source-ref refs/heads/main`). A push that keeps an already released version stays a
+--repo pironjulien/<Product> --signer-repo pironjulien/NexusSystem --source-ref refs/heads/main`: the shared workflow
+signs it). A push that keeps an already released version stays a
 development build. "Run workflow" (`gh workflow run release.yml -R pironjulien/<Product> -f promote=vX.Y.Z-dev.N`;
 empty = the newest) still promotes by hand.
 
