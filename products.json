@@ -29,7 +29,8 @@
       "about": {
         "fr": "Vos applications Windows en arrière-plan : voir une fenêtre, cliquer, taper, menus, raccourcis, sans prendre votre souris.",
         "en": "Your Windows apps in the background: see a window, click, type, menus, shortcuts, without taking your mouse."
-      }
+      },
+      "banner": "https://julienpiron.fr/nexuswindows/assets/nexuswindows-video-poster.webp"
     },
     {
       "key": "android",
@@ -41,7 +42,8 @@
       "about": {
         "fr": "Votre téléphone Android par ADB : écran, gestes, SMS, notifications, fichiers, réglages.",
         "en": "Your Android phone over ADB: screen, gestures, SMS, notifications, files, settings."
-      }
+      },
+      "banner": "https://julienpiron.fr/nexusandroid/assets/nexusandroid-video-poster.webp"
     },
     {
       "key": "browser",
@@ -53,7 +55,8 @@
       "about": {
         "fr": "Votre vrai Chrome, avec vos sessions, dans des onglets de fond.",
         "en": "Your real Chrome, with your sessions, in background tabs."
-      }
+      },
+      "banner": "https://julienpiron.fr/nexusbrowser/assets/nexusbrowser-video-poster.webp"
     },
     {
       "key": "keypad",
@@ -65,7 +68,8 @@
       "about": {
         "fr": "Le MX Creative Keypad de Logitech devient le tableau de bord de vos IA.",
         "en": "Logitech's MX Creative Keypad becomes your AI apps' dashboard."
-      }
+      },
+      "banner": "https://julienpiron.fr/nexuskeypad/assets/nexuskeypad-video-poster.webp"
     },
     {
       "key": "relay",
@@ -77,7 +81,8 @@
       "about": {
         "fr": "Vos IA se parlent entre elles.",
         "en": "Your AI apps talk to each other."
-      }
+      },
+      "banner": "https://julienpiron.fr/nexusrelay/assets/nexusrelay-video-poster.webp"
     },
     {
       "key": "agymail",
@@ -89,7 +94,8 @@
       "about": {
         "fr": "Gmail pour vos IA, avec garde-fous.",
         "en": "Gmail for your AI apps, with safeguards."
-      }
+      },
+      "banner": "https://julienpiron.fr/nexusagymail/assets/nexusagymail-video-poster.webp"
     },
     {
       "key": "indesign",
@@ -114,7 +120,8 @@
       "about": {
         "fr": "Votre PC en un coup d'œil : CPU, GPU, NPU, RAM, disque et réseau en direct sur votre fond d'écran.",
         "en": "Your PC at a glance: CPU, GPU, NPU, RAM, disk and network live on your wallpaper."
-      }
+      },
+      "banner": "https://julienpiron.fr/nexuswpp/assets/nexuswpp-cockpit-20261013-768.webp"
     }
   ]
 }

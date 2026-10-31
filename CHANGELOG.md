@@ -40,6 +40,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - The site's page inside the app follows the app's language and hides the site's own install section; a product with
   an update no longer breaks its card (`State.Update` took one value too many).
 - The Store listing describes the store-like app; its screenshots are taken at 1920 x 1080.
+- Cards open from the keyboard (Tab, then Enter or Space) and screen readers read their name and text.
+- A card follows an install as it happens: once handed to an AI app it says "Your AI app is installing it", then
+  "Installed" or "Up to date" as soon as the product reports it (checked every few seconds), like the Microsoft Store.
+- A product's page shows its picture (its video's poster on the site, `banner` in `products.json`) beside its name.
+- A PC on the development channel says so on the home page, so that development builds shown as new versions are
+  expected.
 
 ## [1.6.41] - 2026-10-31
 
