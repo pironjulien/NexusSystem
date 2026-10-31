@@ -18,7 +18,7 @@ This repository was called `nexus-plugins` until 28/10/2026; GitHub redirects th
 
 ## Install
 
-Pick only the products you want (`windows`, `browser`, `android`, `relay`, `keypad`, `agymail`) or install everything that fits your PC (Claude Code, Claude Desktop, Codex, Antigravity). Windows 10 or 11, no administrator rights, nothing to install first.
+Pick only the products you want (`windows`, `browser`, `android`, `relay`, `keypad`, `agymail`, `indesign`) or install everything that fits your PC (Claude Code, Claude Desktop, Codex, Antigravity). Windows 10 or 11, no administrator rights, nothing to install first.
 
 ### Option A — The NexusSystem app
 
@@ -74,7 +74,7 @@ Browser updates. Installation and activation are reported separately: a working 
 until it can normally reload. See [Updates](UPDATES.md) for distribution, verification and the separate Chrome
 Web Store update cycle.
 
-Options: `-Only` and `-Skip` take product names (`windows`, `android`, `browser`, `relay`, `agymail`, `keypad`) or AI app names (`claude-code`,
+Options: `-Only` and `-Skip` take product names (`windows`, `android`, `browser`, `relay`, `agymail`, `indesign`, `keypad`) or AI app names (`claude-code`,
 `claude-desktop`, `codex`, `antigravity`); `-DryRun` shows the plan and installs nothing. Each product has one installer for every AI app: it is told the AI apps
 chosen here and adds no second server beside a plugin. For example:
 
