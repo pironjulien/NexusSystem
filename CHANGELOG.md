@@ -7,6 +7,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Changed
+- `RELEASING.md`: after every app change merged to `main`, the AI reinstalls the local copy on the user's PC
+  (`install-local.ps1`), so the change shows at once instead of after Store certification.
+
 ## [1.6.43] - 2026-10-31
 
 ### Fixed
