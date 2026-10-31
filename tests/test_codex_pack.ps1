@@ -39,7 +39,7 @@ function Install-Fixture([string]$Name) {
     Add-Config "[plugins.`"$Name@nexus-plugins`"]`nenabled = true"
     $root = Join-Path $env:CODEX_HOME "plugins\cache\nexus-plugins\$Name\1.0.0"
     New-Item -ItemType Directory -Force (Join-Path $root '.codex-plugin'), (Join-Path $root "skills\$Name") | Out-Null
-    Set-Content -LiteralPath (Join-Path $root '.codex-plugin\plugin.json') -Value ('{"name":"'+$Name+'","skills":"./skills/"}')
+    Set-Content -LiteralPath (Join-Path $root '.codex-plugin\plugin.json') -Value ('{"name":"'+$Name+'","skills":"./skills/","mcpServers":"./.mcp.json"}')
     Set-Content -LiteralPath (Join-Path $root '.mcp.json') -Value '{}'
     if ($script:omitGuide -ne $Name) { Set-Content -LiteralPath (Join-Path $root "skills\$Name\SKILL.md") -Value "# $Name guide" }
 }
