@@ -15,8 +15,7 @@ change ─► test locally ─► push main ─► CI: tests + build ─► vX.Y
 - Run the product's `test.ps1` (xUnit and the product's own checks) until it is green.
 - Plugin changes live in the product's `plugin/` folder, the single source for the three AI apps:
   `.claude-plugin/` and `.mcp.json` (Claude Code), `.codex-plugin/` and `.codex-mcp.json` (Codex), Antigravity's
-  manifest and guide (shipped with the engine and installed by its installer). On a development PC,
-  `app/tools/dev-catalog.ps1 -Register` (this repository) serves those folders to Claude Code and Codex directly.
+  manifest and guide (shipped with the engine and installed by its installer).
 - Raise the version in every file the release check lists (patch for fixes) and add the `CHANGELOG.md` section
   (Keep a Changelog, English). Commit precise files with an English message.
 
@@ -24,11 +23,7 @@ change ─► test locally ─► push main ─► CI: tests + build ─► vX.Y
 
 Every push to `main` runs the product's `Release` workflow: tests, build, `SHA256SUMS.txt`, then NexusSystem's shared
 [`product-dev-release`](.github/workflows/product-dev-release.yml) attests the files (Sigstore build provenance) and
-publishes the pre-release `vX.Y.Z-dev.N`. `releases/latest` never points to it.
-
-A development PC follows these builds with `"channel": "dev"` in `%USERPROFILE%\.nexus\nexussystem.json`: the
-NexusSystem app shows the newest one on each product page, and `get-nexus.ps1` installs it (it passes
-`NEXUS_RELEASE_TAG` to the product's installer, which still checks that release's checksums).
+publishes the pre-release `vX.Y.Z-dev.N`, a build record that nothing installs. `releases/latest` never points to it.
 
 ## 3. Stable, right after the build
 
