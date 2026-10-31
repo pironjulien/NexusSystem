@@ -18,10 +18,13 @@ static class Repository
         ?? throw new InvalidDataException($"{relative}: empty JSON");
 
     /// <summary>Front matter fields of a SKILL.md (name: value lines).</summary>
-    public static Dictionary<string, string> FrontMatter(string relative)
+    public static Dictionary<string, string> FrontMatter(string relative) => FrontMatterOf(PathOf(relative));
+
+    /// <summary>Front matter fields of a SKILL.md given by its full path.</summary>
+    public static Dictionary<string, string> FrontMatterOf(string path)
     {
-        var match = Regex.Match(Text(relative), @"\A---\r?\n(.*?)\r?\n---\r?\n", RegexOptions.Singleline);
-        Assert.True(match.Success, $"{relative}: missing YAML front matter");
+        var match = Regex.Match(File.ReadAllText(path), @"\A---\r?\n(.*?)\r?\n---\r?\n", RegexOptions.Singleline);
+        Assert.True(match.Success, $"{path}: missing YAML front matter");
         return match.Groups[1].Value.Split('\n')
             .Select(line => line.Split(':', 2))
             .Where(parts => parts.Length == 2)
@@ -29,9 +32,12 @@ static class Repository
     }
 
     /// <summary>Width and height of a PNG, or null when the file is not one.</summary>
-    public static (int Width, int Height)? PngSize(string relative)
+    public static (int Width, int Height)? PngSize(string relative) => PngSizeOf(PathOf(relative));
+
+    /// <summary>Width and height of a PNG given by its full path, or null when the file is not one.</summary>
+    public static (int Width, int Height)? PngSizeOf(string path)
     {
-        var head = File.ReadAllBytes(PathOf(relative)).Take(24).ToArray();
+        var head = File.ReadAllBytes(path).Take(24).ToArray();
         if (head.Length < 24 || !head.Take(8).SequenceEqual(new byte[] { 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a })) return null;
         static int BigEndian(byte[] b, int at) => b[at] << 24 | b[at + 1] << 16 | b[at + 2] << 8 | b[at + 3];
         return (BigEndian(head, 16), BigEndian(head, 20));

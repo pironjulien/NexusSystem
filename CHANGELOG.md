@@ -7,6 +7,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Changed
+- One plugin folder per product, shared by Claude Code, Codex and Antigravity: each product's repository keeps its
+  `plugin/` folder (common guide and icons, plus each AI app's small manifest and server file). Both catalogs point
+  to that folder at the product's release tag (`git-subdir`) instead of keeping copies here, so a product release no
+  longer needs a NexusSystem release and the guide cannot drift between AI apps. `app/tools/pin-plugin.ps1` pins a
+  release in both catalogs. The catalog tests fetch each pinned folder and check what the AI apps really install.
+
+### Added
+- `app/tools/dev-catalog.ps1`: the development channel of the catalog. Plugins whose product repository is checked
+  out next to this one are served from that checkout (Claude Code reads a local marketplace live), the others from
+  their release; `-Register` points Claude Code and Codex at it.
+
 ### Fixed
 - Normal launches share one window per user/session across local build paths; launching again activates the existing
   window instead of opening another copy. Isolated captures and quiet tests keep their separate lifetime.

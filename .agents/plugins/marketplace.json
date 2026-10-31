@@ -7,8 +7,10 @@
     {
       "name": "nexus-android",
       "source": {
-        "source": "local",
-        "path": "./codex/nexus-android"
+        "source": "git-subdir",
+        "url": "https://github.com/pironjulien/NexusAndroid.git",
+        "path": "plugin",
+        "ref": "v0.22.6"
       },
       "policy": {
         "installation": "AVAILABLE",
@@ -19,8 +21,10 @@
     {
       "name": "nexus-windows",
       "source": {
-        "source": "local",
-        "path": "./codex/nexus-windows"
+        "source": "git-subdir",
+        "url": "https://github.com/pironjulien/NexusWindows.git",
+        "path": "plugin",
+        "ref": "v3.9.6"
       },
       "policy": {
         "installation": "AVAILABLE",
@@ -31,8 +35,10 @@
     {
       "name": "nexus-browser",
       "source": {
-        "source": "local",
-        "path": "./codex/nexus-browser"
+        "source": "git-subdir",
+        "url": "https://github.com/pironjulien/NexusBrowser.git",
+        "path": "plugin",
+        "ref": "v2.33.6"
       },
       "policy": {
         "installation": "AVAILABLE",
@@ -43,8 +49,10 @@
     {
       "name": "nexus-relay",
       "source": {
-        "source": "local",
-        "path": "./codex/nexus-relay"
+        "source": "git-subdir",
+        "url": "https://github.com/pironjulien/NexusRelay.git",
+        "path": "plugin",
+        "ref": "v1.10.5"
       },
       "policy": {
         "installation": "AVAILABLE",

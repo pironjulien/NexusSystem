@@ -150,10 +150,11 @@ codex plugin add nexus-relay@nexus-plugins
 
 Antigravity's plugins are written by each product's own installer, in Antigravity's plugin folder.
 
-More examples, and how to test each plugin without your own phone or data, are in each plugin's README
-([nexus-android](https://github.com/pironjulien/NexusSystem/tree/main/plugins/nexus-android#try-it),
-[nexus-windows](https://github.com/pironjulien/NexusSystem/tree/main/plugins/nexus-windows#try-it),
-[nexus-browser](https://github.com/pironjulien/NexusSystem/tree/main/plugins/nexus-browser#try-it)).
+Each plugin lives in one folder of its product's repository, `plugin/`, shared by the three AI apps; both catalogs
+point to it at the product's release. More examples are in each product's README
+([NexusAndroid](https://github.com/pironjulien/NexusAndroid#readme),
+[NexusWindows](https://github.com/pironjulien/NexusWindows#readme),
+[NexusBrowser](https://github.com/pironjulien/NexusBrowser#readme)).
 
 ## How it works
 

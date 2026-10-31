@@ -4,7 +4,9 @@ using System.Text.RegularExpressions;
 namespace NexusSystem.Tests;
 
 /// <summary>
-/// The two catalogs (Claude Code: .claude-plugin + plugins/, Codex: .agents/plugins + codex/): each plugin reaches its
+/// The two catalogs (Claude Code: .claude-plugin, Codex: .agents/plugins). Each plugin lives in one folder, `plugin/` of
+/// its product's repository, shared by the three AI apps; the catalogs point to it at the product's release tag
+/// (git-subdir), so a product release never needs a copy here. Each plugin reaches its
 /// product's native Windows engine, either the local daemon (HTTP, token read from the user variable NEXUS_MCP_TOKEN)
 /// or the native executable at the stable path its installer keeps. Nothing starts Python, uv or a PyPI package.
 /// </summary>
@@ -38,6 +40,20 @@ public class CatalogTests
 
     static JsonArray Entries(string marketplace) => Repository.Json(marketplace)["plugins"]!.AsArray();
 
+    const string ClaudeCatalog = ".claude-plugin/marketplace.json";
+    const string CodexCatalog = ".agents/plugins/marketplace.json";
+
+    /// <summary>Folder of a plugin as the AI app installs it: inside this repository (relative source), or its product
+    /// repository's folder at the pinned release (git-subdir), fetched once into the build cache.</summary>
+    static string Folder(string catalog, string name) =>
+        PluginSources.Folder(Entries(catalog).Single(e => (string?)e!["name"] == name)!["source"]!);
+
+    static JsonNode Json(string folder, string relative) => JsonNode.Parse(File.ReadAllText(Under(folder, relative)))
+        ?? throw new InvalidDataException($"{relative}: empty JSON");
+
+    static string Under(string folder, string relative) =>
+        Path.Combine(folder, (relative.StartsWith("./", StringComparison.Ordinal) ? relative[2..] : relative).Replace('/', Path.DirectorySeparatorChar));
+
     [Fact]
     public void ClaudeMarketplaceListsEveryPluginFolder()
     {
@@ -45,10 +61,13 @@ public class CatalogTests
         Assert.Equal(Marketplace, (string?)market["name"]);
         Assert.False(string.IsNullOrEmpty((string?)market["owner"]?["name"]));
         Assert.Matches(SemVer, (string?)market["metadata"]?["version"] ?? "");
-        Assert.Equal(Plugins, Entries(".claude-plugin/marketplace.json").Select(e => (string?)e!["name"]));
-        var folders = Directory.GetDirectories(Repository.PathOf("plugins")).Select(Path.GetFileName).Order();
-        Assert.Equal(Plugins.Order(), folders);
-        Assert.DoesNotContain("nexus-indesign", folders);  // a personal plugin, never public
+        Assert.Equal(Plugins, Entries(ClaudeCatalog).Select(e => (string?)e!["name"]));
+        // The keypad connector is the one copy left here: its installer still writes this PC's program path into the
+        // Codex and Antigravity hooks, so its repository folder cannot be installed unchanged yet.
+        foreach (var entry in Entries(ClaudeCatalog).Where(e => (string?)e!["name"] != "nexus-keypad")) PluginSources.AssertPinned(entry!);
+        Assert.Equal(["nexus-keypad"], Repository.TrackedFiles().Where(f => f.StartsWith("plugins/", StringComparison.Ordinal))
+            .Select(f => f.Split('/')[1]).Distinct());
+        Assert.DoesNotContain(Repository.TrackedFiles(), f => f.StartsWith("codex/", StringComparison.Ordinal));
     }
 
     public static TheoryData<string> PluginNames => new(Plugins);
@@ -59,9 +78,9 @@ public class CatalogTests
     [MemberData(nameof(PluginNames))]
     public void ClaudePluginManifestMatchesItsEntry(string name)
     {
-        var entry = Entries(".claude-plugin/marketplace.json").Single(e => (string?)e!["name"] == name)!;
-        var manifest = Repository.Json($"plugins/{name}/.claude-plugin/plugin.json");
-        Assert.Equal($"./plugins/{name}", (string?)entry["source"]);
+        var entry = Entries(ClaudeCatalog).Single(e => (string?)e!["name"] == name)!;
+        var folder = Folder(ClaudeCatalog, name);
+        var manifest = Json(folder, ".claude-plugin/plugin.json");
         Assert.Equal(name, (string?)manifest["name"]);
         Assert.Matches(SemVer, (string?)manifest["version"] ?? "");
         Assert.Equal((string?)manifest["version"], (string?)entry["version"]);
@@ -73,24 +92,23 @@ public class CatalogTests
         }
         // Says what the user installs first: the product, by NexusSystem.
         Assert.Contains("NexusSystem", (string?)manifest["description"]);
-        Assert.Equal("./.claude-plugin/icon.png", (string?)manifest["icon"]);
-        Assert.True(Repository.PngSize($"plugins/{name}/.claude-plugin/icon.png") is var (w, h) && w == h && w is >= 512 and <= 2048,
+        Assert.True(Repository.PngSizeOf(Under(folder, (string?)manifest["icon"] ?? "")) is var (w, h) && w == h && w is >= 512 and <= 2048,
             $"{name}: icon must be a square PNG of 512 to 2048 px");
-        Assert.True(File.Exists(Repository.PathOf($"plugins/{name}/LICENSE")), $"{name}: LICENSE missing");
-        Assert.True(File.Exists(Repository.PathOf($"plugins/{name}/README.md")), $"{name}: README.md missing");
+        Assert.True(File.Exists(Path.Combine(folder, "LICENSE")), $"{name}: LICENSE missing");
     }
 
     [Theory]
     [MemberData(nameof(PluginNames))]
     public void ClaudePluginReachesTheNativeEngine(string name)
     {
-        var mcp = Repository.PathOf($"plugins/{name}/.mcp.json");
+        var folder = Folder(ClaudeCatalog, name);
+        var mcp = Path.Combine(folder, ".mcp.json");
         if (ClaudeServers[name] is not { } expected)
         {
             Assert.False(File.Exists(mcp), $"{name}: no MCP server expected");
             return;
         }
-        var servers = Repository.Json($"plugins/{name}/.mcp.json")["mcpServers"];
+        var servers = Json(folder, ".mcp.json")["mcpServers"];
         Assert.True(JsonNode.DeepEquals(JsonNode.Parse(expected), servers), $"{name}: .mcp.json must be exactly {expected}");
     }
 
@@ -98,17 +116,18 @@ public class CatalogTests
     public void WindowsPluginUsesTheStablePathOfItsInstaller()
     {
         // The path NexusWindows' installer keeps (an immutable versioned copy behind it), the same for every profile.
-        var server = Repository.Json("plugins/nexus-windows/.mcp.json")["mcpServers"]!["nexus-windows"]!;
+        var server = Json(Folder(ClaudeCatalog, "nexus-windows"), ".mcp.json")["mcpServers"]!["nexus-windows"]!;
         Assert.Equal(StableWindows, (string?)server["command"]);
     }
 
     [Fact]
     public void KeypadPluginCallsOnlyItsNativeHelper()
     {
-        var hooks = Repository.Json("plugins/nexus-keypad/hooks/hooks.json");
+        var folder = Folder(ClaudeCatalog, "nexus-keypad");
+        var hooks = Json(folder, "hooks/hooks.json");
         Assert.Equal(["./register.tsx"], hooks["modules"]!.AsArray().Select(m => (string?)m));
         foreach (var module in new[] { "register.tsx", "quota.ts" })
-            Assert.True(File.Exists(Repository.PathOf($"plugins/nexus-keypad/hooks/{module}")), $"keypad module {module} missing");
+            Assert.True(File.Exists(Path.Combine(folder, "hooks", module)), $"keypad module {module} missing");
         var events = hooks["hooks"]!.AsObject();
         Assert.Contains("Stop", events.Select(e => e.Key));
         foreach (var (eventName, groups) in events)
@@ -125,58 +144,65 @@ public class CatalogTests
     [MemberData(nameof(PluginNames))]
     public void ClaudePluginHasOneRealSkill(string name)
     {
-        var skills = Directory.GetDirectories(Repository.PathOf($"plugins/{name}/skills")).Select(Path.GetFileName);
+        var folder = Folder(ClaudeCatalog, name);
+        var skills = Directory.GetDirectories(Path.Combine(folder, "skills")).Select(Path.GetFileName);
         Assert.Equal([name], skills);
-        var meta = Repository.FrontMatter($"plugins/{name}/skills/{name}/SKILL.md");
+        var meta = Repository.FrontMatterOf(Path.Combine(folder, "skills", name, "SKILL.md"));
         Assert.Equal(name, meta.GetValueOrDefault("name"));
         Assert.True(meta.GetValueOrDefault("description", "").Length >= 40, $"{name}: skill needs a real description");
     }
 
     [Fact]
-    public void CodexMarketplaceListsTheLocalPlugins()
+    public void CodexMarketplaceListsThePlugins()
     {
-        var market = Repository.Json(".agents/plugins/marketplace.json");
+        var market = Repository.Json(CodexCatalog);
         Assert.Equal(Marketplace, (string?)market["name"]);
-        var entries = Entries(".agents/plugins/marketplace.json");
+        var entries = Entries(CodexCatalog);
         Assert.Equal(CodexPlugins, entries.Select(e => (string?)e!["name"]));
         foreach (var entry in entries)
         {
             var name = (string?)entry!["name"];
-            Assert.True(JsonNode.DeepEquals(JsonNode.Parse($$"""{"source":"local","path":"./codex/{{name}}"}"""), entry["source"]), $"{name}: local source");
+            PluginSources.AssertPinned(entry);
+            // The same product release as Claude Code's entry.
+            var claude = Entries(ClaudeCatalog).Single(e => (string?)e!["name"] == name)!["source"]!;
+            Assert.Equal(PluginSources.Describe(claude), PluginSources.Describe(entry["source"]!));
             Assert.True(JsonNode.DeepEquals(JsonNode.Parse("""{"installation":"AVAILABLE","authentication":"ON_INSTALL"}"""), entry["policy"]), $"{name}: policy");
             Assert.False(string.IsNullOrEmpty((string?)entry["category"]));
         }
-        Assert.Equal(CodexPlugins.Order(), Directory.GetDirectories(Repository.PathOf("codex")).Select(Path.GetFileName).Order());
     }
 
     [Theory]
     [MemberData(nameof(CodexNames))]
     public void CodexPluginMatchesItsClaudeTwin(string name)
     {
-        var manifest = Repository.Json($"codex/{name}/.codex-plugin/plugin.json");
-        var claude = Repository.Json($"plugins/{name}/.claude-plugin/plugin.json");
+        var folder = Folder(CodexCatalog, name);
+        var claudeFolder = Folder(ClaudeCatalog, name);
+        var manifest = Json(folder, ".codex-plugin/plugin.json");
+        var claude = Json(claudeFolder, ".claude-plugin/plugin.json");
         Assert.Equal(name, (string?)manifest["name"]);
         Assert.Equal((string?)claude["version"], (string?)manifest["version"]);
         Assert.Equal((string?)claude["description"], (string?)manifest["description"]);
-        Assert.Equal("./.mcp.json", (string?)manifest["mcpServers"]);
-        Assert.Equal("./skills/", (string?)manifest["skills"]);
+        var mcpFile = (string?)manifest["mcpServers"] ?? "";
+        Assert.StartsWith("./", mcpFile);
+        var skillsFolder = (string?)manifest["skills"] ?? "";
+        Assert.StartsWith("./", skillsFolder);
         if (name != "nexus-relay") Assert.Null(manifest["hooks"]);
         Assert.False(string.IsNullOrEmpty((string?)manifest["interface"]?["displayName"]));
         foreach (var (field, size) in new[] { ("composerIcon", 64), ("logo", 512) })
         {
             var relative = (string?)manifest["interface"]?[field] ?? "";
             Assert.StartsWith("./assets/", relative);
-            Assert.Equal((size, size), Repository.PngSize($"codex/{name}/{relative[2..]}"));
+            Assert.Equal((size, size), Repository.PngSizeOf(Under(folder, relative)));
         }
-        var servers = Repository.Json($"codex/{name}/.mcp.json")["mcpServers"];
+        var servers = Json(folder, mcpFile)["mcpServers"];
         Assert.True(JsonNode.DeepEquals(JsonNode.Parse(CodexServers[name]), servers), $"{name}: .mcp.json must be exactly {CodexServers[name]}");
-        var skill = $"codex/{name}/skills/{name}/SKILL.md";
-        var meta = Repository.FrontMatter(skill);
+        var skill = Path.Combine(Under(folder, skillsFolder), name, "SKILL.md");
+        var meta = Repository.FrontMatterOf(skill);
         Assert.Equal(name, meta.GetValueOrDefault("name"));
         Assert.True(meta.GetValueOrDefault("description", "").Length >= 40);
         // The same guide for both apps, except the relay's (Codex answers, Claude hosts).
         if (name != "nexus-relay")
-            Assert.Equal(Repository.Text($"plugins/{name}/skills/{name}/SKILL.md").ReplaceLineEndings(), Repository.Text(skill).ReplaceLineEndings());
+            Assert.Equal(File.ReadAllText(Path.Combine(claudeFolder, "skills", name, "SKILL.md")).ReplaceLineEndings(), File.ReadAllText(skill).ReplaceLineEndings());
     }
 
     /// <summary>
@@ -210,12 +236,15 @@ public class CatalogTests
     public void CatalogNamesNoLocalPathTokenOrPerson()
     {
         var problems = new List<string>();
-        var files = Repository.TrackedFiles().Where(f => f.StartsWith("plugins/", StringComparison.Ordinal) || f.StartsWith("codex/", StringComparison.Ordinal) ||
-            f.StartsWith(".claude-plugin/", StringComparison.Ordinal) || f.StartsWith(".agents/", StringComparison.Ordinal))
-            .Where(f => Path.GetExtension(f) is ".json" or ".md" or ".ts" or ".tsx");
+        var catalogs = Repository.TrackedFiles().Where(f => f.StartsWith(".claude-plugin/", StringComparison.Ordinal) || f.StartsWith(".agents/", StringComparison.Ordinal))
+            .Select(Repository.PathOf);
+        var git = $"{Path.DirectorySeparatorChar}.git{Path.DirectorySeparatorChar}";
+        var plugins = Plugins.Select(n => Folder(ClaudeCatalog, n)).Concat(CodexPlugins.Select(n => Folder(CodexCatalog, n))).Distinct()
+            .SelectMany(f => Directory.EnumerateFiles(f, "*", SearchOption.AllDirectories).Where(x => !x.Contains(git, StringComparison.Ordinal)));
+        var files = catalogs.Concat(plugins).Where(f => Path.GetExtension(f) is ".json" or ".md" or ".ts" or ".tsx");
         foreach (var file in files)
         {
-            var text = Repository.Text(file);
+            var text = File.ReadAllText(file);
             if (Regex.Match(text, @"[A-Za-z]:\\\\?Users\\|/home/|OneDrive", RegexOptions.IgnoreCase) is { Success: true } path) problems.Add($"{file}: local path {path.Value}");
             // A token is only ever read from the user variable, never written.
             if (Regex.Match(text, @"Bearer (?!\$\{NEXUS_MCP_TOKEN\})\S+") is { Success: true } token) problems.Add($"{file}: token {token.Value}");
@@ -228,7 +257,9 @@ public class CatalogTests
     public void CodexWindowsLauncherIsTheOneTheAppRecognises()
     {
         // The NexusSystem app identifies Codex's NexusWindows connection through this exact launcher (Servers.cs).
-        var args = Repository.Json("codex/nexus-windows/.mcp.json")["mcpServers"]!["nexus-windows"]!["args"]!.AsArray().Select(a => (string?)a);
+        var folder = Folder(CodexCatalog, "nexus-windows");
+        var mcpFile = (string?)Json(folder, ".codex-plugin/plugin.json")["mcpServers"] ?? "";
+        var args = Json(folder, mcpFile)["mcpServers"]!["nexus-windows"]!["args"]!.AsArray().Select(a => (string?)a);
         Assert.Equal("/d /c cd /d %USERPROFILE%\\.nexus\\nexus-windows && .\\NexusWindows.exe --mcp --agent codex", string.Join(" ", args));
     }
 
@@ -237,7 +268,7 @@ public class CatalogTests
     {
         // Claude Code runs hooks with bash: the engine NexusRelay's installer keeps at ~/.nexus/nexus-relay/bin. The
         // edit guard on file edits, the release after the tool and at the end, the notice of unread messages.
-        var events = Repository.Json("plugins/nexus-relay/hooks/hooks.json")["hooks"]!.AsObject();
+        var events = Json(Folder(ClaudeCatalog, "nexus-relay"), "hooks/hooks.json")["hooks"]!.AsObject();
         var expected = new Dictionary<string, (string? Matcher, string Arguments)>
         {
             ["PreToolUse"] = ("Edit|Write|MultiEdit|NotebookEdit", "--edit-guard claude"),
@@ -281,7 +312,7 @@ public class CatalogTests
     [Fact]
     public void CodexRelayUsesTheNativeEditGuard()
     {
-        var manifest = Repository.Json("codex/nexus-relay/.codex-plugin/plugin.json");
+        var manifest = Json(Folder(CodexCatalog, "nexus-relay"), ".codex-plugin/plugin.json");
             // The edit guard: the relay's native engine at the stable path its installer keeps, synchronously. Codex
             // reads no variable in a command: cmd.exe expands %USERPROFILE%, whether Codex runs the line through a
             // shell or splits it. NexusRelay's installer recognises it (NexusRelay.exe --edit-guard, apply_patch).
