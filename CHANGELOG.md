@@ -7,6 +7,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Added
+- `RELEASING.md`: the one release path for every product and every AI (change and test locally, development build
+  on push, promotion of the same files to stable, plugin pin, stores, final checks).
+
+### Changed
+- The plugins follow the first releases promoted from development builds: NexusAndroid 0.22.7, NexusWindows
+  3.9.7, NexusBrowser 2.33.7, NexusRelay 1.10.6.
+
 ## [1.6.39] - 2026-10-31
 
 ### Added
