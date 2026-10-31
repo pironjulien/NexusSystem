@@ -5,9 +5,8 @@ for an improvement; the AI changes, tests and ships it; GitHub builds every rele
 everyone. Nothing here asks the user to run a command.
 
 ```text
-change ─► test locally ─► push main ─► CI: tests + build ─► vX.Y.Z-dev.N (pre-release, dev channel)
-                                                              │
-                                    validated ─► promote ─────┴─► vX.Y.Z (same files, stable) ─► stores, registry
+change ─► test locally ─► push main ─► CI: tests + build ─► vX.Y.Z-dev.N ─► vX.Y.Z (same files, stable) ─► stores, registry
+                                                            (new version only; otherwise it stays a development build)
 ```
 
 ## 1. Change and test locally
@@ -21,7 +20,7 @@ change ─► test locally ─► push main ─► CI: tests + build ─► vX.Y
 - Raise the version in every file the release check lists (patch for fixes) and add the `CHANGELOG.md` section
   (Keep a Changelog, English). Commit precise files with an English message.
 
-## 2. Push: a development build
+## 2. Push: a development build, then stable
 
 Every push to `main` runs the product's `Release` workflow: tests, build, `SHA256SUMS.txt`, then NexusSystem's shared
 [`product-dev-release`](.github/workflows/product-dev-release.yml) attests the files (Sigstore build provenance) and
@@ -31,14 +30,16 @@ A development PC follows these builds with `"channel": "dev"` in `%USERPROFILE%\
 NexusSystem app shows the newest one on each product page, and `get-nexus.ps1` installs it (it passes
 `NEXUS_RELEASE_TAG` to the product's installer, which still checks that release's checksums).
 
-## 3. Validate, then promote to stable
+## 3. Stable, right after the build
 
-When the development build is verified on the PC, run the product's `Release` workflow by hand ("Run workflow",
-or `gh workflow run release.yml -R pironjulien/<Product> -f promote=vX.Y.Z-dev.N`; empty = the newest). The shared
-[`product-promote`](.github/workflows/product-promote.yml) publishes the SAME files, checked against their
-checksums, as `vX.Y.Z` with the CHANGELOG section, then the product's `server.json` to the MCP registry. Nothing is
-rebuilt; the build provenance of each file stays valid (`gh attestation verify <file> --repo pironjulien/<Product>
---source-ref refs/heads/main`).
+The local test is the validation: when the pushed version is not released yet, the same `Release` run promotes its
+development build at once. The shared [`product-promote`](.github/workflows/product-promote.yml) publishes the SAME
+files, checked against their checksums, as `vX.Y.Z` with the CHANGELOG section, then the product's `server.json` to
+the MCP registry. Nothing is rebuilt; the build provenance of each file stays valid (`gh attestation verify <file>
+--repo pironjulien/<Product> --source-ref refs/heads/main`). A push that keeps an already released version stays a
+development build. "Run workflow" (`gh workflow run release.yml -R pironjulien/<Product> -f promote=vX.Y.Z-dev.N`;
+empty = the newest) still promotes by hand. NexusKeypad needs its offline signature first:
+`outils/signer_release.ps1 -Tag vX.Y.Z-dev.N` signs, then starts the promotion.
 
 Then pin the stable plugin in both catalogs and merge it through a pull request here:
 

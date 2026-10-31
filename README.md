@@ -14,7 +14,6 @@ The hub and installer of the Nexus ecosystem (every product is optional, à la c
 This repository was called `nexus-plugins` until 28/10/2026; GitHub redirects the old address.
 
 [![test](https://github.com/pironjulien/NexusSystem/actions/workflows/test.yml/badge.svg)](https://github.com/pironjulien/NexusSystem/actions/workflows/test.yml)
-[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/pironjulien/NexusSystem/badge)](https://scorecard.dev/viewer/?uri=github.com/pironjulien/NexusSystem)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/pironjulien/NexusSystem/blob/main/LICENSE)
 
 ## Install

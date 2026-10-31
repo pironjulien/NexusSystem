@@ -1,4 +1,5 @@
-# Shared by the Nexus products (workflow_call): promote a tested development build to the stable release.
+# Shared by the Nexus products (workflow_call): promote a tested development build to the stable release, right after
+# the push that built it, or by hand. A build whose stable version already exists is left as is (tag output empty).
 # The SAME files, checked against their SHA256SUMS.txt, become the release vX.Y.Z at the same commit, with that
 # version's CHANGELOG section as notes; nothing is rebuilt between the tested build and the stable release. With
 # mcp-registry, the product's server.json at the promoted tag then goes to the official MCP registry by GitHub OIDC,
@@ -71,7 +72,9 @@ jobs:
           version="${BASH_REMATCH[1]}"
           stable="v$version"
           if gh release view "$stable" --repo "$REPOSITORY" >/dev/null 2>&1; then
-            echo "$stable is already released: raise the version, push, then promote the new build."; exit 1
+            # A push that did not raise the version: its development build stays a development build.
+            echo "::notice::$stable is already released: nothing promoted (raise the version to release $dev)."
+            exit 0
           fi
           commit=$(gh release view "$dev" --repo "$REPOSITORY" --json targetCommitish --jq .targetCommitish)
           [[ "$commit" =~ ^[0-9a-f]{40}$ ]] || commit=$(git rev-list -n 1 "$dev")
@@ -89,7 +92,7 @@ jobs:
     # server.json to the official MCP registry: each .mcpb it lists, at the stable tag (URL and SHA-256). mcp-publisher
     # pinned by version and SHA-256; GitHub OIDC login, no token stored.
     needs: promote
-    if: always() && (inputs.mcp-registry || inputs.mcp-package != '') && (needs.promote.result == 'success' || inputs.registry-only != '')
+    if: always() && (inputs.mcp-registry || inputs.mcp-package != '') && ((needs.promote.result == 'success' && needs.promote.outputs.tag != '') || inputs.registry-only != '')
     runs-on: ubuntu-latest
     permissions:
       id-token: write
