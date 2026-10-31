@@ -7,6 +7,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Changed
+- The Browser plugin follows NexusBrowser 2.33.8, whose stable release submits the extension to the Chrome Web
+  Store without a stored secret; `RELEASING.md` says so.
+
 ### Added
 - `RELEASING.md`: the one release path for every product and every AI (change and test locally, development build
   on push, promotion of the same files to stable, plugin pin, stores, final checks).

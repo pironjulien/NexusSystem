@@ -58,10 +58,12 @@ Store reviews never block local tests or the GitHub channels.
 |---|---|---|
 | MCP registry | MCP products | Automatic, at promotion (GitHub OIDC). |
 | Microsoft Store | NexusSystem app | Partner Center submission by the AI; the submission API needs a Microsoft Entra app the user authorizes once. |
-| Chrome Web Store | NexusBrowser extension | Developer dashboard by the AI; the publish API needs an OAuth client the user authorizes once. |
+| Chrome Web Store | NexusBrowser extension | Automatic at promotion: the `cws-publisher` service account, reached by GitHub OIDC (workload identity federation, no stored secret), uploads and submits for review. |
 | Logitech Marketplace | NexusKeypad | Logitech's developer portal (no public API). |
 
-Once an API access exists, it is stored as a GitHub secret by the user and the promotion submits automatically.
+Prefer keyless access (GitHub OIDC with the store's identity federation) over stored secrets. Pages that Chrome
+protects from extensions (Chrome Web Store dashboard) are driven through Windows UI Automation (NexusWindows) when a
+step has no API; asking the user is the last resort.
 
 ## 5. Checks before saying "done"
 
