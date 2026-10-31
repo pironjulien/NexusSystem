@@ -10,7 +10,7 @@
         "source": "git-subdir",
         "url": "https://github.com/pironjulien/NexusAndroid.git",
         "path": "plugin",
-        "ref": "v0.22.9"
+        "ref": "v0.22.10"
       },
       "policy": {
         "installation": "AVAILABLE",
@@ -38,7 +38,7 @@
         "source": "git-subdir",
         "url": "https://github.com/pironjulien/NexusBrowser.git",
         "path": "plugin",
-        "ref": "v2.33.12"
+        "ref": "v2.33.13"
       },
       "policy": {
         "installation": "AVAILABLE",

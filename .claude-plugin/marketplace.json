@@ -15,10 +15,10 @@
         "source": "git-subdir",
         "url": "https://github.com/pironjulien/NexusAndroid.git",
         "path": "plugin",
-        "ref": "v0.22.9"
+        "ref": "v0.22.10"
       },
       "description": "Android phone over plain ADB (no root, no app): screen, gestures, SMS/RCS, notifications, files, settings. Served by the local NexusAndroid daemon, installed by NexusSystem (or NexusAndroid's get.ps1); needs USB debugging on the phone.",
-      "version": "0.22.9",
+      "version": "0.22.10",
       "category": "productivity",
       "keywords": [
         "android",
@@ -59,10 +59,10 @@
         "source": "git-subdir",
         "url": "https://github.com/pironjulien/NexusBrowser.git",
         "path": "plugin",
-        "ref": "v2.33.12"
+        "ref": "v2.33.13"
       },
       "description": "Your real Chrome (your sessions) driven in background tabs: forms, network, dialogs, cross-origin iframes, exports, downloads. Served by the local NexusBrowser daemon; requires its Chrome extension, both installed by NexusSystem (or NexusBrowser's get.ps1).",
-      "version": "2.33.12",
+      "version": "2.33.13",
       "category": "productivity",
       "keywords": [
         "chrome",
