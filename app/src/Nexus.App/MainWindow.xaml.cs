@@ -95,6 +95,11 @@ public sealed partial class MainWindow : Window
             Nav.SelectedItem = Nav.MenuItems.OfType<NavigationViewItem>().First(i => (string)i.Tag == tag);
             await Task.Delay(4000);  // pages read the PC's state and the site in the background
             await SaveAsync(Path.Combine(folder, $"{tag}-{lang}-{theme}.png"));
+            if (Body.Content is ProductPage page && page.ShowHere())
+            {
+                await Task.Delay(4000);  // the product's own checks (phone, Gmail, Chrome) answer in the background
+                await SaveAsync(Path.Combine(folder, $"{tag}-here-{lang}-{theme}.png"));
+            }
         }
         Application.Current.Exit();
     }
@@ -125,7 +130,7 @@ public sealed partial class MainWindow : Window
         var scale = Root.XamlRoot.RasterizationScale;
         // A web page (a product's site page) is drawn by its own browser, never by RenderTargetBitmap: its own
         // picture goes in its place.
-        foreach (var web in Descendants(Root).OfType<WebView2>().Where(web => web.Visibility == Visibility.Visible && web.CoreWebView2 is not null && web.ActualWidth > 0))
+        foreach (var web in Descendants(Root).OfType<WebView2>().Where(web => Shown(web) && web.CoreWebView2 is not null && web.ActualWidth > 0))
         {
             using var preview = new InMemoryRandomAccessStream();
             await web.CoreWebView2.CapturePreviewAsync(Microsoft.Web.WebView2.Core.CoreWebView2CapturePreviewImageFormat.Png, preview);
@@ -146,6 +151,14 @@ public sealed partial class MainWindow : Window
         stream.Seek(0);
         await using var output = File.Create(file);
         await stream.AsStreamForRead().CopyToAsync(output);
+    }
+
+    // Shown on screen: neither it nor any parent is collapsed (a hidden tab keeps its last size).
+    static bool Shown(DependencyObject element)
+    {
+        for (var current = element; current is not null; current = VisualTreeHelper.GetParent(current))
+            if (current is UIElement { Visibility: Visibility.Collapsed }) return false;
+        return true;
     }
 
     static IEnumerable<DependencyObject> Descendants(DependencyObject parent)

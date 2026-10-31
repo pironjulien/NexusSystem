@@ -7,6 +7,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Changed (app 1.0.14.0)
+- "On this PC" opens with one answer: "Everything is ready on this PC", or "One thing is left to do, just below".
+  Each product checks what it needs the way the product itself does: Gmail connected or a "Connect Gmail" button
+  (NexusAGYmail's own sign-in), the phone connected or waiting for "Allow USB debugging?" (adb), the keypad's 18 keys
+  on the pad (its Logi Options+ profile), Chrome connected or simply closed (it reconnects by itself). A step shows only
+  while something is left to do; guides stay under "Help and guides".
+- A product of the online catalog is the same product as the built-in one (equality by key): its own checks (Windows
+  engine, Chrome bridge...) apply to it again.
+- `--capture` also takes each product's "On this PC" tab.
+
 ### Security
 - CodeQL (GitHub default setup) and the OpenSSF Scorecard workflow run again on every push to main.
 

@@ -15,7 +15,20 @@ public sealed partial class ProductPage : UserControl
     readonly UserFolders folders = UserFolders.FromEnvironment();
     readonly CancellationTokenSource lifetime = new();
     readonly InfoBar notice = new() { IsClosable = true, IsOpen = false };
+    // "On this PC" opens with one answer, as a store would say it: everything is ready, or what is left to do.
+    readonly FontIcon summaryIcon = new() { FontSize = 26, VerticalAlignment = VerticalAlignment.Center };
+    readonly TextBlock summaryTitle = new() { Style = (Style)Application.Current.Resources["SubtitleTextBlockStyle"], TextWrapping = TextWrapping.WrapWholeWords };
     bool refreshingStatus;
+    SelectorBar? tabs;
+    SelectorBarItem? hereTab;
+
+    /// <summary>--capture: the "On this PC" tab, when the product has one.</summary>
+    public bool ShowHere()
+    {
+        if (tabs is null || hereTab is null) return false;
+        tabs.SelectedItem = hereTab;
+        return true;
+    }
     DispatcherTimer? timer;
 
     public ProductPage(Product product)
@@ -86,14 +99,19 @@ public sealed partial class ProductPage : UserControl
             return;
         }
 
-        var status = Ui.Column(10, Ui.Strong(Text.Get("Status")));
-        var here = Ui.Column(16, Ui.Card(status, product.Accent));
-        foreach (var step in Steps.For(product, folders, ais)) here.Children.Add(step);
+        var summary = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12, Children = { summaryIcon, summaryTitle } };
+        summaryTitle.VerticalAlignment = VerticalAlignment.Center;
+        var status = Ui.Column(10);
+        var here = Ui.Column(16, Ui.Card(Ui.Column(16, summary, status), product.Accent, padding: 20));
+        var help = Ui.Column(12);
+        foreach (var (step, isHelp) in Steps.For(product, folders, ais)) (isHelp ? help : here).Children.Add(step);
+        if (help.Children.Count > 0)
+            here.Children.Add(new Expander { Header = Text.Get("Help"), Content = help, HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Stretch });
         var herePage = new ScrollViewer { Content = new Border { Child = here, Padding = new Thickness(0, 0, 0, 24) }, Visibility = Visibility.Collapsed };
 
-        var tabs = new SelectorBar();
+        tabs = new SelectorBar();
         var overviewTab = new SelectorBarItem { Text = Text.Get("Tab.Overview"), IsSelected = true };
-        var hereTab = new SelectorBarItem { Text = Text.Get("Tab.ThisPc") };
+        hereTab = new SelectorBarItem { Text = Text.Get("Tab.ThisPc") };
         tabs.Items.Add(overviewTab);
         tabs.Items.Add(hereTab);
         tabs.SelectionChanged += (_, _) =>
@@ -203,31 +221,47 @@ public sealed partial class ProductPage : UserControl
         refreshingStatus = true;
         try
         {
-            // WMI may take time: never block the UI, overlap refreshes or update an unloaded page.
-            var (running, windows) = await Task.Run(() =>
+            // WMI and the products' own checks may take time: never block the UI, overlap refreshes or update an unloaded page.
+            var (running, windows, phone, gmail) = await Task.Run(() =>
             {
                 var processes = Servers.Find().Where(s => s.Product == product).ToList();
                 var installation = product == Products.Windows ? WindowsRuntime.ReadInstallation(folders) : null;
-                return (processes, installation);
+                var device = product == Products.Android ? SetupChecks.ReadPhone(folders) : null;
+                var signIn = product == Products.AgyMail ? SetupChecks.ReadGmail(folders) : null;
+                return (processes, installation, device, signIn);
             }, lifetime.Token);
             var bridge = product == Products.Browser
                 ? await BrowserBridge.StateAsync(folders, Http, lifetime.Token) : (BridgeState?)null;
             if (lifetime.IsCancellationRequested) return;
             var ais = AiApps.Find(folders);
+            var installed = ProductUpdates.IsInstalled(product, ais, folders);
+            var todo = false;
             status.Children.Clear();
-            status.Children.Add(Ui.Strong(Text.Get("Status")));
             if (product.Device is not null)
             {
-                if (!Products.LogiService(folders)) status.Children.Add(Ui.Body(Text.Get("NeedsLogi"), secondary: true));
+                if (!Products.LogiService(folders))
+                {
+                    status.Children.Add(Ui.Body(Text.Get("NeedsLogi"), secondary: true));
+                    todo = true;
+                }
                 else
                 {
-                    var installed = Declarations.DeviceInstalled(product, folders);
-                    status.Children.Add(Ui.Mark(installed, $"{product.Device} · {Text.Get(installed ? "PluginInstalled" : "PluginMissing")}"));
+                    var plugin = Declarations.DeviceInstalled(product, folders);
+                    status.Children.Add(Ui.Mark(plugin, $"{product.Device} · {Text.Get(plugin ? "PluginInstalled" : "PluginMissing")}"));
+                    if (plugin)
+                    {
+                        var keys = Declarations.KeypadKeysPlaced(folders);
+                        status.Children.Add(Ui.Mark(keys, Text.Get(keys ? "Keypad.KeysPlaced" : "Keypad.KeysMissing")));
+                        todo |= !keys;
+                    }
                 }
             }
             else if (Products.Why(product, ais, folders) is { } unfit)
+            {
                 status.Children.Add(Ui.Body(unfit == Unfit.NeedsApp ? Text.Get("NeedsClaudeCode") : unfit == Unfit.NeedsTwo ? Text.Get("NeedsTwo")
                     : Text.Format("OnlyFor", string.Join(", ", product.Targets.Select(AiApps.Name))), secondary: true));
+                todo = true;
+            }
             else
             {
                 foreach (var app in ais.Where(product.Targets.Contains))
@@ -235,6 +269,7 @@ public sealed partial class ProductPage : UserControl
                     var declared = Declarations.State(product, app, folders);
                     // A declared Windows connection without the shared engine installed cannot work: it needs repair.
                     if (product == Products.Windows && windows is null && declared == DeclarationState.Declared) declared = DeclarationState.Invalid;
+                    todo |= declared is DeclarationState.Missing or DeclarationState.Invalid;
                     // "In use" only for a server this AI started: a shared daemon runs whether or not the AI is open.
                     var live = running.Any(s => s.StartedBy == app);
                     // One line per AI: ready or not, then only what the user can act on (in use, restart, repair).
@@ -253,10 +288,57 @@ public sealed partial class ProductPage : UserControl
                     status.Children.Add(row);
                 }
             }
-            if (bridge is { } connection)
+            // Chrome: connected, or closed (it reconnects by itself: nothing to do); open without the extension: the steps below.
+            if (bridge is { } connection && connection != BridgeState.NotInstalled)
+            {
                 status.Children.Add(connection == BridgeState.BrowserClosed
                     ? Ui.Body(Text.Get("Pair.BrowserClosed"), secondary: true)
                     : Ui.Mark(connection == BridgeState.Connected, Text.Get("Pair." + connection)));
+                todo |= connection is BridgeState.Waiting or BridgeState.Offline;
+            }
+            if (phone is { } device && installed)
+            {
+                status.Children.Add(device.State switch
+                {
+                    PhoneState.Connected => Ui.Mark(true, Text.Format("Phone.Connected", device.Model ?? "Android")),
+                    PhoneState.Unauthorized => Ui.Mark(false, Text.Get("Phone.Unauthorized")),
+                    _ => Ui.Mark(false, Text.Get("Phone.None")),
+                });
+                todo |= device.State != PhoneState.Connected;
+            }
+            if (gmail is { } signIn && installed)
+            {
+                if (signIn.Connected) status.Children.Add(Ui.Mark(true, Text.Format("Gmail.Connected", signIn.Account ?? "Gmail")));
+                else
+                {
+                    // Like a connector of Antigravity: "not connected", and the one button that connects.
+                    var connect = new Button { Content = Text.Get("Gmail.Connect"), Style = (Style)Application.Current.Resources["AccentButtonStyle"] };
+                    connect.Click += (_, _) =>
+                    {
+                        try
+                        {
+                            SetupChecks.StartGmailSignIn(signIn.Executable!);
+                            notice.Message = Text.Get("Gmail.Opened");
+                        }
+                        catch (Exception error) when (error is System.ComponentModel.Win32Exception or InvalidOperationException)
+                        {
+                            AppLog.Error("gmail sign-in", error);
+                            notice.Message = Text.Get("Gmail.Failed");
+                        }
+                        notice.IsOpen = true;
+                    };
+                    connect.IsEnabled = signIn.Executable is not null;
+                    status.Children.Add(new StackPanel
+                    {
+                        Orientation = Orientation.Horizontal, Spacing = 12,
+                        Children = { Ui.Mark(false, Text.Get("Gmail.Missing")), connect },
+                    });
+                    todo = true;
+                }
+            }
+            summaryIcon.Glyph = !installed ? "" : todo ? "" : "";
+            summaryIcon.Foreground = Ui.Theme(!installed ? "TextFillColorSecondaryBrush" : todo ? "SystemFillColorCautionBrush" : "SystemFillColorSuccessBrush");
+            summaryTitle.Text = Text.Get(!installed ? "Here.Missing" : todo ? "Here.Todo" : "Here.Ready");
         }
         catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { }
         catch (Exception error)
