@@ -53,7 +53,7 @@ $ProgressPreference = 'SilentlyContinue'  # Invoke-WebRequest is many times slow
 $Ok = [string][char]0x2713
 $No = [string][char]0x2717
 $Marketplace = 'nexus-plugins'
-$NexusMaintenanceVersion = '1.6.47'
+$NexusMaintenanceVersion = '1.6.48'
 
 # AI apps, in display order. Claude Desktop also carries Claude Code (its Code tab reads the same ~\.claude).
 $AiNames = [ordered]@{
@@ -257,7 +257,12 @@ function Write-JsonWithBackup([string]$Path, $Value) {
     } else {
         New-Item -ItemType Directory -Force -Path (Split-Path $Path) | Out-Null
     }
-    [IO.File]::WriteAllText($Path, ($Value | ConvertTo-Json -Depth 100), (New-Object Text.UTF8Encoding $false))
+    # Written beside it, then swapped in whole: an interrupted write never leaves a truncated settings file.
+    $temporary = "$Path.nexus-$([guid]::NewGuid().ToString('N')).tmp"
+    try {
+        [IO.File]::WriteAllText($temporary, ($Value | ConvertTo-Json -Depth 100), (New-Object Text.UTF8Encoding $false))
+        if (Test-Path -LiteralPath $Path) { [IO.File]::Replace($temporary, $Path, [NullString]::Value) } else { [IO.File]::Move($temporary, $Path) }
+    } finally { if (Test-Path -LiteralPath $temporary) { Remove-Item -LiteralPath $temporary -Force } }
 }
 
 function Write-Property($Object, [string]$Name, $Value) {

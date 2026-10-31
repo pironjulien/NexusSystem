@@ -12,6 +12,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
   layout and old `publish-*` folders) are removed once the new copy is installed, unless a running NexusSystem uses
   them. They had grown to 6.6 GB on the author's PC.
 
+## [1.6.48] - 2026-10-31
+
+### Fixed
+- The pack writes Claude Code's `settings.json` atomically (a temporary file beside it, then swapped in whole): a pack
+  interrupted mid-write no longer leaves a truncated settings file. A test kills the write again and again and reads
+  whole JSON every time.
+
+### Changed
+- Releases are immutable on every product repository: a published release's files and tag can no longer change, and
+  `gh release verify` checks it. A catalog release is now published by the `release` workflow from its pushed tag, with
+  `get-nexus.ps1` and `SHA256SUMS.txt` attached at creation (`release-assets` added them afterwards).
+
 ## [1.6.47] - 2026-10-31
 
 ### Changed
