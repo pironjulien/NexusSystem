@@ -1,7 +1,8 @@
 # Shared by the Nexus products (workflow_call): promote a tested development build to the stable release.
 # The SAME files, checked against their SHA256SUMS.txt, become the release vX.Y.Z at the same commit, with that
 # version's CHANGELOG section as notes; nothing is rebuilt between the tested build and the stable release. With
-# mcp-package (the .mcpb the official MCP registry lists), server.json then goes to the registry by GitHub OIDC.
+# mcp-registry, the product's server.json at the promoted tag then goes to the official MCP registry by GitHub OIDC,
+# every .mcpb package it lists checked against the release's SHA256SUMS.txt.
 # registry-only re-sends a stable release's server.json without promoting anything.
 name: product-promote
 
@@ -22,8 +23,13 @@ on:
         required: false
         type: string
         default: ''
+      mcp-registry:
+        description: Publish the product's server.json (every .mcpb it lists) to the official MCP registry
+        required: false
+        type: boolean
+        default: false
       mcp-package:
-        description: The .mcpb asset the MCP registry lists (empty = the product is not in the registry)
+        description: Deprecated, same as mcp-registry when not empty (the packages now come from server.json)
         required: false
         type: string
         default: ''
@@ -80,10 +86,10 @@ jobs:
           echo "tag=$stable" >> "$GITHUB_OUTPUT"
 
   registry:
-    # server.json to the official MCP registry: the stable .mcpb (its URL and SHA-256). mcp-publisher pinned by version
-    # and SHA-256; GitHub OIDC login, no token stored.
+    # server.json to the official MCP registry: each .mcpb it lists, at the stable tag (URL and SHA-256). mcp-publisher
+    # pinned by version and SHA-256; GitHub OIDC login, no token stored.
     needs: promote
-    if: always() && inputs.mcp-package != '' && (needs.promote.result == 'success' || inputs.registry-only != '')
+    if: always() && (inputs.mcp-registry || inputs.mcp-package != '') && (needs.promote.result == 'success' || inputs.registry-only != '')
     runs-on: ubuntu-latest
     permissions:
       id-token: write
@@ -94,25 +100,33 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
+          ref: ${{ inputs.registry-only || needs.promote.outputs.tag }}
           persist-credentials: false
       - name: server.json for this release
         env:
           TAG: ${{ inputs.registry-only || needs.promote.outputs.tag }}
-          PACKAGE: ${{ inputs.mcp-package }}
           REPOSITORY: ${{ github.repository }}
         run: |
           set -euo pipefail
           [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "Not a release tag: $TAG"; exit 1; }
-          [[ "$PACKAGE" =~ ^[a-z0-9.-]+\.mcpb$ ]] || { echo "Not an .mcpb name: $PACKAGE"; exit 1; }
           version="${TAG#v}"
-          url="https://github.com/${REPOSITORY}/releases/download/${TAG}/${PACKAGE}"
-          curl -fsSL --retry 5 -o "$PACKAGE" "$url"
           sums=$(curl -fsSL --retry 5 "https://github.com/${REPOSITORY}/releases/download/${TAG}/SHA256SUMS.txt" | tr -d '\r')
-          sha=$(sha256sum "$PACKAGE" | cut -d' ' -f1)
-          grep -qx "${sha}  ${PACKAGE}" <<<"$sums" || { echo "$PACKAGE differs from the attested SHA256SUMS.txt"; exit 1; }
-          jq --arg v "$version" --arg u "$url" --arg s "$sha" \
-            '.version = $v | .packages[0].version = $v | .packages[0].identifier = $u | .packages[0].fileSha256 = $s' \
-            server.json > server.release.json
+          cp server.json server.release.json
+          count=$(jq '[.packages[] | select(.registryType == "mcpb")] | length' server.json)
+          [[ "$count" -ge 1 ]] || { echo "server.json lists no .mcpb package"; exit 1; }
+          # Every .mcpb package server.json lists at this tag, by its file name: one per architecture if need be.
+          for index in $(jq '.packages | to_entries[] | select(.value.registryType == "mcpb") | .key' server.json); do
+            name=$(jq -r --argjson i "$index" '.packages[$i].identifier | split("/") | last' server.json)
+            [[ "$name" =~ ^[A-Za-z0-9._-]+\.mcpb$ ]] || { echo "Not an .mcpb name: $name"; exit 1; }
+            url="https://github.com/${REPOSITORY}/releases/download/${TAG}/${name}"
+            curl -fsSL --retry 5 -o "$name" "$url"
+            sha=$(sha256sum "$name" | cut -d' ' -f1)
+            grep -qx "${sha}  ${name}" <<<"$sums" || { echo "$name differs from the attested SHA256SUMS.txt"; exit 1; }
+            jq --argjson i "$index" --arg v "$version" --arg u "$url" --arg s "$sha" \
+              '.version = $v | .packages[$i].version = $v | .packages[$i].identifier = $u | .packages[$i].fileSha256 = $s' \
+              server.release.json > server.next.json
+            mv server.next.json server.release.json
+          done
           cat server.release.json
       - name: Install mcp-publisher (pinned, checksum verified)
         run: |
