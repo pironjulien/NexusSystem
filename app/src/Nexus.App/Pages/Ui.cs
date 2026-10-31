@@ -200,12 +200,13 @@ static class Ui
     }
 
     /// <summary>A colored dot then a short state, as on a store listing ("Installed", "Update available").</summary>
-    public static Grid State(string text, string brush)
+    public static Grid State(string text, string brush, bool busy = false)
     {
         var grid = new Grid { ColumnSpacing = 6 };
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        grid.Children.Add(new Microsoft.UI.Xaml.Shapes.Ellipse { Width = 8, Height = 8, Fill = Theme(brush), VerticalAlignment = VerticalAlignment.Center });
+        grid.Children.Add(busy ? new ProgressRing { Width = 14, Height = 14, IsActive = true, VerticalAlignment = VerticalAlignment.Center }
+            : new Microsoft.UI.Xaml.Shapes.Ellipse { Width = 8, Height = 8, Fill = Theme(brush), VerticalAlignment = VerticalAlignment.Center });
         var words = new TextBlock { Text = text, FontSize = 12.5, TextWrapping = TextWrapping.WrapWholeWords, VerticalAlignment = VerticalAlignment.Center, Foreground = Theme("TextFillColorSecondaryBrush") };
         Grid.SetColumn(words, 1);
         grid.Children.Add(words);

@@ -27,6 +27,8 @@ public static class Text
         ["State.InstalledVersion"] = ("Installé · version {0}", "Installed · version {0}"),
         ["State.UpToDate"] = ("À jour · version {0}", "Up to date · version {0}"),
         ["State.Update"] = ("Nouvelle version {0}", "New version {0}"),
+        ["State.Pending"] = ("Installation par votre IA en cours…", "Your AI app is installing it…"),
+        ["Channel.Dev"] = ("Ce PC suit les versions de développement", "This PC follows development builds"),
         ["State.Store"] = ("Installé · mis à jour par le Microsoft Store", "Installed · kept up to date by the Microsoft Store"),
         ["Updates.Checking"] = ("Recherche des mises à jour…", "Checking for updates…"),
         ["Updates.UpToDate"] = ("Tout est à jour.", "Everything is up to date."),

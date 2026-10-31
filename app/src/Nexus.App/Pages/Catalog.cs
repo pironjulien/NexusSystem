@@ -6,7 +6,7 @@ using Windows.ApplicationModel.DataTransfer;
 namespace Nexus.App.Pages;
 
 /// <summary>What the app shows of a product on this PC: installed or not, its version, the newest published one.</summary>
-sealed record ProductView(Product Product, bool Installed, string? Version, string? Latest, Unfit? Unfit)
+sealed record ProductView(Product Product, bool Installed, string? Version, string? Latest, Unfit? Unfit, bool Pending = false)
 {
     public bool UpdateAvailable => Installed && Version is not null && Latest is not null && ProductState.CompareVersions(Latest, Version) > 0;
 }
@@ -35,7 +35,7 @@ static class Catalog
     // Records compare their lists by reference: two reads of the same catalog are equal when every shown fact is.
     static readonly IEqualityComparer<Product> ProductComparer = EqualityComparer<Product>.Create(
         (a, b) => a!.Key == b!.Key && a.Name == b.Name && a.Accent == b.Accent && a.Availability == b.Availability && a.Group == b.Group &&
-            a.Page == b.Page && a.StoreUrl == b.StoreUrl && a.Icon == b.Icon && a.AboutFr == b.AboutFr && a.AboutEn == b.AboutEn,
+            a.Page == b.Page && a.StoreUrl == b.StoreUrl && a.Icon == b.Icon && a.Banner == b.Banner && a.AboutFr == b.AboutFr && a.AboutEn == b.AboutEn,
         p => p.Key.GetHashCode());
 
     public static string Group(string key) => Shown.Groups.FirstOrDefault(g => g.Key == key) is { } group ? (Text.French ? group.Fr : group.En) : key;
@@ -48,8 +48,26 @@ static class Catalog
         var unfit = product.Availability == Availability.Ready ? Products.Why(product, found, folders) : null;
         var installed = product.Availability != Availability.NotPublic && ProductUpdates.IsInstalled(product, found, folders);
         var version = installed ? ProductUpdates.InstalledVersion(product, folders) : null;
-        lock (Latest) return new ProductView(product, installed, version, Latest.GetValueOrDefault(product.Key), unfit);
+        ProductView view;
+        lock (Latest) view = new ProductView(product, installed, version, Latest.GetValueOrDefault(product.Key), unfit);
+        lock (Handed)
+        {
+            // Handed to an AI app: "installing" until the product reports itself installed and up to date (or 15 minutes).
+            if (!Handed.TryGetValue(product.Key, out var since)) return view;
+            if (view.Installed && !view.UpdateAvailable || DateTimeOffset.UtcNow - since > TimeSpan.FromMinutes(15))
+            {
+                Handed.Remove(product.Key);
+                return view;
+            }
+        }
+        return view with { Pending = true };
     }
+
+    static readonly Dictionary<string, DateTimeOffset> Handed = [];
+
+    /// <summary>What the pages compare to redraw a card only when its state changed.</summary>
+    public static string Signature(ProductView view) =>
+        $"{view.Product.Key}|{view.Installed}|{view.Version}|{view.Latest}|{view.Unfit}|{view.Pending}";
 
     /// <summary>The newest release of every product on GitHub (no API, no rate limit), in parallel.</summary>
     public static async Task RefreshLatestAsync(UserFolders folders, CancellationToken cancel = default)
@@ -69,6 +87,7 @@ static class Catalog
     public static Grid State(ProductView view) => view switch
     {
         { Product.Availability: Availability.NotPublic } => Ui.State(Text.Get("NotPublic"), "TextFillColorDisabledBrush"),
+        { Pending: true } => Ui.State(Text.Get("State.Pending"), "AccentFillColorDefaultBrush", busy: true),
         { Installed: false, Unfit: { } unfit } => Ui.State(Unfitting(view.Product, unfit), "TextFillColorDisabledBrush"),
         { Installed: false } => Ui.State(Text.Get("State.NotInstalled"), "TextFillColorDisabledBrush"),
         { Product.StoreUrl: not null } => Ui.State(Text.Get("State.Store"), "SystemFillColorSuccessBrush"),
@@ -100,7 +119,7 @@ static class Catalog
             open.Click += async (_, _) => await Windows.System.Launcher.LaunchUriAsync(new Uri(store));
             return open;
         }
-        if (product.Availability != Availability.Ready || view.Unfit is not null || view.Installed && !view.UpdateAvailable) return null;
+        if (product.Availability != Availability.Ready || view.Unfit is not null || view.Pending || view.Installed && !view.UpdateAvailable) return null;
         var install = new Button
         {
             Content = Text.Get(view.Installed ? "UpdateAi" : "InstallAi"),
@@ -140,6 +159,7 @@ static class Catalog
     static async Task<string> HandAsync(IReadOnlyList<string> keys, AiApp app)
     {
         if (Copy(keys) is not { } prompt) return Text.Get("PromptFailed");
+        lock (Handed) foreach (var key in keys) Handed[key] = DateTimeOffset.UtcNow;
         var link = app switch
         {
             AiApp.ClaudeCode => "claude://code/new?q=" + Uri.EscapeDataString(prompt),

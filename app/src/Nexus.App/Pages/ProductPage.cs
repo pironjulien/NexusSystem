@@ -24,18 +24,41 @@ public sealed partial class ProductPage : UserControl
         var ais = AiApps.Find(folders);
         var view = Catalog.Read(product, ais, folders);
 
-        var top = new Grid { ColumnSpacing = 16 };
+        var top = new Grid { ColumnSpacing = 24 };
         top.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         top.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         var header = Ui.Header(Ui.Logo(product, 56), product.Name, Catalog.About(product));
-        ((StackPanel)header.Children[1]).Children.Add(Catalog.State(view));
+        var words = (StackPanel)header.Children[1];
+        var stateHost = new ContentControl();
+        var actionHost = new ContentControl { HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 8, 0, 0) };
+        words.Children.Add(stateHost);
+        words.Children.Add(actionHost);
         top.Children.Add(header);
-        if (Catalog.Action(view, ais, text => { notice.Message = text; notice.IsOpen = text.Length > 0; }) is { } action)
+        // The product's picture, as on a store page: its video's poster on the site.
+        if (product.Banner is { } banner)
         {
-            action.VerticalAlignment = VerticalAlignment.Center;
-            Grid.SetColumn(action, 1);
-            top.Children.Add(action);
+            var picture = new Border
+            {
+                Width = 288,
+                Height = 162,
+                CornerRadius = new CornerRadius(8),
+                BorderBrush = Ui.Theme("CardStrokeColorDefaultBrush"),
+                BorderThickness = new Thickness(1),
+                Child = new Image { Source = new Microsoft.UI.Xaml.Media.Imaging.BitmapImage(new Uri(banner)), Stretch = Microsoft.UI.Xaml.Media.Stretch.UniformToFill },
+            };
+            Grid.SetColumn(picture, 1);
+            top.Children.Add(picture);
         }
+        var drawn = "";
+        void DrawState()
+        {
+            var now = Catalog.Read(product, ais, folders);
+            if (Catalog.Signature(now) == drawn) return;
+            drawn = Catalog.Signature(now);
+            stateHost.Content = Catalog.State(now);
+            actionHost.Content = Catalog.Action(now, ais, text => { notice.Message = text; notice.IsOpen = text.Length > 0; });
+        }
+        DrawState();
 
         var layout = new Grid { Padding = new Thickness(32, 16, 32, 0), RowSpacing = 12 };
         layout.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
@@ -54,6 +77,10 @@ public sealed partial class ProductPage : UserControl
         {
             Grid.SetRow((FrameworkElement)overview, 3);
             layout.Children.Add(overview);
+            // A store app installed meanwhile shows as installed.
+            timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
+            timer.Tick += (_, _) => DrawState();
+            timer.Start();
             return;
         }
 
@@ -82,7 +109,11 @@ public sealed partial class ProductPage : UserControl
 
         _ = RefreshStatusAsync(product, status);
         timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
-        timer.Tick += async (_, _) => { if (herePage.Visibility == Visibility.Visible) await RefreshStatusAsync(product, status); };
+        timer.Tick += async (_, _) =>
+        {
+            DrawState();
+            if (herePage.Visibility == Visibility.Visible) await RefreshStatusAsync(product, status);
+        };
         timer.Start();
     }
 

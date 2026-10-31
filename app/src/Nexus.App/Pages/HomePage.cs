@@ -24,7 +24,7 @@ public sealed partial class HomePage : UserControl
 
     public HomePage()
     {
-        Unloaded += (_, _) => lifetime.Cancel();
+        Unloaded += (_, _) => { timer.Stop(); lifetime.Cancel(); };
         found = AiApps.Find(folders);
 
         var top = new Grid { ColumnSpacing = 16 };
@@ -41,6 +41,13 @@ public sealed partial class HomePage : UserControl
         aiLine.Children.Add(aiLabel);
         foreach (var app in found) aiLine.Children.Add(Ui.AiPill(app, declared: true, compact: true));
         if (found.Count == 0) aiLine.Children.Add(Ui.Body(Text.Get("NoAi")));
+        // A development PC sees development builds as new versions: said once, plainly.
+        if (ReleaseFeed.Channel(folders) == ReleaseFeed.Development)
+        {
+            var channel = Ui.Body("· " + Text.Get("Channel.Dev"), secondary: true);
+            channel.VerticalAlignment = VerticalAlignment.Center;
+            aiLine.Children.Add(channel);
+        }
 
         Catalog.HandOff(installAll, AllKeys, found, Say);
         installAll.IsEnabled = found.Count > 0;
@@ -48,6 +55,12 @@ public sealed partial class HomePage : UserControl
 
         Content = Ui.Page(Ui.Column(16, top, aiLine, notice, groups));
         Fill();
+        // Like the Store, a card follows an install as it happens: the products write their state as they go.
+        timer.Tick += (_, _) =>
+        {
+            if (Signatures() != shown) Fill();
+        };
+        timer.Start();
         // The published versions are read once per run (GitHub's release feeds): the cards then say "up to date" or not.
         if (!Catalog.HasLatest) _ = RefreshAsync();
     }
@@ -70,8 +83,14 @@ public sealed partial class HomePage : UserControl
         catch (OperationCanceledException) { }
     }
 
+    readonly DispatcherTimer timer = new() { Interval = TimeSpan.FromSeconds(4) };
+    string shown = "";
+
+    string Signatures() => string.Join(";", Catalog.Shown.Products.Select(product => Catalog.Signature(Catalog.Read(product, found, folders))));
+
     void Fill()
     {
+        shown = Signatures();
         groups.Children.Clear();
         foreach (var group in Catalog.Shown.Groups)
         {
@@ -125,17 +144,33 @@ public sealed partial class HomePage : UserControl
         var card = Ui.Card(grid, padding: 16);
         card.MinHeight = 132;
         card.BorderBrush = Ui.Theme("CardStrokeColorDefaultBrush");
-        // Like a store tile: the whole card opens the product's page; its button does its own thing.
-        card.PointerEntered += (_, _) => card.BorderBrush = Ui.Accent(product.Accent);
-        card.PointerExited += (_, _) => card.BorderBrush = Ui.Theme("CardStrokeColorDefaultBrush");
-        card.Tapped += (_, e) =>
+        // Like a store tile: the whole card opens the product's page, with the mouse or with Tab then Enter or Space;
+        // its button does its own thing.
+        var tile = new ContentControl
         {
-            for (var source = e.OriginalSource as DependencyObject; source is not null && source != card; source = VisualTreeHelper.GetParent(source))
+            Content = card,
+            IsTabStop = true,
+            UseSystemFocusVisuals = true,
+            CornerRadius = new CornerRadius(8),
+            HorizontalContentAlignment = HorizontalAlignment.Stretch,
+            VerticalContentAlignment = VerticalAlignment.Stretch,
+        };
+        tile.PointerEntered += (_, _) => card.BorderBrush = Ui.Accent(product.Accent);
+        tile.PointerExited += (_, _) => card.BorderBrush = Ui.Theme("CardStrokeColorDefaultBrush");
+        tile.Tapped += (_, e) =>
+        {
+            for (var source = e.OriginalSource as DependencyObject; source is not null && source != tile; source = VisualTreeHelper.GetParent(source))
                 if (source is ButtonBase) return;
             MainWindow.Instance?.Open(product);
         };
-        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(card, product.Name);
-        return card;
+        tile.KeyDown += (_, e) =>
+        {
+            if (!ReferenceEquals(e.OriginalSource, tile) || e.Key is not (Windows.System.VirtualKey.Enter or Windows.System.VirtualKey.Space)) return;
+            e.Handled = true;
+            MainWindow.Instance?.Open(product);
+        };
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(tile, $"{product.Name}. {Catalog.About(product)}");
+        return tile;
     }
 
     void Say(string text, InfoBarSeverity severity)
