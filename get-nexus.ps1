@@ -53,7 +53,7 @@ $ProgressPreference = 'SilentlyContinue'  # Invoke-WebRequest is many times slow
 $Ok = [string][char]0x2713
 $No = [string][char]0x2717
 $Marketplace = 'nexus-plugins'
-$NexusMaintenanceVersion = '1.6.42'
+$NexusMaintenanceVersion = '1.6.43'
 
 # AI apps, in display order. Claude Desktop also carries Claude Code (its Code tab reads the same ~\.claude).
 $AiNames = [ordered]@{
@@ -1027,7 +1027,9 @@ function Get-NexusPublishedInstaller([string]$Repo,[string]$Work,[string]$Name='
     if ($gh) {
         # Built from its tag (older releases), or from main (a development build, and a stable release promoted from it
         # with the same files).
-        if ((Invoke-Native "$Repo build provenance" { & $gh.Source attestation verify $file --repo "pironjulien/$Repo" --source-ref "refs/tags/$tag" }) -and
+        # Signed by NexusSystem's shared release workflow (current releases), or by the product's own workflow (older ones).
+        if ((Invoke-Native "$Repo build provenance (shared workflow)" { & $gh.Source attestation verify $file --repo "pironjulien/$Repo" --signer-repo 'pironjulien/NexusSystem' --source-ref 'refs/heads/main' }) -and
+            (Invoke-Native "$Repo build provenance" { & $gh.Source attestation verify $file --repo "pironjulien/$Repo" --source-ref "refs/tags/$tag" }) -and
             (Invoke-Native "$Repo build provenance (main)" { & $gh.Source attestation verify $file --repo "pironjulien/$Repo" --source-ref 'refs/heads/main' })) { throw "Build provenance failed for $Repo $tag." }
     }
     return [pscustomobject]@{tag=$tag; version=(Get-NexusTagVersion $tag); file=$file; sha256=(Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant()}
@@ -1068,10 +1070,16 @@ function Get-NexusInstalledVersion($Product) {
             return $null
         }
         default {
-            # Other products keep their own distribution protocols. Their saved version remains installation
-            # information only, and is never promoted to loaded state or used to run an unqualified installer.
-            $record=Read-Json (Join-Path $env:USERPROFILE ".nexus\status\$($Product.Key).json")
-            if ($record) { return [string]$record.version }
+            # The highest version among the engines the product's installer unpacked (the executable's own version).
+            $pattern=switch ($Product.Key) {
+                'android' { Join-Path $env:USERPROFILE '.nexus\nexus-android\releases\*\NexusAndroid.exe' }
+                'relay' { Join-Path $env:LOCALAPPDATA 'NexusRelay\versions\*\NexusRelay.exe' }
+                'agymail' { Join-Path $env:USERPROFILE '.nexus\nexus-agymail\app\*\NexusAGYmail.exe' }
+                default { return $null }
+            }
+            $versions=@(Get-ChildItem -Path $pattern -File -ErrorAction SilentlyContinue | ForEach-Object {
+                if ($_.VersionInfo.ProductVersion -match '^(\d+\.\d+\.\d+)') { [version]$Matches[1] } })
+            if ($versions.Count) { return [string]($versions | Sort-Object | Select-Object -Last 1) }
             return $null
         }
     }
@@ -1082,7 +1090,8 @@ function Get-NexusInstallationSource($Product) {
     if ($Product.Key -eq 'windows') {
         $record=Read-Json (Join-Path $env:USERPROFILE '.nexus\nexus-windows\installation.json')
         $source=[string]$record.SourceRoot
-        if ($source -match '^release v\d+\.\d+\.\d+$') {return 'release'}
+        # A stable release carries its build's files unchanged, so its installer may name the build tag (-dev.N).
+        if ($source -match '^release v\d+\.\d+\.\d+(-dev\.\d+)?$') {return 'release'}
         if ([IO.Path]::IsPathRooted($source)) {return 'repository'}
     } elseif ($Product.Key -eq 'browser') {
         $current=Read-Json (Join-Path $env:LOCALAPPDATA 'NexusBrowser\current.json')
@@ -1324,9 +1333,9 @@ function Invoke-NexusMaintenance([switch]$Current,[switch]$Force) {
             # multi-AI profiles and multi-entry skip lists are not accidentally nested and then overlooked.
             $skip=Get-LocalSkip; $found=Find-AiApp
             foreach ($product in $Products | Where-Object {$_.Repo -and $skip -notcontains $_.Key}) {
-                if ($product.Device) {
-                    # A device product (NexusKeypad): no AI route of its own. Its published installer, unattended
-                    # (NEXUS_PACK), replaces the plugin and refreshes only the AI connections already enabled.
+                if ($product.Device -or $product.Key -in 'android','relay','agymail') {
+                    # NexusKeypad, NexusAndroid, NexusRelay, NexusAGYmail: when a newer release exists, its published
+                    # installer, unattended (NEXUS_PACK), replaces the engine and refreshes the AI connections it owns.
                     $installed=Get-NexusInstalledVersion $product
                     if (-not $installed) { continue }
                     $row=[ordered]@{key=$product.Key;publishedVersion=$null;installedVersion=$installed;loadedVersions=@();state='pending';activationPending=$false;retryable=$false;message='';profiles=@()}
@@ -1341,7 +1350,7 @@ function Invoke-NexusMaintenance([switch]$Current,[switch]$Force) {
                             $installed=Get-NexusInstalledVersion $product; $row.installedVersion=$installed
                             if (-not $installed -or [version]$installed -lt [version]$published) { throw 'The installed version did not reach the published version.' }
                         }
-                        $row.state='success'; $row.message='Published version installed in the Logitech plugin service.'
+                        $row.state='success'; $row.message='Published version installed.'
                     } catch { $row.state='failed'; $row.message=$_.Exception.Message }
                     $state.products += [pscustomobject]$row
                     Write-NexusMaintenanceStatus $state
