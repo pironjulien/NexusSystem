@@ -7,6 +7,19 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Changed (app 1.0.13.0)
+- The app looks and works like a store library. The menu and the home page group the products: AI products,
+  Adobe products (NexusInDesign, coming soon) and Windows products (NexusWpp, on the Microsoft Store). Each card says
+  plainly whether the product is installed and up to date (installed version against the newest release of its
+  channel on GitHub) and offers its one way in: "Install with my AI" or "Update with my AI" (the prompt is copied
+  for Claude Code, Codex or Antigravity), or "Get in the Store". "Install all with my AI" and "Get updates" sit at the
+  top of the home page; the tick boxes and the in-app install are gone.
+- A product's page shows its page of julienpiron.fr inside the app ("Overview": explanation, video, read live, so
+  the app needs no update when the site changes) and its state per AI app with the steps left ("On this PC"). The
+  version details, the day's activity, the safeguards text and the emergency stop button leave the pages.
+- Pages use the whole width of the window; cards reflow into as many columns as it allows.
+- `--capture` takes one picture per page, the site's page included; `--frames` and the result picture are gone.
+
 ### Changed
 - `RELEASING.md`: the Chrome Web Store gets the extension from the AI on request (`scripts/publish-store.ps1` of
   NexusBrowser), no longer from GitHub at promotion; NexusKeypad is promoted on push like the other products (no

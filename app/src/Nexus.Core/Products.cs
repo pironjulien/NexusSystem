@@ -7,10 +7,18 @@ public enum Availability
     Ready,
     /// <summary>Public, installed by the one-line install for now; the app takes it in a later milestone.</summary>
     Later,
-    /// <summary>Through another store only: the app shows the listing and guides.</summary>
+    /// <summary>Through a store only (the Microsoft Store for a Windows app): the app opens its listing.</summary>
     OtherStore,
     /// <summary>Not public yet.</summary>
     NotPublic,
+}
+
+/// <summary>The groups of the app's menu and home page.</summary>
+public enum Category
+{
+    Ai,
+    Adobe,
+    Windows,
 }
 
 /// <summary>
@@ -22,7 +30,7 @@ public sealed record Product(
     string Name,
     string Accent,
     Availability Availability,
-    string Page,
+    string? Page,
     IReadOnlyList<AiApp> Targets,
     string? Server = null,
     string? ClaudePlugin = null,
@@ -33,7 +41,14 @@ public sealed record Product(
     string? Device = null,
     string? StoreUrl = null,
     // Former names of the Antigravity plugin, still recognised while public installations carry them.
-    IReadOnlyList<string>? AntigravityFormerPlugins = null);
+    IReadOnlyList<string>? AntigravityFormerPlugins = null,
+    Category Category = Category.Ai,
+    // A store app's package family: installed when Windows has its folder under %LOCALAPPDATA%\Packages.
+    string? PackageFamily = null)
+{
+    /// <summary>The product's page on julienpiron.fr in the app's language (the English site lives under /en/).</summary>
+    public string? PageFor(bool french) => Page is null || french ? Page : Page.Replace("julienpiron.fr/", "julienpiron.fr/en/", StringComparison.Ordinal);
+}
 
 public static class Products
 {
@@ -51,10 +66,10 @@ public static class Products
         "https://julienpiron.fr/nexusbrowser/", AllAi, Server: "nexus-browser", ClaudePlugin: "nexus-browser",
         AntigravityPlugin: "nexus-browser", JournalFolder: "browser");
 
-    // The full plugin for Logi Options+ (installed by the pack when Logi Options+ is there), also on the Logitech
-    // Marketplace.
+    // The full plugin for Logi Options+, installed by the pack when Logi Options+ is there: one way per product, and the
+    // Logitech Marketplace editions are trimmed to its rules.
     public static readonly Product Keypad = new("keypad", "NexusKeypad", "#f78fb3", Availability.Ready,
-        "https://julienpiron.fr/nexuskeypad/", [], Device: "Logi Options+", StoreUrl: "https://marketplace.logi.com/");
+        "https://julienpiron.fr/nexuskeypad/", [], Device: "Logi Options+");
 
     // Two AI apps talking: one host opens the exchanges (NexusRelay 1.4.0: the first of Claude Code, Codex, Antigravity
     // here), the others answer. Claude Desktop's chat is not a relay client.
@@ -66,7 +81,20 @@ public static class Products
     public static readonly Product AgyMail = new("agymail", "NexusAGYmail", "#ffb5a2", Availability.Ready,
         "https://julienpiron.fr/nexusagymail/", [AiApp.Antigravity], Server: "nexus-agymail", AntigravityPlugin: "nexus-agymail");
 
-    public static readonly IReadOnlyList<Product> All = [Windows, Android, Browser, Keypad, Relay, AgyMail];
+    // Adobe InDesign driven by the AI apps: still private, shown as coming soon.
+    public static readonly Product InDesign = new("indesign", "NexusInDesign", "#e749a0", Availability.NotPublic,
+        null, [], Category: Category.Adobe);
+
+    // A live hardware dashboard as the Windows wallpaper: not an AI tool, published on the Microsoft Store.
+    public static readonly Product Wpp = new("wpp", "NexusWpp", "#53fff4", Availability.OtherStore,
+        "https://julienpiron.fr/nexuswpp/", [], StoreUrl: "ms-windows-store://pdp/?productid=9N2VCVDH7QDX",
+        Category: Category.Windows, PackageFamily: "julienpiron.fr.NexusWpp_yq2nr3sn86fpg");
+
+    public static readonly IReadOnlyList<Product> All = [Windows, Android, Browser, Keypad, Relay, AgyMail, InDesign, Wpp];
+
+    /// <summary>A store app this user has installed.</summary>
+    public static bool StoreInstalled(Product product, UserFolders folders) =>
+        product.PackageFamily is { } family && Directory.Exists(Path.Combine(folders.LocalAppData, "Packages", family));
 
     public static Product ByKey(string key) => All.First(p => p.Key == key);
 

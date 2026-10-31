@@ -23,15 +23,15 @@ public sealed partial class MainWindow : Window
         Title = "NexusSystem";
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(TitleBar);
-        AppWindow.Resize(new SizeInt32(1180, 800));
+        AppWindow.Resize(new SizeInt32(1294, 800));  // 800 × the golden ratio
         AppWindow.SetIcon(Path.Combine(AppContext.BaseDirectory, "Assets", "nexus.ico"));
         TitleIcon.Source = Ui.LogoSource("hub");
 
         Nav.MenuItems.Add(Item(Text.Get("Home"), "home", Ui.LogoSource("hub")));
-        Nav.MenuItems.Add(new NavigationViewItemHeader { Content = Text.Get("Products") });
-        foreach (var product in Products.All)
+        foreach (var group in Products.All.GroupBy(product => product.Category))
         {
-            Nav.MenuItems.Add(Item(product.Name, product.Key, Ui.LogoSource(product.Key)));
+            Nav.MenuItems.Add(new NavigationViewItemHeader { Content = Catalog.Group(group.Key) });
+            foreach (var product in group) Nav.MenuItems.Add(Item(product.Name, product.Key, Ui.LogoSource(product.Key)));
         }
         Nav.SelectedItem = Nav.MenuItems[0];
     }
@@ -59,7 +59,7 @@ public sealed partial class MainWindow : Window
     /// --capture: pictures of the pages, for the milestone reports and the Store listing drafts. The window is shown
     /// without activation, away from the visible desktop, so the user's foreground and focus are never taken.
     /// </summary>
-    public async Task CaptureAsync(string folder, SizeInt32 size, bool frames = false)
+    public async Task CaptureAsync(string folder, SizeInt32 size)
     {
         Directory.CreateDirectory(folder);
         AppWindow.ResizeClient(size);  // the Store's desktop screenshots: 1366 x 768 or larger; videos: 1920 x 1080
@@ -68,40 +68,11 @@ public sealed partial class MainWindow : Window
         Root.Background = new SolidColorBrush(Root.ActualTheme == ElementTheme.Light ? Windows.UI.Color.FromArgb(255, 243, 243, 243) : Windows.UI.Color.FromArgb(255, 32, 32, 32));
         var lang = Text.French ? "fr" : "en";
         var theme = Root.ActualTheme == ElementTheme.Light ? "light" : "dark";
-        foreach (var tag in new[] { "home", "windows", "android", "browser", "keypad", "relay", "agymail" })
+        foreach (var tag in Products.All.Select(product => product.Key).Prepend("home"))
         {
             Nav.SelectedItem = Nav.MenuItems.OfType<NavigationViewItem>().First(i => (string)i.Tag == tag);
-            await Task.Delay(2500);  // pages read the PC's state in the background
+            await Task.Delay(4000);  // pages read the PC's state and the site in the background
             await SaveAsync(Path.Combine(folder, $"{tag}-{lang}-{theme}.png"));
-            if (tag == "home" && Body.Content is HomePage home)
-            {
-                if (frames)
-                {
-                    // Video frames: products unticked then ticked again, then the screen while the pack runs.
-                    var n = 0;
-                    async Task Frame() => await SaveAsync(Path.Combine(folder, $"frame-{lang}-{theme}-{++n:00}.png"));
-                    await Frame();
-                    foreach (var (key, on) in new[] { ("android", false), ("keypad", false), ("agymail", false), ("android", true), ("keypad", true), ("agymail", true) })
-                    {
-                        home.Pick(key, on);
-                        await Task.Delay(400);
-                        await Frame();
-                    }
-                    home.ShowInstalling();
-                    await Task.Delay(800);
-                    await Frame();
-                }
-                // The end of an install from the Store app, as the pack reports it: every cell green, Claude Desktop
-                // left to the extensions (the pack skips it there).
-                var cells = new List<PackEvent>();
-                foreach (var product in new[] { "windows", "android", "browser", "relay", "agymail" })
-                    foreach (var ai in Products.ByKey(product).Targets)
-                        cells.Add(PackRunner.ParseEvent($"NEXUS_PACK_EVENT {{\"type\":\"cell\",\"product\":\"{product}\",\"ai\":\"{AiApps.Key(ai)}\",\"ok\":true}}")!);
-                cells.Add(PackRunner.ParseEvent("NEXUS_PACK_EVENT {\"type\":\"cell\",\"product\":\"keypad\",\"ai\":\"pc\",\"ok\":true}")!);
-                home.ShowResults(0, cells, ["windows", "android", "browser", "relay", "agymail", "keypad"], "");
-                await Task.Delay(1500);
-                await SaveAsync(Path.Combine(folder, $"home-result-{lang}-{theme}.png"));
-            }
         }
         Application.Current.Exit();
     }
@@ -128,14 +99,40 @@ public sealed partial class MainWindow : Window
     {
         var bitmap = new RenderTargetBitmap();
         await bitmap.RenderAsync(Root);
-        var pixels = await bitmap.GetPixelsAsync();
+        var pixels = (await bitmap.GetPixelsAsync()).ToArray();
+        var scale = Root.XamlRoot.RasterizationScale;
+        // A web page (a product's site page) is drawn by its own browser, never by RenderTargetBitmap: its own
+        // picture goes in its place.
+        foreach (var web in Descendants(Root).OfType<WebView2>().Where(web => web.Visibility == Visibility.Visible && web.CoreWebView2 is not null && web.ActualWidth > 0))
+        {
+            using var preview = new InMemoryRandomAccessStream();
+            await web.CoreWebView2.CapturePreviewAsync(Microsoft.Web.WebView2.Core.CoreWebView2CapturePreviewImageFormat.Png, preview);
+            var decoder = await BitmapDecoder.CreateAsync(preview);
+            var at = web.TransformToVisual(Root).TransformPoint(new Windows.Foundation.Point(0, 0));
+            var (left, top) = ((int)(at.X * scale), (int)(at.Y * scale));
+            var (width, height) = ((uint)Math.Min(web.ActualWidth * scale, bitmap.PixelWidth - left), (uint)Math.Min(web.ActualHeight * scale, bitmap.PixelHeight - top));
+            var page = (await decoder.GetPixelDataAsync(BitmapPixelFormat.Bgra8, BitmapAlphaMode.Premultiplied,
+                new BitmapTransform { ScaledWidth = width, ScaledHeight = height }, ExifOrientationMode.IgnoreExifOrientation, ColorManagementMode.DoNotColorManage)).DetachPixelData();
+            for (var row = 0; row < height; row++)
+                Array.Copy(page, row * width * 4, pixels, ((top + row) * bitmap.PixelWidth + left) * 4, width * 4);
+        }
         using var stream = new InMemoryRandomAccessStream();
         var encoder = await BitmapEncoder.CreateAsync(BitmapEncoder.PngEncoderId, stream);
-        var dpi = (float)(96 * Root.XamlRoot.RasterizationScale);
-        encoder.SetPixelData(BitmapPixelFormat.Bgra8, BitmapAlphaMode.Premultiplied, (uint)bitmap.PixelWidth, (uint)bitmap.PixelHeight, dpi, dpi, pixels.ToArray());
+        var dpi = (float)(96 * scale);
+        encoder.SetPixelData(BitmapPixelFormat.Bgra8, BitmapAlphaMode.Premultiplied, (uint)bitmap.PixelWidth, (uint)bitmap.PixelHeight, dpi, dpi, pixels);
         await encoder.FlushAsync();
         stream.Seek(0);
         await using var output = File.Create(file);
         await stream.AsStreamForRead().CopyToAsync(output);
+    }
+
+    static IEnumerable<DependencyObject> Descendants(DependencyObject parent)
+    {
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+        {
+            var child = VisualTreeHelper.GetChild(parent, i);
+            yield return child;
+            foreach (var deeper in Descendants(child)) yield return deeper;
+        }
     }
 }
