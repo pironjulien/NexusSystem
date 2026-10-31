@@ -53,7 +53,7 @@ $ProgressPreference = 'SilentlyContinue'  # Invoke-WebRequest is many times slow
 $Ok = [string][char]0x2713
 $No = [string][char]0x2717
 $Marketplace = 'nexus-plugins'
-$NexusMaintenanceVersion = '1.6.40'
+$NexusMaintenanceVersion = '1.6.41'
 
 # AI apps, in display order. Claude Desktop also carries Claude Code (its Code tab reads the same ~\.claude).
 $AiNames = [ordered]@{
@@ -84,7 +84,7 @@ $Products = @(
        Targets = @('claude-code', 'codex', 'antigravity'); MinAis = 2 },
     # Claude and Codex have their own official Gmail connector.
     @{ Key = 'agymail'; Name = 'NexusAGYmail'; Repo = 'NexusAGYmail'; Engine = $true; Agy = 'nexus-agymail'; Server = 'nexus-agymail'; Targets = @('antigravity') },
-    @{ Key = 'keypad'; Name = 'NexusKeypad'; Targets = @(); Device = 'Logi Options+' }
+    @{ Key = 'keypad'; Name = 'NexusKeypad'; Repo = 'NexusKeypad'; Targets = @(); Device = 'Logi Options+' }
 )
 
 function Say([string]$Text, [string]$Color = 'Gray') { Write-Host $Text -ForegroundColor $Color }
@@ -1080,6 +1080,14 @@ function Get-NexusInstalledVersion($Product) {
             if ((Get-FileHash -LiteralPath $assembly -Algorithm SHA256).Hash -ine $record.fingerprint) { return $null }
             return [string]$record.version
         }
+        'keypad' {
+            # The complete edition its installer copied into the Logitech plugin service's folder.
+            $package=Join-Path $env:LOCALAPPDATA 'Logi\LogiPluginService\Plugins\NexusKeypad\metadata\LoupedeckPackage.yaml'
+            if (-not (Test-Path -LiteralPath $package)) { return $null }
+            $line=Select-String -LiteralPath $package -Pattern '^version:\s*(\d+\.\d+\.\d+)\s*$' | Select-Object -First 1
+            if ($line) { return $line.Matches[0].Groups[1].Value }
+            return $null
+        }
         default {
             # Other products keep their own distribution protocols. Their saved version remains installation
             # information only, and is never promoted to loaded state or used to run an unqualified installer.
@@ -1337,6 +1345,30 @@ function Invoke-NexusMaintenance([switch]$Current,[switch]$Force) {
             # multi-AI profiles and multi-entry skip lists are not accidentally nested and then overlooked.
             $skip=Get-LocalSkip; $found=Find-AiApp
             foreach ($product in $Products | Where-Object {$_.Repo -and $skip -notcontains $_.Key}) {
+                if ($product.Device) {
+                    # A device product (NexusKeypad): no AI route of its own. Its published installer, unattended
+                    # (NEXUS_PACK), replaces the plugin and refreshes only the AI connections already enabled.
+                    $installed=Get-NexusInstalledVersion $product
+                    if (-not $installed) { continue }
+                    $row=[ordered]@{key=$product.Key;publishedVersion=$null;installedVersion=$installed;loadedVersions=@();state='pending';activationPending=$false;retryable=$false;message='';profiles=@()}
+                    try {
+                        $tag=Get-LatestTag $product.Repo
+                        if ($tag -notmatch '^v\d+\.\d+\.\d+(-dev\.\d+)?$') { throw 'Invalid published version.' }
+                        $published=Get-NexusTagVersion $tag; $row.publishedVersion=$tag.Substring(1)
+                        if ([version]$published -gt [version]$installed) {
+                            $env:NEXUS_RELEASE_TAG = if ($tag -match '-dev\.\d+$') { $tag } else { $null }
+                            $release=Get-NexusPublishedInstaller $product.Repo $work
+                            if ($release.tag -ne $tag) { throw 'Release changed while preparing the update; retry on the next cycle.' }
+                            if (Invoke-ScriptFile "$($product.Name) maintenance" $release.file) { throw 'The product update failed.' }
+                            $installed=Get-NexusInstalledVersion $product; $row.installedVersion=$installed
+                            if (-not $installed -or [version]$installed -lt [version]$published) { throw 'The installed version did not reach the published version.' }
+                        }
+                        $row.state='success'; $row.message='Published version installed in the Logitech plugin service.'
+                    } catch { $row.state='failed'; $row.message=$_.Exception.Message }
+                    $state.products += [pscustomobject]$row
+                    Write-NexusMaintenanceStatus $state
+                    continue
+                }
                 $profiles=@($found | Where-Object {$product.Targets -contains $_ -and $skip -notcontains $_} | ForEach-Object {Get-NexusMaintenanceProfile $product $_})
                 $active=@($profiles | Where-Object {$_.route -and $_.route -ne 'custom'})
                 $installed=Get-NexusInstalledVersion $product

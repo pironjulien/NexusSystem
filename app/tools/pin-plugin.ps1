@@ -4,7 +4,8 @@
 param(
     [Parameter(Mandatory)][string]$Name,      # plugin name, e.g. nexus-android
     [Parameter(Mandatory)][string]$Product,   # repository, e.g. NexusAndroid
-    [Parameter(Mandatory)][ValidatePattern('^v\d+\.\d+\.\d+$')][string]$Tag
+    [Parameter(Mandatory)][ValidatePattern('^v\d+\.\d+\.\d+$')][string]$Tag,
+    [ValidatePattern('^[a-z]+$')][string]$Path = 'plugin'   # the plugin folder in the product's repository
 )
 $ErrorActionPreference = 'Stop'
 $repository = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
@@ -19,14 +20,16 @@ function Edit-Catalog([string]$Relative, [scriptblock]$Change) {
     return $true
 }
 
+# Built here: inside Edit-Catalog, $path names the catalog file (PowerShell variables are case-insensitive).
+$source = [ordered]@{ source = 'git-subdir'; url = "https://github.com/pironjulien/$Product.git"; path = $Path; ref = $Tag }
 $claude = Edit-Catalog '.claude-plugin\marketplace.json' {
     param($entry)
-    $entry.source = [ordered]@{ source = 'git-subdir'; url = "https://github.com/pironjulien/$Product.git"; path = 'plugin'; ref = $Tag }
+    $entry.source = $source
     $entry.version = $Tag.Substring(1)
 }
 if (-not $claude) { throw "$Name is not in the Claude Code catalog" }
 $codex = Edit-Catalog '.agents\plugins\marketplace.json' {
     param($entry)
-    $entry.source = [ordered]@{ source = 'git-subdir'; url = "https://github.com/pironjulien/$Product.git"; path = 'plugin'; ref = $Tag }
+    $entry.source = $source
 }
 "$Name -> $Product $Tag (Claude Code$(if ($codex) { ', Codex' }))"

@@ -148,7 +148,7 @@ How it stays inside the MSIX model, stated plainly:
   scheduled task for it, as they do when installed without the app. The app itself registers none.
 - The app never tries to leave its container. Updates are done by each product itself, through its own process that
   the user's sign-in or AI app already starts (outside the app); the app only asks for an update through the
-  product's own local interface (127.0.0.1, or a named pipe for NexusKeypad) and shows the state the product reports.
+  product's own local interface (127.0.0.1) or asks Windows to run NexusSystem's existing update task (schtasks /Run), and shows the state the product reports.
 - Uninstalling the app removes the app and its data; the products stay, and each one is removed as its page explains.
 
 Testing: no account or sign-in is needed. Without an AI app on the PC, the install button is disabled and every page
