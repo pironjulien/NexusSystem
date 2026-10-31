@@ -111,8 +111,11 @@ public class InstallTests
                 foreach (var root in Directory.Exists(cache) ? Directory.GetDirectories(cache).OrderByDescending(Directory.GetLastWriteTimeUtc).ToArray() : [])
                 {
                     var manifest = ReadJson(Path.Combine(root, ".codex-plugin", "plugin.json"));
-                    if ((string?)manifest?["name"] == server && (string?)manifest?["skills"] == "./skills/" && File.Exists(Path.Combine(root, "skills", server, "SKILL.md")) &&
-                        ReadJson(Path.Combine(root, ".mcp.json"))?["mcpServers"]?[server] is JsonObject found) return found.DeepClone().AsObject();
+                    // The guide and server files the manifest names: a product's plugin folder also holds Claude Code's.
+                    if ((string?)manifest?["name"] == server && (string?)manifest?["skills"] is { } skills && skills.StartsWith("./") &&
+                        (string?)manifest?["mcpServers"] is { } servers && servers.StartsWith("./") &&
+                        File.Exists(Path.Combine(root, skills[2..], server, "SKILL.md")) &&
+                        ReadJson(Path.Combine(root, servers[2..]))?["mcpServers"]?[server] is JsonObject found) return found.DeepClone().AsObject();
                 }
                 throw new InvalidDataException("installed plugin with its MCP declaration and guide not found");
             }
