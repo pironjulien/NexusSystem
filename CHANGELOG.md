@@ -10,8 +10,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 ### Added
 - Release channels in the app: each product page shows the newest release of this PC's channel and whether it is
   newer than the installed version. Stable follows GitHub's latest release; `"channel": "dev"` in
-  `~\.nexus
-exussystem.json` (a development PC) follows the newest development build `vX.Y.Z-dev.N`. Read from
+  `~\.nexus\nexussystem.json` (a development PC) follows the newest development build `vX.Y.Z-dev.N`. Read from
   GitHub's public pages (latest-release redirect, releases feed), without the rate-limited API.
 
 ## [1.6.38] - 2026-10-31
