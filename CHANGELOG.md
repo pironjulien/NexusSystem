@@ -7,6 +7,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.6.47] - 2026-10-31
+
+### Changed
+- Codex no longer asks to approve a Nexus plugin's hooks after every update: once the pack installs or refreshes a
+  plugin, Codex's own app server lists that plugin's hooks and records their current hashes (Codex's hashing, nothing
+  recomputed). Other plugins and hooks turned off are left alone; if that step fails, Codex simply asks once.
+
 ### Fixed
 - Pin NexusInDesign v4.0.2 in the Claude Code and Codex catalogs, fixing engine startup with current signed Codex installations.
 

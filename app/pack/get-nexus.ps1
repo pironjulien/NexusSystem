@@ -53,7 +53,7 @@ $ProgressPreference = 'SilentlyContinue'  # Invoke-WebRequest is many times slow
 $Ok = [string][char]0x2713
 $No = [string][char]0x2717
 $Marketplace = 'nexus-plugins'
-$NexusMaintenanceVersion = '1.6.46'
+$NexusMaintenanceVersion = '1.6.47'
 
 # AI apps, in display order. Claude Desktop also carries Claude Code (its Code tab reads the same ~\.claude).
 $AiNames = [ordered]@{
@@ -728,6 +728,67 @@ function Install-CodexPlugin([string]$Cli, [string]$Name) {
             -not (Test-CodexPluginInstalled $Name $installed.installedPath)) {
             throw 'Codex did not return an installed plugin with its MCP declaration and guide.'
         }
+        try {
+            $approved = Approve-CodexPluginHook $Cli "$Name@$Marketplace"
+            if ($approved) { Say "${Name}: $approved Codex hook(s) of this version approved." }
+        } catch { Say "${Name}: Codex hooks not approved in advance ($_); Codex will ask once." Yellow }
+    }
+}
+
+function Approve-CodexPluginHook([string]$Cli, [string]$PluginId) {
+    # Codex asks again for every hook of a plugin whose files changed, so each Nexus update meant a new approval.
+    # Installing the product is that consent: the signed engine itself lists this plugin's hooks and records their
+    # current hashes (its own hashing, through its app server); other plugins and disabled hooks are left alone.
+    $start = New-Object Diagnostics.ProcessStartInfo $Cli, 'app-server'
+    $start.UseShellExecute = $false
+    $start.CreateNoWindow = $true
+    $start.RedirectStandardInput = $true
+    $start.RedirectStandardOutput = $true
+    $start.RedirectStandardError = $true
+    $utf8 = New-Object Text.UTF8Encoding $false
+    $start.StandardOutputEncoding = $utf8
+    # Codex reads JSON lines: its standard input must start without a byte order mark. Windows PowerShell's .NET
+    # takes that encoding from the console and writes its mark as soon as the process starts.
+    $consoleInput = $null
+    if ($start.PSObject.Properties['StandardInputEncoding']) { $start.StandardInputEncoding = $utf8 }
+    else { $consoleInput = [Console]::InputEncoding; [Console]::InputEncoding = $utf8 }
+    try { $server = [Diagnostics.Process]::Start($start) }
+    finally { if ($consoleInput) { [Console]::InputEncoding = $consoleInput } }
+    try {
+        $server.BeginErrorReadLine()
+        $server.StandardInput.NewLine = "`n"
+        function Send-CodexRequest([string]$Method, $Params) {
+            $id = [guid]::NewGuid().ToString('N')
+            $server.StandardInput.WriteLine((@{ id = $id; method = $Method; params = $Params } | ConvertTo-Json -Depth 10 -Compress))
+            $deadline = [DateTime]::UtcNow.AddSeconds(30)
+            while ($true) {
+                $read = $server.StandardOutput.ReadLineAsync()
+                if (-not $read.Wait([int][Math]::Max(0, ($deadline - [DateTime]::UtcNow).TotalMilliseconds))) { throw "no answer to $Method" }
+                if ($null -eq $read.Result) { throw "Codex stopped before answering $Method" }
+                $reply = $read.Result | ConvertFrom-Json
+                if ($reply.id -ne $id) { continue }
+                if ($reply.error) { throw "$Method refused: $($reply.error.message)" }
+                return $reply.result
+            }
+        }
+        $null = Send-CodexRequest 'initialize' @{ clientInfo = @{ name = 'nexus-system'; version = '1' } }
+        $server.StandardInput.WriteLine('{"method":"initialized"}')
+        $listed = Send-CodexRequest 'hooks/list' @{ cwds = @($env:USERPROFILE) }
+        $trust = @{}
+        foreach ($hook in @($listed.data | ForEach-Object { $_.hooks })) {
+            if ($hook.pluginId -ceq $PluginId -and $hook.enabled -and $hook.trustStatus -in 'untrusted', 'modified' -and $hook.currentHash) {
+                $trust[$hook.key] = @{ trusted_hash = $hook.currentHash }
+            }
+        }
+        if ($trust.Count) {
+            $null = Send-CodexRequest 'config/batchWrite' @{
+                edits = @(@{ keyPath = 'hooks.state'; value = $trust; mergeStrategy = 'upsert' }); reloadUserConfig = $true
+            }
+        }
+        return $trust.Count
+    } finally {
+        if (-not $server.HasExited) { $server.Kill() }
+        $server.Dispose()
     }
 }
 
