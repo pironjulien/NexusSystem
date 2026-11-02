@@ -27,6 +27,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
   layout and old `publish-*` folders) are removed once the new copy is installed, unless a running NexusSystem uses
   them. They had grown to 6.6 GB on the author's PC.
 
+## [1.6.49] - 2026-11-02
+
+### Security
+- The release carries its provenance bundle (`NexusSystem-X.Y.Z.intoto.jsonl`) beside `get-nexus.ps1`, like the
+  products' releases: anyone can check the file offline with Sigstore, and OpenSSF Scorecard counts the release as
+  signed.
+
 ## [1.6.48] - 2026-10-31
 
 ### Fixed

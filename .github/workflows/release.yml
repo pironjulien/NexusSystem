@@ -5,7 +5,8 @@ on:
 permissions: {}
 jobs:
   # A catalog release (vX.Y.Z) is published here, whole, from its tag: get-nexus.ps1, its SHA-256 and a provenance
-  # attestation (gh attestation verify get-nexus.ps1 --repo pironjulien/NexusSystem), with that version's CHANGELOG
+  # attestation (gh attestation verify get-nexus.ps1 --repo pironjulien/NexusSystem; its Sigstore bundle is attached as
+  # NexusSystem-X.Y.Z.intoto.jsonl, like the products' releases), with that version's CHANGELOG
   # section as notes. Releases are immutable: nothing is added once published (gh release verify vX.Y.Z).
   # A NexusSystem app release (nexussystem-v*) carries the Store app's version, no pack file.
   release:
@@ -31,16 +32,20 @@ jobs:
           [[ -s "$RUNNER_TEMP/notes.md" ]] || { echo "CHANGELOG.md has no [$version] section."; exit 1; }
           sha256sum get-nexus.ps1 > SHA256SUMS.txt && cat SHA256SUMS.txt
       - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        id: provenance
         with:
           subject-path: get-nexus.ps1
       - name: Publish the release with its files
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.ref_name }}
+          BUNDLE: ${{ steps.provenance.outputs.bundle-path }}
         run: |
           set -euo pipefail
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             echo "$TAG already has a release: push the tag alone, the release is made here with its files."; exit 1
           fi
-          gh release create "$TAG" get-nexus.ps1 SHA256SUMS.txt --repo "$GITHUB_REPOSITORY" --verify-tag --latest \
+          cp "$BUNDLE" "NexusSystem-${TAG#v}.intoto.jsonl"
+          gh release create "$TAG" get-nexus.ps1 SHA256SUMS.txt "NexusSystem-${TAG#v}.intoto.jsonl" \
+            --repo "$GITHUB_REPOSITORY" --verify-tag --latest \
             --title "NexusSystem ${TAG#v}" --notes-file "$RUNNER_TEMP/notes.md"
