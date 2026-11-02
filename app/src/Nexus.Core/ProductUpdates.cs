@@ -83,9 +83,13 @@ public static class ProductUpdates
         Read(product, folders).Count > 0 || Declarations.DeviceInstalled(product, folders) ||
         found.Where(product.Targets.Contains).Any(app => Declarations.IsDeclared(product, app, folders));
 
-    /// <summary>The installed version as maintenance, the shared Windows engine or the product itself records it, or null.</summary>
+    /// <summary>
+    /// The installed version as Windows (a Store package), maintenance, the shared Windows engine or the product itself
+    /// records it, or null.
+    /// </summary>
     public static string? InstalledVersion(Product product, UserFolders folders) =>
-        MaintenanceUpdates.Read(folders)?.Products.FirstOrDefault(item => item.Key == product.Key)?.InstalledVersion
+        StoreApps.InstalledVersion(product)
+        ?? MaintenanceUpdates.Read(folders)?.Products.FirstOrDefault(item => item.Key == product.Key)?.InstalledVersion
         ?? (product == Products.Windows ? WindowsRuntime.ReadInstallation(folders)?.Version : null)
         ?? Read(product, folders).Select(state => state.Version).FirstOrDefault(version => version is not null);
 

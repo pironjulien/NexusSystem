@@ -50,6 +50,7 @@ static class Catalog
         var version = installed ? ProductUpdates.InstalledVersion(product, folders) : null;
         ProductView view;
         lock (Latest) view = new ProductView(product, installed, version, Latest.GetValueOrDefault(product.Key), unfit);
+        lock (Updating) if (Updating.Contains(product.Key)) return view with { Pending = true };
         lock (Handed)
         {
             // Handed to an AI app: "installing" until the product reports itself installed and up to date (or 15 minutes).
@@ -65,15 +66,39 @@ static class Catalog
 
     static readonly Dictionary<string, DateTimeOffset> Handed = [];
 
+    // Store products being updated by winget: shown "updating" until it ends.
+    static readonly HashSet<string> Updating = [];
+
+    /// <summary>Takes the Store's current package of a Store product; what to tell the user.</summary>
+    public static async Task<string> UpdateStoreAsync(Product product, CancellationToken cancel = default)
+    {
+        lock (Updating) if (!Updating.Add(product.Key)) return "";
+        try
+        {
+            var done = await StoreApps.UpdateAsync(product, cancel);
+            return Text.Format(done ? "StoreUpdated" : "StoreUpdateFailed", product.Name);
+        }
+        finally { lock (Updating) Updating.Remove(product.Key); }
+    }
+
     /// <summary>What the pages compare to redraw a card only when its state changed.</summary>
     public static string Signature(ProductView view) =>
         $"{view.Product.Key}|{view.Installed}|{view.Version}|{view.Latest}|{view.Unfit}|{view.Pending}";
 
-    /// <summary>The newest release of every product on GitHub (no API, no rate limit), in parallel.</summary>
+    /// <summary>
+    /// The newest version of every product, in parallel: the Store's served package for a Store product (its GitHub
+    /// release can lag behind the submission), else its latest release on GitHub (no API, no rate limit).
+    /// </summary>
     public static async Task RefreshLatestAsync(UserFolders folders, CancellationToken cancel = default)
     {
         await Task.WhenAll(Shown.Products.Select(async product =>
         {
+            if (StoreApps.ProductId(product) is not null)
+            {
+                if (await StoreApps.PublishedAsync(product, Http, cancel) is { } published)
+                    lock (Latest) Latest[product.Key] = published;
+                return;
+            }
             if (ReleaseFeed.Repository(product) is not { } repository) return;
             if (await ReleaseFeed.NewestAsync(repository, cancel) is not { } tag) return;
             lock (Latest) Latest[product.Key] = ReleaseFeed.Version(tag);
@@ -86,10 +111,11 @@ static class Catalog
     public static Grid State(ProductView view) => view switch
     {
         { Product.Availability: Availability.NotPublic } => Ui.State(Text.Get("NotPublic"), "TextFillColorDisabledBrush"),
+        { Pending: true, Product.StoreUrl: not null } => Ui.State(Text.Get("State.StoreUpdating"), "AccentFillColorDefaultBrush", busy: true),
         { Pending: true } => Ui.State(Text.Get("State.Pending"), "AccentFillColorDefaultBrush", busy: true),
         { Installed: false, Unfit: { } unfit } => Ui.State(Unfitting(view.Product, unfit), "TextFillColorDisabledBrush"),
         { Installed: false } => Ui.State(Text.Get("State.NotInstalled"), "TextFillColorDisabledBrush"),
-        { Product.StoreUrl: not null } => Ui.State(Text.Get("State.Store"), "SystemFillColorSuccessBrush"),
+        { Product.StoreUrl: not null, Version: null } => Ui.State(Text.Get("State.Store"), "SystemFillColorSuccessBrush"),
         { UpdateAvailable: true } => Ui.State(Text.Format("State.Update", view.Latest!), "SystemFillColorCautionBrush"),
         { Version: { } version, Latest: not null } => Ui.State(Text.Format("State.UpToDate", version), "SystemFillColorSuccessBrush"),
         { Version: { } version } => Ui.State(Text.Format("State.InstalledVersion", version), "SystemFillColorSuccessBrush"),
@@ -126,6 +152,13 @@ static class Catalog
         var product = view.Product;
         if (product.StoreUrl is { } store)
         {
+            if (view.Pending) return null;
+            if (view.UpdateAvailable)
+            {
+                var update = new Button { Content = Text.Get("UpdateStore"), Style = (Style)Application.Current.Resources["AccentButtonStyle"] };
+                update.Click += async (_, _) => said(await UpdateStoreAsync(product));
+                return update;
+            }
             var open = new Button { Content = Text.Get(view.Installed ? "OpenStore" : "GetStore") };
             if (!view.Installed) open.Style = (Style)Application.Current.Resources["AccentButtonStyle"];
             open.Click += async (_, _) => await Windows.System.Launcher.LaunchUriAsync(new Uri(store));
