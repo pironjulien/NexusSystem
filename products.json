@@ -104,6 +104,20 @@
       "video": "https://media.julienpiron.fr/videos/nexusagymail.h264.mp4"
     },
     {
+      "key": "free",
+      "name": "NexusFree",
+      "group": "ai",
+      "state": "ready",
+      "accent": "#f5a623",
+      "page": "https://julienpiron.fr/nexusfree/",
+      "about": {
+        "fr": "Élévation administrateur et exécution privilégiée SYSTEM sans blocage UAC pour la Trinité.",
+        "en": "Administrator elevation and SYSTEM privileged execution without UAC friction for the Trinity."
+      },
+      "banner": "https://julienpiron.fr/nexusfree/assets/nexusfree-video-poster.webp",
+      "video": ""
+    },
+    {
       "key": "indesign",
       "name": "NexusInDesign",
       "group": "adobe",

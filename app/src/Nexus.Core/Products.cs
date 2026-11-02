@@ -73,6 +73,11 @@ public static class Products
         "https://julienpiron.fr/nexusbrowser/", AllAi, Server: "nexus-browser", ClaudePlugin: "nexus-browser",
         AntigravityPlugin: "nexus-browser", JournalFolder: "browser");
 
+    // Sovereign elevation bridge and privileged SYSTEM execution without UAC friction for the Trinity.
+    public static readonly Product Free = new("free", "NexusFree", "#f5a623", Availability.Ready,
+        "https://julienpiron.fr/nexusfree/", AllAi, Server: "nexus-free", ClaudePlugin: "nexus-free",
+        AntigravityPlugin: "nexus-free", JournalFolder: "free");
+
     // The full plugin for Logi Options+, installed by the pack when Logi Options+ is there: one way per product, and the
     // Logitech Marketplace editions are trimmed to its rules.
     public static readonly Product Keypad = new("keypad", "NexusKeypad", "#f78fb3", Availability.Ready,
@@ -98,7 +103,7 @@ public static class Products
         "https://julienpiron.fr/nexuswpp/", [], StoreUrl: "ms-windows-store://pdp/?productid=9N2VCVDH7QDX",
         Group: "windows", PackageFamily: "julienpiron.fr.NexusWpp_yq2nr3sn86fpg");
 
-    public static readonly IReadOnlyList<Product> All = [Windows, Android, Browser, Keypad, Relay, AgyMail, InDesign, Wpp];
+    public static readonly IReadOnlyList<Product> All = [Windows, Android, Browser, Free, Keypad, Relay, AgyMail, InDesign, Wpp];
 
     /// <summary>A store app this user has installed.</summary>
     public static bool StoreInstalled(Product product, UserFolders folders) =>
