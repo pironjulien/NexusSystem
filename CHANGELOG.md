@@ -7,6 +7,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Changed
+- `test.ps1` no longer suggests `Install-Module -Scope CurrentUser` when PSScriptAnalyzer is missing: that scope
+  installs into Documents, which OneDrive often syncs. It suggests `Save-PSResource -Path` to a module folder outside
+  Documents.
+
 ### Fixed (app 1.0.14.0)
 - A Microsoft Store product (NexusWpp) shows its installed version and the version the Store serves, with "New version
   X" and an "Update" button like the AI products. It said only "Installed · Microsoft Store" while a PC stayed on

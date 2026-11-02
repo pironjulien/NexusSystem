@@ -2,7 +2,7 @@
 # catalogs (Claude Code, Codex), get-nexus.ps1 on throwaway profiles under Windows PowerShell 5.1, the app's build
 # (warnings are errors) and tests. Build and test output: ~\.nexus\build\NexusSystem (Directory.Build.props).
 $ErrorActionPreference = 'Stop'
-if (-not (Get-Module -ListAvailable PSScriptAnalyzer)) { throw 'PSScriptAnalyzer is missing: Install-Module PSScriptAnalyzer -Scope CurrentUser' }
+if (-not (Get-Module -ListAvailable PSScriptAnalyzer)) { throw 'PSScriptAnalyzer is missing: Save-PSResource PSScriptAnalyzer -Path <a PSModulePath folder outside Documents> (-Scope CurrentUser installs into Documents, often synced by OneDrive)' }
 $lint = Invoke-ScriptAnalyzer -Path $PSScriptRoot -Recurse -Settings (Join-Path $PSScriptRoot 'PSScriptAnalyzerSettings.psd1')
 if ($lint) { $lint | Format-Table -AutoSize ScriptName, Line, RuleName, Message | Out-String -Width 200 | Write-Host; exit 1 }
 Push-Location $PSScriptRoot  # dotnet test reads global.json from the current folder
