@@ -21,6 +21,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
   `winget install --source msstore --force`.
 
 ### Fixed
+- Pin NexusWindows v3.16.5 in both catalogs, allowing direct semantic actions on stable controls while unrelated
+  parts of the interface update.
 - Pin NexusInDesign v4.1.1 in the Claude Code and Codex catalogs, correcting the skill description's YAML syntax.
 - Parse skill front matter as YAML in catalog tests so folded descriptions retain their text and malformed YAML fails validation.
 - Local app install (`app/tools/install-local.ps1`): earlier local copies (other versions and payloads, the older flat
