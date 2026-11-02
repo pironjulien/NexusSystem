@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
+using YamlDotNet.RepresentationModel;
 
 namespace NexusSystem.Tests;
 
@@ -17,7 +18,7 @@ static class Repository
     public static JsonNode Json(string relative) => JsonNode.Parse(Text(relative))
         ?? throw new InvalidDataException($"{relative}: empty JSON");
 
-    /// <summary>Front matter fields of a SKILL.md (name: value lines).</summary>
+    /// <summary>Scalar YAML front matter fields of a SKILL.md.</summary>
     public static Dictionary<string, string> FrontMatter(string relative) => FrontMatterOf(PathOf(relative));
 
     /// <summary>Front matter fields of a SKILL.md given by its full path.</summary>
@@ -25,10 +26,11 @@ static class Repository
     {
         var match = Regex.Match(File.ReadAllText(path), @"\A---\r?\n(.*?)\r?\n---\r?\n", RegexOptions.Singleline);
         Assert.True(match.Success, $"{path}: missing YAML front matter");
-        return match.Groups[1].Value.Split('\n')
-            .Select(line => line.Split(':', 2))
-            .Where(parts => parts.Length == 2)
-            .ToDictionary(parts => parts[0].Trim(), parts => parts[1].Trim().Trim('"'));
+        var yaml = new YamlStream();
+        yaml.Load(new StringReader(match.Groups[1].Value));
+        var fields = Assert.IsType<YamlMappingNode>(Assert.Single(yaml.Documents).RootNode).Children;
+        return fields.Where(field => field.Key is YamlScalarNode && field.Value is YamlScalarNode)
+            .ToDictionary(field => ((YamlScalarNode)field.Key).Value!, field => ((YamlScalarNode)field.Value).Value ?? "");
     }
 
     /// <summary>Width and height of a PNG, or null when the file is not one.</summary>

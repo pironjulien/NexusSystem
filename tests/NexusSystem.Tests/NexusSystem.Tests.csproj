@@ -13,6 +13,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="xunit.v3" Version="4.0.2" />
+    <PackageReference Include="YamlDotNet" Version="18.1.0" />
     <Using Include="Xunit" />
     <AssemblyMetadata Include="NexusSystem.Repository" Value="$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\..'))" />
   </ItemGroup>

@@ -16,6 +16,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
   `winget install --source msstore --force`.
 
 ### Fixed
+- Pin NexusInDesign v4.1.1 in the Claude Code and Codex catalogs, correcting the skill description's YAML syntax.
+- Parse skill front matter as YAML in catalog tests so folded descriptions retain their text and malformed YAML fails validation.
 - Local app install (`app/tools/install-local.ps1`): earlier local copies (other versions and payloads, the older flat
   layout and old `publish-*` folders) are removed once the new copy is installed, unless a running NexusSystem uses
   them. They had grown to 6.6 GB on the author's PC.
