@@ -7,6 +7,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Fixed (app 1.0.14.0)
+- A Microsoft Store product (NexusWpp) shows its installed version and the version the Store serves, with "New version
+  X" and an "Update" button like the AI products. It said only "Installed · Microsoft Store" while a PC stayed on
+  1.0.45.0 with 1.0.51.0 published. The served version comes from the Store's display catalog (its MSIX package), not
+  from GitHub (its release lags behind the submission) nor winget's msstore source (it reports "Unknown", so
+  `winget upgrade` saw nothing). "Update" and "Get updates" take the Store's package with
+  `winget install --source msstore --force`.
+
 ### Fixed
 - Local app install (`app/tools/install-local.ps1`): earlier local copies (other versions and payloads, the older flat
   layout and old `publish-*` folders) are removed once the new copy is installed, unless a running NexusSystem uses

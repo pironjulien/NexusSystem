@@ -120,11 +120,20 @@ public sealed partial class UpdatesPage : UserControl
                 maintenanceAsked |= managed;
                 started |= await ProductUpdates.RequestManagedAsync(product, folders, Http, lifetime.Token) == UpdateRequest.Started;
             }
+            // Store products: winget takes the Store's current package (the Store's own updates can lag for days).
+            var store = "";
+            foreach (var view in Installed().Where(view => view.UpdateAvailable && view.Product.StoreUrl is not null).ToList())
+            {
+                Say(Text.Format("State.StoreUpdatingOne", view.Product.Name), InfoBarSeverity.Informational);
+                var updating = Catalog.UpdateStoreAsync(view.Product, lifetime.Token);
+                Fill();
+                store = await updating;
+            }
             if (lifetime.IsCancellationRequested) return;
             Fill();
             var late = Installed().Where(view => view.UpdateAvailable).Select(view => view.Product.Name).ToList();
             if (late.Count > 0) Say(Text.Format("Updates.Some", string.Join(", ", late)), InfoBarSeverity.Warning);
-            else Say(Text.Get(started ? "Updates.Started" : "Updates.UpToDate"));
+            else Say(started ? Text.Get("Updates.Started") : store.Length > 0 ? store : Text.Get("Updates.UpToDate"));
         }
         catch (OperationCanceledException) { }
         catch (Exception error)
