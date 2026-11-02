@@ -47,9 +47,12 @@ pwsh app/tools/pin-plugin.ps1 -Name nexus-<product> -Product <Product> -Tag vX.Y
 
 NexusKeypad's plugin folder is `connecteurs/` (its `plugin/` is the Logitech plugin): add `-Path connecteurs`.
 
-On the user's PC, do not wait for the hourly maintenance: once the stable release is published, run it at once
-(`Start-ScheduledTask -TaskName 'NexusSystem Update'`, then read `%USERPROFILE%\.nexus\status\nexussystem-update.json`)
-and check that the product reached the new version. Between releases, changes are tested from the working folder.
+On the user's PC, do not wait for the hourly maintenance: once the stable release is published, run it at once,
+forced past its hourly check (`powershell -NoProfile -ExecutionPolicy Bypass -File
+"$env:USERPROFILE\.nexus\nexussystem\maintenance\get-nexus.ps1" -Maintain -ForceMaintenance`; the scheduled task
+`NexusSystem Update` returns at once while its `nextCheckAt` is ahead), then read
+`%USERPROFILE%\.nexus\status\nexussystem-update.json` and check that the product reached the new version (exit code
+2, state `pending`: installed, running sessions keep their engine until a normal reload). Between releases, changes are tested from the working folder.
 
 Claude Code and Codex read the catalog from `main`: no NexusSystem release is needed for a plugin or engine update.
 A NexusSystem release (`vX.Y.Z` here) is needed only when `get-nexus.ps1` changes: raise the version, add its
