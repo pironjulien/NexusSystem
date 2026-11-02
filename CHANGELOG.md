@@ -23,6 +23,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 ### Fixed
 - Pin NexusWindows v3.16.5 in both catalogs, allowing direct semantic actions on stable controls while unrelated
   parts of the interface update.
+
+## [1.6.50] - 2026-11-03
+
+### Fixed
+- Codex no longer asks again for the hooks of NexusRelay and NexusKeypad after a maintenance update. Refreshing the
+  catalog updates every installed Nexus plugin, but only the plugin being installed (NexusWindows, NexusBrowser,
+  which have no hooks) had its new hook versions approved. The catalog refresh now approves the hooks of every
+  installed plugin of this catalog, through Codex's own app server; other catalogs and disabled hooks are untouched.
 - Pin NexusInDesign v4.1.1 in the Claude Code and Codex catalogs, correcting the skill description's YAML syntax.
 - Parse skill front matter as YAML in catalog tests so folded descriptions retain their text and malformed YAML fails validation.
 - Local app install (`app/tools/install-local.ps1`): earlier local copies (other versions and payloads, the older flat

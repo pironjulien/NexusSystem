@@ -53,7 +53,7 @@ $ProgressPreference = 'SilentlyContinue'  # Invoke-WebRequest is many times slow
 $Ok = [string][char]0x2713
 $No = [string][char]0x2717
 $Marketplace = 'nexus-plugins'
-$NexusMaintenanceVersion = '1.6.49'
+$NexusMaintenanceVersion = '1.6.50'
 
 # AI apps, in display order. Claude Desktop also carries Claude Code (its Code tab reads the same ~\.claude).
 $AiNames = [ordered]@{
@@ -718,6 +718,13 @@ function Install-CodexMarketplace([string]$Cli, [string]$Catalog) {
         }
         if (-not $localCatalog) {
             & $Cli plugin marketplace upgrade $Marketplace --json
+            if ($LASTEXITCODE) { return }
+            # The upgrade refreshes every installed plugin of this catalog (Relay and Keypad carry hooks), not only
+            # the one being installed: approve this catalog's new hook versions here too.
+            try {
+                $approved = Approve-CodexPluginHook $Cli
+                if ($approved) { Say "Codex: $approved hook(s) of the Nexus plugins approved." }
+            } catch { Say "Codex: hooks not approved in advance ($_); Codex will ask once." Yellow }
         }
     }
 }
@@ -740,10 +747,11 @@ function Install-CodexPlugin([string]$Cli, [string]$Name) {
     }
 }
 
-function Approve-CodexPluginHook([string]$Cli, [string]$PluginId) {
+function Approve-CodexPluginHook([string]$Cli, [string]$PluginId = '') {
     # Codex asks again for every hook of a plugin whose files changed, so each Nexus update meant a new approval.
-    # Installing the product is that consent: the signed engine itself lists this plugin's hooks and records their
-    # current hashes (its own hashing, through its app server); other plugins and disabled hooks are left alone.
+    # Installing the product is that consent: the signed engine itself lists this plugin's hooks (without a plugin,
+    # those of every installed plugin of this catalog) and records their current hashes (its own hashing, through
+    # its app server); other catalogs' plugins and disabled hooks are left alone.
     $start = New-Object Diagnostics.ProcessStartInfo $Cli, 'app-server'
     $start.UseShellExecute = $false
     $start.CreateNoWindow = $true
@@ -781,7 +789,8 @@ function Approve-CodexPluginHook([string]$Cli, [string]$PluginId) {
         $listed = Send-CodexRequest 'hooks/list' @{ cwds = @($env:USERPROFILE) }
         $trust = @{}
         foreach ($hook in @($listed.data | ForEach-Object { $_.hooks })) {
-            if ($hook.pluginId -ceq $PluginId -and $hook.enabled -and $hook.trustStatus -in 'untrusted', 'modified' -and $hook.currentHash) {
+            $ours = if ($PluginId) { $hook.pluginId -ceq $PluginId } else { "$($hook.pluginId)".EndsWith("@$Marketplace", [StringComparison]::Ordinal) }
+            if ($ours -and $hook.enabled -and $hook.trustStatus -in 'untrusted', 'modified' -and $hook.currentHash) {
                 $trust[$hook.key] = @{ trusted_hash = $hook.currentHash }
             }
         }
