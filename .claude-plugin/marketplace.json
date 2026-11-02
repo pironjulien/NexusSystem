@@ -141,6 +141,29 @@
       "homepage": "https://github.com/pironjulien/NexusInDesign",
       "repository": "https://github.com/pironjulien/NexusInDesign",
       "license": "MIT"
+    },
+    {
+      "name": "nexus-free",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/pironjulien/NexusFree.git",
+        "path": "plugin",
+        "ref": "v1.0.0"
+      },
+      "description": "Administrator elevation and SYSTEM privileged execution without UAC friction for the Trinity (sfc, dism, services, registry, installations). Starts the native NexusFree engine installed by NexusSystem (or NexusFree's get.ps1).",
+      "version": "1.0.0",
+      "category": "productivity",
+      "keywords": [
+        "elevation",
+        "admin",
+        "system",
+        "uac",
+        "mcp",
+        "windows"
+      ],
+      "homepage": "https://julienpiron.fr/nexusfree/",
+      "repository": "https://github.com/pironjulien/NexusFree",
+      "license": "MIT"
     }
   ]
 }
