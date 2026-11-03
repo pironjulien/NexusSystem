@@ -94,7 +94,7 @@
         "source": "git-subdir",
         "url": "https://github.com/pironjulien/NexusFree.git",
         "path": "plugin",
-        "ref": "v1.2.2"
+        "ref": "v1.2.3"
       },
       "policy": {
         "installation": "AVAILABLE",
