@@ -52,7 +52,7 @@
         "source": "git-subdir",
         "url": "https://github.com/pironjulien/NexusRelay.git",
         "path": "plugin",
-        "ref": "v1.12.2"
+        "ref": "v1.12.3"
       },
       "policy": {
         "installation": "AVAILABLE",
