@@ -15,10 +15,10 @@
         "source": "git-subdir",
         "url": "https://github.com/pironjulien/NexusAndroid.git",
         "path": "plugin",
-        "ref": "v0.23.2"
+        "ref": "v0.23.3"
       },
       "description": "Android phone over plain ADB (no root, no app): screen, gestures, SMS/RCS, notifications, files, settings. Served by the local NexusAndroid daemon, installed by NexusSystem (or NexusAndroid's get.ps1); needs USB debugging on the phone.",
-      "version": "0.23.2",
+      "version": "0.23.3",
       "category": "productivity",
       "keywords": [
         "android",
@@ -37,10 +37,10 @@
         "source": "git-subdir",
         "url": "https://github.com/pironjulien/NexusWindows.git",
         "path": "plugin",
-        "ref": "v3.16.6"
+        "ref": "v3.16.7"
       },
       "description": "Windows desktop apps through native UI Automation: observe, click, type, menus, shortcuts and launch. Foreground interaction is explicit when required. Starts the native NexusWindows engine installed by NexusSystem (or NexusWindows' get.ps1).",
-      "version": "3.16.6",
+      "version": "3.16.7",
       "category": "productivity",
       "keywords": [
         "windows",
@@ -103,10 +103,10 @@
         "source": "git-subdir",
         "url": "https://github.com/pironjulien/NexusKeypad.git",
         "path": "connecteurs",
-        "ref": "v1.8.25"
+        "ref": "v1.8.26"
       },
       "description": "NexusKeypad in Claude and Codex: live states for the Logitech keypad (hooks), Claude's exact usage (5-hour and weekly) for the keypad. No alert, no network. Needs NexusKeypad, installed by NexusSystem (or NexusKeypad's get.ps1).",
-      "version": "1.8.25",
+      "version": "1.8.26",
       "category": "productivity",
       "keywords": [
         "logitech",
