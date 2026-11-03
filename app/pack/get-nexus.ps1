@@ -12,7 +12,7 @@
 # It finds Claude Code, Claude Desktop, Codex and Antigravity, shows the plan, gives Claude Code and Codex the plugins
 # of this catalog, then runs each product's own official installer. No installer logic is copied here.
 # Run it again at any time: every installer only does what is missing.
-#   -Only / -Skip  product names (windows, android, browser, relay, agymail, indesign, keypad) or AI names (claude-code,
+#   -Only / -Skip  product names (windows, android, browser, relay, agymail, indesign, keypad; free only when named) or AI names (claude-code,
 #                  claude-desktop, codex, antigravity), comma separated
 #   -DryRun        show the plan and do nothing
 #   -NoGuide       do not open Chrome on its extensions page at the end (the guide is printed instead)
@@ -53,7 +53,7 @@ $ProgressPreference = 'SilentlyContinue'  # Invoke-WebRequest is many times slow
 $Ok = [string][char]0x2713
 $No = [string][char]0x2717
 $Marketplace = 'nexus-plugins'
-$NexusMaintenanceVersion = '1.6.50'
+$NexusMaintenanceVersion = '1.6.51'
 
 # AI apps, in display order. Claude Desktop also carries Claude Code (its Code tab reads the same ~\.claude).
 $AiNames = [ordered]@{
@@ -87,7 +87,12 @@ $Products = @(
     # Adobe InDesign through its COM automation (4.0.0): its get.ps1 installs the engine at its stable path
     # (~\.nexus\nexus-indesign\NexusInDesign.exe); Claude Code and Codex get their plugin from this catalog.
     @{ Key = 'indesign'; Name = 'NexusInDesign'; Repo = 'NexusInDesign'; Engine = $true; Plugin = 'nexus-indesign'; Server = 'nexus-indesign'; Targets = @('claude-code', 'codex') },
-    @{ Key = 'keypad'; Name = 'NexusKeypad'; Repo = 'NexusKeypad'; Targets = @(); Device = 'Logi Options+' }
+    @{ Key = 'keypad'; Name = 'NexusKeypad'; Repo = 'NexusKeypad'; Targets = @(); Device = 'Logi Options+' },
+    # SYSTEM commands without UAC for the installing account (1.1.0): its get.ps1 installs the engine
+    # (~\.nexus\nexus-free\NexusFree.exe), the SYSTEM side (one UAC prompt the first time) and Antigravity's plugin.
+    # Opt-in: it gives the account SYSTEM rights, so only an explicit -Only free installs it; maintenance updates it.
+    @{ Key = 'free'; Name = 'NexusFree'; Repo = 'NexusFree'; Engine = $true; Plugin = 'nexus-free'; Agy = 'nexus-free'; Server = 'nexus-free'
+       Targets = @('claude-code', 'codex', 'antigravity'); OptIn = $true }
 )
 
 function Say([string]$Text, [string]$Color = 'Gray') { Write-Host $Text -ForegroundColor $Color }
@@ -236,6 +241,8 @@ function Get-Product([string]$Key) { return $Products | Where-Object { $_.Key -e
 function Test-Wanted([string]$Key, [string[]]$Universe, [string[]]$OnlyList, [string[]]$SkipList) {
     $scoped = @($OnlyList | Where-Object { $Universe -contains $_ })
     if ($scoped.Count -and $scoped -notcontains $Key) { return $false }
+    # An opt-in product is installed only when named.
+    if (-not $scoped.Count -and ($Products | Where-Object { $_.Key -eq $Key -and $_.OptIn })) { return $false }
     return $SkipList -notcontains $Key
 }
 
@@ -986,7 +993,7 @@ $Checks = @{
 # Products whose installer configures every AI app found in one run. It gets the AI apps to configure in
 # NEXUS_PACK_TARGETS (pack names, comma separated). Until a product honors it (listed here), the pack does not run it
 # when that would go beyond the selection: -Only/-Skip, or an AI app where the user turned the product off.
-$OneRunForAll = @('windows', 'android', 'browser', 'relay', 'agymail', 'indesign')
+$OneRunForAll = @('windows', 'android', 'browser', 'relay', 'agymail', 'indesign', 'free')
 $HonorsTargets = $OneRunForAll
 
 # Why a product does not apply on this PC, or $null when it does.
@@ -1168,6 +1175,7 @@ function Get-NexusInstalledVersion($Product) {
                 'relay' { Join-Path $env:LOCALAPPDATA 'NexusRelay\versions\*\NexusRelay.exe' }
                 'agymail' { Join-Path $env:USERPROFILE '.nexus\nexus-agymail\app\*\NexusAGYmail.exe' }
                 'indesign' { Join-Path $env:USERPROFILE '.nexus\nexus-indesign\NexusInDesign.exe' }
+                'free' { Join-Path $env:USERPROFILE '.nexus\nexus-free\NexusFree.exe' }
                 default { return $null }
             }
             $versions=@(Get-ChildItem -Path $pattern -File -ErrorAction SilentlyContinue | ForEach-Object {
@@ -1426,8 +1434,8 @@ function Invoke-NexusMaintenance([switch]$Current,[switch]$Force) {
             # multi-AI profiles and multi-entry skip lists are not accidentally nested and then overlooked.
             $skip=Get-LocalSkip; $found=Find-AiApp
             foreach ($product in $Products | Where-Object {$_.Repo -and $skip -notcontains $_.Key}) {
-                if ($product.Device -or $product.Key -in 'android','relay','agymail','indesign') {
-                    # NexusKeypad, NexusAndroid, NexusRelay, NexusAGYmail, NexusInDesign: when a newer release exists, its published
+                if ($product.Device -or $product.Key -in 'android','relay','agymail','indesign','free') {
+                    # NexusKeypad, NexusAndroid, NexusRelay, NexusAGYmail, NexusInDesign, NexusFree: when a newer release exists, its published
                     # installer, unattended (NEXUS_PACK), replaces the engine and refreshes the AI connections it owns.
                     $installed=Get-NexusInstalledVersion $product
                     if (-not $installed) { continue }
@@ -1444,7 +1452,7 @@ function Invoke-NexusMaintenance([switch]$Current,[switch]$Force) {
                             if (-not $installed -or [version]$installed -lt [version]$published) { throw 'The installed version did not reach the published version.' }
                         }
                         $row.state='success'; $row.message='Published version installed.'
-                        if ($product.Key -in 'android','relay','agymail','indesign') { Write-NexusProductStatus $product.Key $installed $row.publishedVersion }
+                        if ($product.Key -in 'android','relay','agymail','indesign','free') { Write-NexusProductStatus $product.Key $installed $row.publishedVersion }
                     } catch { $row.state='failed'; $row.message=$_.Exception.Message }
                     $state.products += [pscustomobject]$row
                     Write-NexusMaintenanceStatus $state
@@ -1712,7 +1720,7 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
         #    (daemon), NexusAGYmail (its Antigravity plugin; the Google sign-in is the user's own step, below),
         #    NexusInDesign (engine at its stable path). Each one is told the AI apps chosen here; a failed installer fails
         #    every cell it serves, plugin cells included.
-        foreach ($key in 'windows', 'android', 'browser', 'relay', 'agymail', 'indesign') {
+        foreach ($key in 'windows', 'android', 'browser', 'relay', 'agymail', 'indesign', 'free') {
             $product = Get-Product $key
             if (-not $wants[$key] -or -not $targets[$key].Count) { continue }
             $env:NEXUS_PACK_TARGETS = $targets[$key] -join ','

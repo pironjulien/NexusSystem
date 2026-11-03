@@ -353,4 +353,19 @@ public class CatalogTests
             Assert.False((bool?)hook["async"]);
         }
     }
+
+    [Fact]
+    public void EveryCatalogProductIsInstalledAndMaintainedByThePack()
+    {
+        // 2026-11-03: NexusFree reached products.json and both catalogs but not get-nexus.ps1, so the app offered a
+        // product its installer and its maintenance did not know. Every product the app installs through the AI apps,
+        // and every plugin of the catalogs, must be one of the pack's products.
+        var pack = Repository.Text("get-nexus.ps1");
+        var keys = Regex.Matches(pack, @"@\{ Key = '([a-z0-9]+)'").Select(m => m.Groups[1].Value).ToHashSet();
+        var ready = Repository.Json("products.json")["products"]!.AsArray()
+            .Where(p => (string?)p!["state"] == "ready").Select(p => (string)p!["key"]!);
+        Assert.Subset(keys, ready.ToHashSet());
+        var plugins = Regex.Matches(pack, @"Plugin = '(nexus-[a-z0-9-]+)'").Select(m => m.Groups[1].Value).Append("nexus-keypad").ToHashSet();
+        Assert.Subset(plugins, Plugins.ToHashSet());
+    }
 }

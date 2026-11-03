@@ -7,11 +7,6 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
-### Changed
-- `test.ps1` no longer suggests `Install-Module -Scope CurrentUser` when PSScriptAnalyzer is missing: that scope
-  installs into Documents, which OneDrive often syncs. It suggests `Save-PSResource -Path` to a module folder outside
-  Documents.
-
 ### Fixed (app 1.0.14.0)
 - A Microsoft Store product (NexusWpp) shows its installed version and the version the Store serves, with "New version
   X" and an "Update" button like the AI products. It said only "Installed · Microsoft Store" while a PC stayed on
@@ -19,6 +14,20 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
   from GitHub (its release lags behind the submission) nor winget's msstore source (it reports "Unknown", so
   `winget upgrade` saw nothing). "Update" and "Get updates" take the Store's package with
   `winget install --source msstore --force`.
+
+## [1.6.51] - 2026-11-03
+
+### Added
+- NexusFree in the pack: `get-nexus.ps1 -Only free` runs its published installer (one UAC prompt the first time) for
+  Claude Code, Codex and Antigravity, and maintenance updates an installed NexusFree like the other engines. It is
+  opt-in: it gives the account SYSTEM commands without UAC, so a run without `-Only free` never installs it. The app
+  showed NexusFree since 1.6.50's catalog, but its "Install by the AI" reached a pack that did not know it.
+- A catalog test fails when a ready product of `products.json` or a catalog plugin is missing from the pack.
+
+### Changed
+- `test.ps1` no longer suggests `Install-Module -Scope CurrentUser` when PSScriptAnalyzer is missing: that scope
+  installs into Documents, which OneDrive often syncs. It suggests `Save-PSResource -Path` to a module folder outside
+  Documents.
 
 ### Fixed
 - Pin NexusWindows v3.16.5 in both catalogs, allowing direct semantic actions on stable controls while unrelated
