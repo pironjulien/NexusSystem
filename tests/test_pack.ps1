@@ -283,7 +283,7 @@ try {
             $moved = Join-Path $env:LOCALAPPDATA 'Claude-Data\AnthropicPBC.Claude_test\.user-data-left.fixture'
             New-Item -ItemType File -Path $moved | Out-Null
             if ($null -ne (Get-ClaudeCli)) { throw 'A Desktop data directory marked as moved must be refused.' }
-            Remove-Item -LiteralPath $moved
+            # Keep the marker in its isolated profile until the whole fixture is recycled below.
             $packaged = Join-Path $env:LOCALAPPDATA 'Packages\AnthropicPBC.Claude_fixture\LocalCache\Roaming\Claude\claude-code\2.4.1\abcdef012347\claude.exe'
             New-Item -ItemType Directory -Force (Split-Path $packaged) | Out-Null
             [IO.File]::WriteAllText($packaged, 'Inert packaged fixture: execution must fail.')
@@ -308,37 +308,128 @@ try {
         Test-Case "NexusKeypad detected: $($case[0])" $result 0 @($expected)
     }
 
-    # Write-JsonWithBackup (taken from the script) killed in the middle of rewriting a large settings.json, again and
-    # again: the file must always read as whole JSON, the old content or the new.
+    # The production writer, including its real native replacement calls. Wait for a completed write before the
+    # original varied crash timings, so slow PowerShell startup is never mistaken for replacement coverage.
     $writer = ([System.Management.Automation.Language.Parser]::ParseFile($pack, [ref]$null, [ref]$null)).FindAll({
             param($ast) $ast -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $ast.Name -eq 'Write-JsonWithBackup' }, $true) | Select-Object -First 1
     $root = Initialize-Profile 'atomic-settings' @('.claude')
     $settings = Join-Path $root '.claude\settings.json'
-    [IO.File]::WriteAllText($settings, '{"enabledPlugins": {"old": true}}')
+    $permissions = "$($writer.Extent.Text)`n" + @'
+$sections = [Security.AccessControl.AccessControlSections]::Access
+$security = New-Object Security.AccessControl.FileSecurity
+$security.SetAccessRuleProtection($true, $false)
+$sid = [Security.Principal.WindowsIdentity]::GetCurrent().User
+$security.AddAccessRule((New-Object Security.AccessControl.FileSystemAccessRule($sid, 'FullControl', 'Allow')))
+$systemSid = New-Object Security.Principal.SecurityIdentifier('S-1-5-18')
+$security.AddAccessRule((New-Object Security.AccessControl.FileSystemAccessRule($systemSid, 'FullControl', 'Allow')))
+$target = Join-Path $env:USERPROFILE '.claude\settings.json'
+[IO.File]::WriteAllText($target, '{"enabledPlugins":{"old":true}}')
+Set-Acl -LiteralPath $target -AclObject $security
+$expected = (Get-Acl -LiteralPath $target).GetSecurityDescriptorSddlForm($sections)
+Write-JsonWithBackup $target ([pscustomobject]@{ enabledPlugins = @{ new = $true } })
+'acl-preserved=' + ((Get-Acl -LiteralPath $target).GetSecurityDescriptorSddlForm($sections) -ceq $expected)
+$backups = @(Get-ChildItem (Join-Path $env:USERPROFILE '.nexus\pack\backups') -File)
+'backup-old=' + ($backups.Count -eq 1 -and ([IO.File]::ReadAllText($backups[0].FullName) | ConvertFrom-Json).enabledPlugins.old)
+'backup-acl-preserved=' + ((Get-Acl -LiteralPath $backups[0].FullName).GetSecurityDescriptorSddlForm($sections) -ceq $expected)
+$before = [IO.File]::ReadAllText($target)
+$held = [IO.File]::Open($target, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::Read)
+$refused = $false
+try { try { Write-JsonWithBackup $target ([pscustomobject]@{ rejected = $true }) } catch { $refused = $true } }
+finally { $held.Dispose() }
+'locked-replacement-refused=' + $refused
+'locked-target-kept=' + ([IO.File]::ReadAllText($target) -ceq $before)
+'locked-acl-kept=' + ((Get-Acl -LiteralPath $target).GetSecurityDescriptorSddlForm($sections) -ceq $expected)
+$backups = @(Get-ChildItem (Join-Path $env:USERPROFILE '.nexus\pack\backups') -File)
+'distinct-backups=' + ($backups.Count -eq 2)
+'all-backup-acls-preserved=' + (@($backups | Where-Object { (Get-Acl -LiteralPath $_.FullName).GetSecurityDescriptorSddlForm($sections) -cne $expected }).Count -eq 0)
+$unsafeTemporary = @(Get-ChildItem (Split-Path $target) -Filter '*.tmp' -File | Where-Object {
+    (Get-Acl -LiteralPath $_.FullName).GetSecurityDescriptorSddlForm($sections) -cne $expected
+})
+'retained-temp-protected=' + ($unsafeTemporary.Count -eq 0)
+'@
+    $result = Invoke-Pack $root $permissions
+    Test-Case 'settings.json: protected DACL, old backup and refused replacement preserve the target' $result 0 @(
+        'acl-preserved=True', 'backup-old=True', 'backup-acl-preserved=True', 'locked-replacement-refused=True', 'locked-target-kept=True',
+        'locked-acl-kept=True', 'distinct-backups=True', 'all-backup-acls-preserved=True', 'retained-temp-protected=True')
+    Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+using System.Threading;
+public static class AtomicSettingsCrash {
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool TerminateProcess(IntPtr process, uint exitCode);
+    public static int Interrupt(System.Diagnostics.Process child, Semaphore completed, int delayMs) {
+        var handle = child.Handle;
+        // A readiness watchdog only; no pause is inserted into the writer. It keeps entering the real replacement
+        // calls while the parent varies the crash phase, rather than being stopped only at a safe boundary.
+        if (!completed.WaitOne(TimeSpan.FromSeconds(30))) {
+            if (!child.HasExited) TerminateProcess(handle, 98);
+            child.WaitForExit();
+            throw new TimeoutException("Owned writer made no observable progress within the watchdog");
+        }
+        Thread.Sleep(delayMs);
+        if (child.HasExited || !TerminateProcess(handle, 99)) throw new InvalidOperationException("Owned writer exited before the crash probe");
+        child.WaitForExit();
+        var writes = 1;
+        while (completed.WaitOne(0)) writes++;
+        return writes;
+    }
+}
+'@
     $loop = Join-Path $work 'atomic-loop.ps1'
     [IO.File]::WriteAllText($loop, (@(
-                "`$env:USERPROFILE = '$root'", $writer.Extent.Text,
+                'param([string]$ProgressName)', "`$ErrorActionPreference = 'Stop'", "`$env:USERPROFILE = '$root'", $writer.Extent.Text,
+                '$completed = [Threading.Semaphore]::OpenExisting($ProgressName)',
                 "`$value = [pscustomobject]@{ enabledPlugins = @{ new = `$true }; padding = ('x' * 6MB) }",
-                "while (`$true) { Write-JsonWithBackup '$settings' `$value }") -join "`r`n"))
+                "while (`$true) { Write-JsonWithBackup '$settings' `$value; [void]`$completed.Release() }") -join "`r`n"))
     $broken = @()
+    $observedWrites = 0
+    $attempt = 0
     foreach ($delay in 700, 900, 1100, 1300, 1500, 1700, 1900, 2100) {
-        $process = Start-Process powershell.exe -ArgumentList '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', "`"$loop`"" -NoNewWindow -PassThru
-        Start-Sleep -Milliseconds $delay
-        Stop-Process -Id $process.Id -Force
-        $process.WaitForExit()
+        $attempt++
+        [IO.File]::WriteAllText($settings, '{"enabledPlugins": {"old": true}}')
+        $progressName = "Local\NexusAtomicSettings-$PID-$([guid]::NewGuid().ToString('N'))"
+        $completed = [Threading.Semaphore]::new(0, [int]::MaxValue, $progressName)
+        $process = $null
         try {
+            $stderr = Join-Path $work "atomic-$attempt.stderr"
+            $stdout = Join-Path $work "atomic-$attempt.stdout"
+            $process = Start-Process powershell.exe -ArgumentList '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', "`"$loop`"", '-ProgressName', $progressName -WindowStyle Hidden -RedirectStandardError $stderr -RedirectStandardOutput $stdout -PassThru
+            $observedWrites += [AtomicSettingsCrash]::Interrupt($process, $completed, $delay)
             $read = [IO.File]::ReadAllText($settings) | ConvertFrom-Json
-            if (-not ($read.enabledPlugins.old -or $read.enabledPlugins.new)) { $broken += "killed after $delay ms: enabledPlugins lost" }
-        } catch { $broken += "killed after $delay ms: $(($_.Exception.Message -split "`n")[0])" }
+            if (-not ($read.enabledPlugins.old -or $read.enabledPlugins.new)) { $broken += "crash $attempt`: enabledPlugins lost" }
+        } catch {
+            $broken += "crash $attempt`: $(($_.Exception.Message -split "`n")[0])"
+        }
+        finally {
+            if ($null -ne $process) {
+                if (-not $process.HasExited) { Stop-Process -Id $process.Id -Force; $process.WaitForExit() }
+                $process.Dispose()
+            }
+            if (Test-Path -LiteralPath $stderr) { $diagnostic = [IO.File]::ReadAllText($stderr); if ($diagnostic) { $broken += $diagnostic } }
+            $completed.Dispose()
+        }
     }
-    $rewritten = ([IO.File]::ReadAllText($settings) | ConvertFrom-Json).enabledPlugins.new
-    if ($broken -or -not $rewritten) {
+    if ($broken -or $observedWrites -lt 8) {
         $failures++
-        Write-Host "FAIL settings.json killed mid-write`n  $(if ($broken) { $broken -join "`n  " } else { 'never rewritten' })"
-    } else { Write-Host 'OK settings.json: 8 writes killed midway, always whole JSON' }
+        Write-Host "FAIL settings.json killed mid-write`n  $(if ($broken) { $broken -join "`n  " } else { 'no completed replacement progress' })"
+    } else { Write-Host "OK settings.json: 8 process crashes across $observedWrites completed replacements, always whole JSON" }
 
 } finally {
-    Remove-Item -LiteralPath $work -Recurse -Force -ErrorAction SilentlyContinue
+    try {
+        $resolved = [IO.Path]::GetFullPath($work)
+        $temporaryRoot = [IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd('\')
+        if ([IO.Path]::GetDirectoryName($resolved) -ine $temporaryRoot -or
+            [IO.Path]::GetFileName($resolved) -ne "nexus-pack-test-$PID") { throw 'Unsafe fixture cleanup refused.' }
+        if (-not [Environment]::UserInteractive) { throw 'Recycle Bin cleanup requires an interactive session.' }
+        Add-Type -AssemblyName Microsoft.VisualBasic
+        [Microsoft.VisualBasic.FileIO.FileSystem]::DeleteDirectory($resolved,
+            [Microsoft.VisualBasic.FileIO.UIOption]::OnlyErrorDialogs,
+            [Microsoft.VisualBasic.FileIO.RecycleOption]::SendToRecycleBin,
+            [Microsoft.VisualBasic.FileIO.UICancelOption]::ThrowException)
+        if (Test-Path -LiteralPath $resolved) { throw 'Fixture recycling was not confirmed.' }
+    } catch { Write-Warning "Test fixtures retained: $($_.Exception.Message)" }
 }
 if ($failures) { Write-Host "test_pack.ps1: $failures failure(s)"; exit 1 }
 Write-Host 'OK pack: detection, plan, options, checked installer files'

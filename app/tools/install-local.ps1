@@ -38,24 +38,66 @@ function Get-NexusLocalDestination([string]$LocalAppData, [string]$Version, [str
     Join-Path ([IO.Path]::GetFullPath($LocalAppData)) "NexusApps\local\$Version\$Hash"
 }
 
-# Earlier local copies (other versions, other payloads, old publish folders) go once the new one is installed; a copy a
-# running process still uses is kept for the next installation.
+# Earlier local copies go to the Recycle Bin once the new one is installed; a copy a running process still uses
+# is kept for the next installation. Unknown folders and incomplete payloads are preserved.
 function Remove-NexusLocalStale {
     [CmdletBinding(SupportsShouldProcess = $true)]
     param([string]$Destination, [string[]]$Running = @())
-    $local = Split-Path (Split-Path $Destination)
-    if (-not $PSCmdlet.ShouldProcess($local, 'Remove earlier local NexusSystem copies')) { return }
+    $Destination = [IO.Path]::GetFullPath($Destination).TrimEnd('\')
+    $versionRoot = Split-Path $Destination
+    $local = Split-Path $versionRoot
+    if ((Split-Path $Destination -Leaf) -notmatch '^[A-Fa-f0-9]{64}$' -or
+        (Split-Path $versionRoot -Leaf) -notmatch '^\d+\.\d+\.\d+\.0$' -or
+        (Split-Path $local -Leaf) -ne 'local' -or (Split-Path (Split-Path $local) -Leaf) -ne 'NexusApps') {
+        throw 'Unsafe local release cleanup destination.'
+    }
+    foreach ($ancestor in @((Split-Path $local), $local, $versionRoot, $Destination)) {
+        if ((Get-Item -LiteralPath $ancestor -Force).Attributes -band [IO.FileAttributes]::ReparsePoint) {
+            throw 'Local release cleanup refuses links or reparse points.'
+        }
+    }
+    $recycle = {
+        param([string]$Directory)
+        $resolved = [IO.Path]::GetFullPath($Directory).TrimEnd('\')
+        if (-not $resolved.StartsWith($local + '\', [StringComparison]::OrdinalIgnoreCase) -or $resolved -eq $Destination) {
+            throw 'Unsafe local release cleanup target.'
+        }
+        $items = @((Get-Item -LiteralPath $resolved -Force)) + @(Get-ChildItem -LiteralPath $resolved -Recurse -Force)
+        if ($items | Where-Object { $_.Attributes -band [IO.FileAttributes]::ReparsePoint }) {
+            throw 'Local release cleanup refuses links or reparse points.'
+        }
+        if ($items.Count -gt 1) {
+            foreach ($name in 'NexusSystem.exe', 'NexusSystem.dll', 'Nexus.Core.dll', 'NexusSystem.pri', 'NexusSystem.deps.json', 'NexusSystem.runtimeconfig.json') {
+                if (-not (Test-Path -LiteralPath (Join-Path $resolved $name) -PathType Leaf)) {
+                    Write-Verbose "Preserved incomplete or unknown local folder: $resolved"
+                    return
+                }
+            }
+        }
+        if ($PSCmdlet.ShouldProcess($resolved, 'Send earlier local NexusSystem copy to the Recycle Bin')) {
+            if (-not [Environment]::UserInteractive) { throw 'Recycle Bin cleanup requires an interactive Windows user session.' }
+            Add-Type -AssemblyName Microsoft.VisualBasic
+            [Microsoft.VisualBasic.FileIO.FileSystem]::DeleteDirectory($resolved,
+                [Microsoft.VisualBasic.FileIO.UIOption]::OnlyErrorDialogs,
+                [Microsoft.VisualBasic.FileIO.RecycleOption]::SendToRecycleBin,
+                [Microsoft.VisualBasic.FileIO.UICancelOption]::ThrowException)
+            if (Test-Path -LiteralPath $resolved) { throw "Local release recycling was not confirmed: $resolved" }
+            Write-Host "Recycled earlier local NexusSystem copy: $resolved"
+        }
+    }
     foreach ($folder in @(Get-ChildItem -LiteralPath $local -Directory -ErrorAction SilentlyContinue)) {
+        if ($folder.Name -notmatch '^\d+\.\d+\.\d+\.0$' -and $folder.Name -notmatch '^publish-\d{8}-\d{6}$') { continue }
+        if ($folder.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'Local release cleanup refuses links or reparse points.' }
         # <version>\<payload hash>\ copies; an older layout put the files directly in <version>\.
         $layered = $folder.Name -match '^\d+\.\d+\.\d+\.0$' -and -not (Test-Path -LiteralPath (Join-Path $folder.FullName 'NexusSystem.exe'))
-        $copies = if ($layered) { @(Get-ChildItem -LiteralPath $folder.FullName -Directory) } else { @($folder) }
+        $copies = if ($layered) { @(Get-ChildItem -LiteralPath $folder.FullName -Directory | Where-Object Name -Match '^[A-Fa-f0-9]{64}$') } else { @($folder) }
         foreach ($copy in $copies) {
             if ($copy.FullName -eq $Destination) { continue }
             if ($Running | Where-Object { $_ -and $_.StartsWith($copy.FullName + '\', [StringComparison]::OrdinalIgnoreCase) }) { continue }
-            Remove-Item -LiteralPath $copy.FullName -Recurse -Force -ErrorAction SilentlyContinue
+            & $recycle $copy.FullName
         }
-        if ($folder.FullName -ne (Split-Path $Destination) -and (Test-Path -LiteralPath $folder.FullName) -and
-            -not (Get-ChildItem -LiteralPath $folder.FullName -Force)) { Remove-Item -LiteralPath $folder.FullName -Force }
+        if ($layered -and $folder.FullName -ne (Split-Path $Destination) -and (Test-Path -LiteralPath $folder.FullName) -and
+            -not (Get-ChildItem -LiteralPath $folder.FullName -Force)) { & $recycle $folder.FullName }
     }
 }
 
