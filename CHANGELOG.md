@@ -7,6 +7,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Changed
+- Pin the audited stable releases of NexusAndroid 0.23.5, NexusWindows 3.16.8, NexusBrowser 2.34.5,
+  NexusInDesign 4.1.2 and NexusFree 1.2.2 in both AI plugin catalogs. These versions align agent guides and MCP
+  contracts, improve Android setting searches, activate the updated browser extension and keep elevated command
+  arguments out of the dispatcher's execution log.
+
 ### Fixed
 - Pin NexusRelay 1.12.4 in both AI plugin catalogs so the installed skills describe equal peers under `host: all`.
 
