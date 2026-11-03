@@ -8,6 +8,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 ## [Unreleased]
 
 ### Fixed
+- `products.json`: NexusInDesign links to its new site page; NexusFree no longer points to a missing banner.
+- `INSTALL-AI.md` lists the `free` key (NexusFree) in the product table.
 - Pin NexusWindows 3.16.10 in both AI plugin catalogs: plain sends without an expect stay out of its error log.
 - Pin NexusAndroid 0.23.6 in both AI plugin catalogs: a readable phone checkup with an accurate store-origin check.
 - Pin NexusWindows 3.16.9 in both AI plugin catalogs: its diagnostic logs keep the engine's fixed failure reasons.

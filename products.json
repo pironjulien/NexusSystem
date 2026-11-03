@@ -113,9 +113,7 @@
       "about": {
         "fr": "Élévation administrateur et exécution privilégiée SYSTEM sans blocage UAC pour la Trinité.",
         "en": "Administrator elevation and SYSTEM privileged execution without UAC friction for the Trinity."
-      },
-      "banner": "https://julienpiron.fr/nexusfree/assets/nexusfree-video-poster.webp",
-      "video": ""
+      }
     },
     {
       "key": "indesign",
@@ -124,6 +122,7 @@
       "state": "ready",
       "repository": "NexusInDesign",
       "accent": "#e749a0",
+      "page": "https://julienpiron.fr/nexusindesign/",
       "about": {
         "fr": "Adobe InDesign piloté par vos IA : mises en page, styles et exports, avec retour arrière.",
         "en": "Adobe InDesign driven by your AI apps: layouts, styles and exports, with rollback."

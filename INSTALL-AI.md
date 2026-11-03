@@ -15,6 +15,7 @@ Never assume the user wants every product if they only need one or two. The avai
 | `keypad` | **NexusKeypad** | Live pixel-art agent states, quotas, dictation and quick actions on the Logitech MX Creative Keypad | Logi Options+ |
 | `agymail` | **NexusAGYmail** | Gmail with safeguards (for Antigravity; Claude and Codex use their official Gmail connector) | Antigravity |
 | `indesign` | **NexusInDesign** | Adobe InDesign through its COM automation: scripts, previews, preflight, verified exports, backups (needs InDesign 2024 to 2026) | Claude Code, Codex |
+| `free` | **NexusFree** | Administrator and `SYSTEM` commands without a UAC prompt each time, for the Windows account that installed it (see its SECURITY.md) | An administrator account; one elevation at install |
 
 - **If the user's prompt already specifies a `-Only` list** (for example when copied from the **NexusSystem** app): run the exact command they gave you.
 - **If the user named specific products** (e.g. *"install NexusWindows and NexusBrowser"*): map them to their keys (`-Only windows,browser`).
