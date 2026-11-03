@@ -10,7 +10,7 @@
         "source": "git-subdir",
         "url": "https://github.com/pironjulien/NexusAndroid.git",
         "path": "plugin",
-        "ref": "v0.23.3"
+        "ref": "v0.23.5"
       },
       "policy": {
         "installation": "AVAILABLE",
@@ -24,7 +24,7 @@
         "source": "git-subdir",
         "url": "https://github.com/pironjulien/NexusWindows.git",
         "path": "plugin",
-        "ref": "v3.16.7"
+        "ref": "v3.16.8"
       },
       "policy": {
         "installation": "AVAILABLE",
@@ -52,7 +52,7 @@
         "source": "git-subdir",
         "url": "https://github.com/pironjulien/NexusRelay.git",
         "path": "plugin",
-        "ref": "v1.12.10"
+        "ref": "v1.12.11"
       },
       "policy": {
         "installation": "AVAILABLE",
@@ -80,7 +80,7 @@
         "source": "git-subdir",
         "url": "https://github.com/pironjulien/NexusInDesign.git",
         "path": "plugin",
-        "ref": "v4.1.1"
+        "ref": "v4.1.2"
       },
       "policy": {
         "installation": "AVAILABLE",
@@ -94,7 +94,7 @@
         "source": "git-subdir",
         "url": "https://github.com/pironjulien/NexusFree.git",
         "path": "plugin",
-        "ref": "v1.1.0"
+        "ref": "v1.2.2"
       },
       "policy": {
         "installation": "AVAILABLE",
