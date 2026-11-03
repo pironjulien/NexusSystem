@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 ## [Unreleased]
 
 ### Fixed
+- Pin NexusWindows 3.16.9 in both AI plugin catalogs: its diagnostic logs keep the engine's fixed failure reasons.
 - Pin NexusRelay 1.12.4 in both AI plugin catalogs so the installed skills describe equal peers under `host: all`.
 
 ### Fixed (app 1.0.14.0)
