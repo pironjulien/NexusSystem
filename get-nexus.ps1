@@ -53,7 +53,7 @@ $ProgressPreference = 'SilentlyContinue'  # Invoke-WebRequest is many times slow
 $Ok = [string][char]0x2713
 $No = [string][char]0x2717
 $Marketplace = 'nexus-plugins'
-$NexusMaintenanceVersion = '1.6.51'
+$NexusMaintenanceVersion = '1.6.52'
 
 # AI apps, in display order. Claude Desktop also carries Claude Code (its Code tab reads the same ~\.claude).
 $AiNames = [ordered]@{
@@ -257,19 +257,72 @@ function Read-Json([string]$Path) {
 }
 
 function Write-JsonWithBackup([string]$Path, $Value) {
+    if (-not ('NexusPack.AtomicFile' -as [type])) {
+        Add-Type -TypeDefinition @'
+using System;
+using System.ComponentModel;
+using System.Runtime.InteropServices;
+namespace NexusPack {
+    public static class AtomicFile {
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool MoveFileEx(string source, string destination, uint flags);
+        public static void Commit(string source, string destination) {
+            // Adjacent temporary file: same-volume rename, never a cross-volume copy/delete fallback.
+            if (!MoveFileEx(source, destination, 0x1 | 0x8))
+                throw new Win32Exception(Marshal.GetLastWin32Error());
+        }
+    }
+}
+'@
+    }
+    $access = $null
     if (Test-Path -LiteralPath $Path) {
-        $backup = Join-Path $env:USERPROFILE ".nexus\pack\backups\$(Split-Path $Path -Leaf).$(Get-Date -Format yyyyMMdd-HHmmss)"
+        $access = Get-Acl -LiteralPath $Path
+        $backup = Join-Path $env:USERPROFILE ".nexus\pack\backups\$(Split-Path $Path -Leaf).$([guid]::NewGuid().ToString('N'))"
         New-Item -ItemType Directory -Force -Path (Split-Path $backup) | Out-Null
-        Copy-Item -LiteralPath $Path -Destination $backup
+        $backupFile = [IO.File]::Open($backup, [IO.FileMode]::CreateNew, [IO.FileAccess]::Write, [IO.FileShare]::None)
+        $backupFile.Dispose()
+        $backupSecurity = New-Object Security.AccessControl.FileSecurity
+        $backupSecurity.SetSecurityDescriptorBinaryForm($access.GetSecurityDescriptorBinaryForm(), [Security.AccessControl.AccessControlSections]::Access)
+        Set-Acl -LiteralPath $backup -AclObject $backupSecurity
+        $source = [IO.File]::Open($Path, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::ReadWrite)
+        try {
+            $backupFile = [IO.File]::Open($backup, [IO.FileMode]::Open, [IO.FileAccess]::Write, [IO.FileShare]::None)
+            try { $source.CopyTo($backupFile); $backupFile.Flush($true) } finally { $backupFile.Dispose() }
+        } finally { $source.Dispose() }
     } else {
         New-Item -ItemType Directory -Force -Path (Split-Path $Path) | Out-Null
     }
-    # Written beside it, then swapped in whole: an interrupted write never leaves a truncated settings file.
+    # ReplaceFileW (File.Replace) has a delete/rename gap that can survive a process kill. Use an adjacent
+    # flushed file and a single replacement rename instead; keep the destination's DACL before writing any data.
     $temporary = "$Path.nexus-$([guid]::NewGuid().ToString('N')).tmp"
     try {
-        [IO.File]::WriteAllText($temporary, ($Value | ConvertTo-Json -Depth 100), (New-Object Text.UTF8Encoding $false))
-        if (Test-Path -LiteralPath $Path) { [IO.File]::Replace($temporary, $Path, [NullString]::Value) } else { [IO.File]::Move($temporary, $Path) }
-    } finally { if (Test-Path -LiteralPath $temporary) { Remove-Item -LiteralPath $temporary -Force } }
+        $bytes = (New-Object Text.UTF8Encoding $false).GetBytes(($Value | ConvertTo-Json -Depth 100))
+        $empty = [IO.File]::Open($temporary, [IO.FileMode]::CreateNew, [IO.FileAccess]::Write, [IO.FileShare]::None)
+        $empty.Dispose()
+        if ($null -ne $access) {
+            # A fresh descriptor marks Access modified; reusing Get-Acl's unmodified object can persist nothing.
+            $security = New-Object Security.AccessControl.FileSecurity
+            $security.SetSecurityDescriptorBinaryForm($access.GetSecurityDescriptorBinaryForm(), [Security.AccessControl.AccessControlSections]::Access)
+            Set-Acl -LiteralPath $temporary -AclObject $security
+        }
+        $stream = [IO.File]::Open($temporary, [IO.FileMode]::Open, [IO.FileAccess]::Write, [IO.FileShare]::None)
+        try { $stream.Write($bytes, 0, $bytes.Length); $stream.Flush($true) } finally { $stream.Dispose() }
+        [NexusPack.AtomicFile]::Commit($temporary, $Path)
+    } finally {
+        if (Test-Path -LiteralPath $temporary) {
+            try {
+                if (-not [Environment]::UserInteractive) { throw 'Recycling requires an interactive session.' }
+                Add-Type -AssemblyName Microsoft.VisualBasic
+                [Microsoft.VisualBasic.FileIO.FileSystem]::DeleteFile([IO.Path]::GetFullPath($temporary),
+                    [Microsoft.VisualBasic.FileIO.UIOption]::OnlyErrorDialogs,
+                    [Microsoft.VisualBasic.FileIO.RecycleOption]::SendToRecycleBin,
+                    [Microsoft.VisualBasic.FileIO.UICancelOption]::ThrowException)
+                if (Test-Path -LiteralPath $temporary) { throw 'The temporary JSON was not recycled.' }
+            } catch { Write-Warning 'The temporary JSON was retained because recycling is unavailable.' }
+        }
+    }
 }
 
 function Write-Property($Object, [string]$Name, $Value) {

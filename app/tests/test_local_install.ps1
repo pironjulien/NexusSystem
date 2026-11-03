@@ -1,5 +1,6 @@
 # Payload and immutable-release guards only; no real shortcut, scheduled task, package or app launch.
 $ErrorActionPreference = 'Stop'
+if (-not [Environment]::UserInteractive) { throw 'Recycle Bin fixtures require an interactive Windows user session.' }
 . (Join-Path $PSScriptRoot '..\tools\install-local.ps1')
 $temporary = [IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd('\') + '\'
 $fixture = Join-Path $temporary ('nexus-local-install-tests-' + [guid]::NewGuid().ToString('N'))
@@ -38,16 +39,44 @@ try {
     $stale = Get-NexusLocalDestination $root '1.0.14.0' ('C' * 64)
     $flat = Join-Path $root 'NexusApps\local\1.0.8.0'  # older layout: files directly in the version folder
     foreach ($folder in $current, $busy, $stale, $flat, (Join-Path $root 'NexusApps\local\publish-20261030-111026')) { [IO.Directory]::CreateDirectory($folder) | Out-Null }
-    Set-Content -LiteralPath (Join-Path $flat 'NexusSystem.exe') -Value 'fixture'
+    foreach ($name in 'NexusSystem.exe', 'NexusSystem.dll', 'Nexus.Core.dll', 'NexusSystem.pri', 'NexusSystem.deps.json', 'NexusSystem.runtimeconfig.json') {
+        Set-Content -LiteralPath (Join-Path $flat $name) -Value 'fixture'
+    }
+    $unknown = Join-Path $root 'NexusApps\local\personal-notes'
+    $incomplete = Get-NexusLocalDestination $root '1.0.14.0' ('D' * 64)
+    [IO.Directory]::CreateDirectory($unknown) | Out-Null
+    [IO.Directory]::CreateDirectory($incomplete) | Out-Null
+    Set-Content -LiteralPath (Join-Path $unknown 'keep.txt') -Value 'preserve unknown content'
+    Set-Content -LiteralPath (Join-Path $incomplete 'keep.txt') -Value 'preserve incomplete copy'
+    Remove-NexusLocalStale $current @((Join-Path $busy 'NexusSystem.exe')) -WhatIf
+    if (-not (Test-Path -LiteralPath $stale) -or -not (Test-Path -LiteralPath $flat)) { throw 'WhatIf changed local copies.' }; $checks++
+    Assert-LocalRefused { Remove-NexusLocalStale (Join-Path $fixture 'outside') } 'Unsafe local release'; $checks++
+    $link = Join-Path $root 'NexusApps\local\1.0.7.0'
+    New-Item -ItemType Junction -Path $link -Target $source | Out-Null
+    Assert-LocalRefused { Remove-NexusLocalStale $current @((Join-Path $busy 'NexusSystem.exe')) -WhatIf } 'reparse points'; $checks++
+    # Recycling a junction removes the link, never its target; preserve the payload fixture for subsequent checks.
+    Add-Type -AssemblyName Microsoft.VisualBasic
+    [Microsoft.VisualBasic.FileIO.FileSystem]::DeleteDirectory($link,
+        [Microsoft.VisualBasic.FileIO.UIOption]::OnlyErrorDialogs,
+        [Microsoft.VisualBasic.FileIO.RecycleOption]::SendToRecycleBin,
+        [Microsoft.VisualBasic.FileIO.UICancelOption]::ThrowException)
+    if ((Test-Path -LiteralPath $link) -or -not (Test-Path -LiteralPath (Join-Path $source 'NexusSystem.exe'))) { throw 'Junction cleanup affected its target.' }; $checks++
     Remove-NexusLocalStale $current @((Join-Path $busy 'NexusSystem.exe'))
     $left = @(Get-ChildItem -LiteralPath (Join-Path $root 'NexusApps\local') -Directory -Recurse | ForEach-Object FullName)
     if (($left -notcontains $current) -or ($left -notcontains $busy) -or ($left -contains $stale) -or
         ($left -like '*publish-*') -or ($left -like '*1.0.9.0*') -or ($left -like '*1.0.8.0*')) { throw "Stale local copies were not pruned as expected: $($left -join ', ')" }; $checks++
+    if ((Get-Content -LiteralPath (Join-Path $unknown 'keep.txt') -Raw).Trim() -ne 'preserve unknown content' -or
+        (Get-Content -LiteralPath (Join-Path $incomplete 'keep.txt') -Raw).Trim() -ne 'preserve incomplete copy') { throw 'Unknown or incomplete content was removed.' }; $checks++
     Write-Host "Local installer: $checks guards passed (fixtures only)."
 }
 finally {
     $resolved = [IO.Path]::GetFullPath($fixture)
     if (-not $resolved.StartsWith($temporary, [StringComparison]::OrdinalIgnoreCase) -or
         [IO.Path]::GetFileName($resolved) -notlike 'nexus-local-install-tests-*') { throw 'Unsafe fixture cleanup refused.' }
-    Remove-Item -LiteralPath $resolved -Recurse -Force
+    Add-Type -AssemblyName Microsoft.VisualBasic
+    [Microsoft.VisualBasic.FileIO.FileSystem]::DeleteDirectory($resolved,
+        [Microsoft.VisualBasic.FileIO.UIOption]::OnlyErrorDialogs,
+        [Microsoft.VisualBasic.FileIO.RecycleOption]::SendToRecycleBin,
+        [Microsoft.VisualBasic.FileIO.UICancelOption]::ThrowException)
+    if (Test-Path -LiteralPath $resolved) { throw 'Fixture recycling was not confirmed.' }
 }

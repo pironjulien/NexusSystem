@@ -7,14 +7,6 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
-### Changed
-- Pin NexusFree 1.2.3 in both AI plugin catalogs: elevation routing is based on required Administrator / SYSTEM
-  privileges for every command or script, without task-specific command guidance.
-- Pin the audited stable releases of NexusAndroid 0.23.5, NexusWindows 3.16.8, NexusBrowser 2.34.5,
-  NexusInDesign 4.1.2 and NexusFree 1.2.2 in both AI plugin catalogs. These versions align agent guides and MCP
-  contracts, improve Android setting searches, activate the updated browser extension and keep elevated command
-  arguments out of the dispatcher's execution log.
-
 ### Fixed
 - Pin NexusRelay 1.12.4 in both AI plugin catalogs so the installed skills describe equal peers under `host: all`.
 
@@ -25,6 +17,22 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
   from GitHub (its release lags behind the submission) nor winget's msstore source (it reports "Unknown", so
   `winget upgrade` saw nothing). "Update" and "Get updates" take the Store's package with
   `winget install --source msstore --force`.
+
+## [1.6.52] - 2026-11-03
+
+### Fixed
+- JSON settings updates use a flushed adjacent file and a same-volume replacement rename. Killing the previous
+  `File.Replace` writer could leave `settings.json` missing. Existing permissions are applied to temporary files
+  and distinct backups before writing any data. Tests interrupt real repeated replacements after writer startup,
+  and verify protected permissions, complete JSON and refusal without data loss when the target is locked.
+- Local deployment recycles only verified, unused NexusSystem copies; active copies and unrecognized folders stay
+  intact. Links are refused and recycling is confirmed. If recycling is unavailable, no permanent-delete fallback
+  is used. Installer and crash-test fixture cleanup follow the same rule.
+
+### Changed
+- Pin the audited stable releases of NexusAndroid 0.23.5, NexusWindows 3.16.8, NexusBrowser 2.34.5,
+  NexusInDesign 4.1.2 and NexusFree 1.2.3 in both AI plugin catalogs. NexusFree routing covers every operation
+  requiring Administrator / SYSTEM privileges, independently of command names.
 
 ## [1.6.51] - 2026-11-03
 
