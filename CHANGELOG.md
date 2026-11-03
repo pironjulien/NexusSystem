@@ -7,6 +7,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Fixed
+- Pin NexusRelay 1.12.4 in both AI plugin catalogs so the installed skills describe equal peers under `host: all`.
+
 ### Fixed (app 1.0.14.0)
 - A Microsoft Store product (NexusWpp) shows its installed version and the version the Store serves, with "New version
   X" and an "Update" button like the AI products. It said only "Installed · Microsoft Store" while a PC stayed on
