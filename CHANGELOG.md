@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 ## [Unreleased]
 
 ### Fixed
+- Pin NexusWindows 3.16.10 in both AI plugin catalogs: plain sends without an expect stay out of its error log.
 - Pin NexusAndroid 0.23.6 in both AI plugin catalogs: a readable phone checkup with an accurate store-origin check.
 - Pin NexusWindows 3.16.9 in both AI plugin catalogs: its diagnostic logs keep the engine's fixed failure reasons.
 - Pin NexusRelay 1.12.4 in both AI plugin catalogs so the installed skills describe equal peers under `host: all`.
