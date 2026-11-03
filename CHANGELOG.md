@@ -8,6 +8,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 ## [Unreleased]
 
 ### Changed
+- Pin NexusFree 1.2.3 in both AI plugin catalogs: elevation routing is based on required Administrator / SYSTEM
+  privileges for every command or script, without task-specific command guidance.
 - Pin the audited stable releases of NexusAndroid 0.23.5, NexusWindows 3.16.8, NexusBrowser 2.34.5,
   NexusInDesign 4.1.2 and NexusFree 1.2.2 in both AI plugin catalogs. These versions align agent guides and MCP
   contracts, improve Android setting searches, activate the updated browser extension and keep elevated command
