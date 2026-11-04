@@ -39,7 +39,8 @@ signs it). A push that keeps an already released version stays a
 development build. "Run workflow" (`gh workflow run release.yml -R pironjulien/<Product> -f promote=vX.Y.Z-dev.N`;
 empty = the newest) still promotes by hand.
 
-Then pin the stable plugin in both catalogs and merge it through a pull request here:
+Then pin the stable plugin in both catalogs, commit only the changed files and push straight to `main` here (no
+branch, no pull request: the push runs the same checks):
 
 ```text
 pwsh app/tools/pin-plugin.ps1 -Name nexus-<product> -Product <Product> -Tag vX.Y.Z
