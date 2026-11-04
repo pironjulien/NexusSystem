@@ -12,6 +12,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
   as the large icon, with only its unreadable lettering erased, instead of the plain silver ring.
 - Pin NexusBrowser 2.35.13 (task rename steps written to install.log), NexusKeypad 1.8.29 (relay conversations
   recognized under both names) and NexusRelay 1.13.3 in both AI plugin catalogs.
+- Pin NexusRelay 1.13.4 in both AI plugin catalogs: the commit guard defaults to the repositories under C:\Nexus.
 - Pin NexusBrowser 2.35.12 and NexusWindows 3.16.17 in both AI plugin catalogs: product names without a space
   everywhere; NexusBrowser's scheduled tasks are renamed "NexusBrowser Bridge/MCP/Update" on update.
 
