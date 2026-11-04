@@ -11,6 +11,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Same `.gitattributes` as every Nexus repository (2026-11-04): LF in Git and on disk, CRLF only for `.cmd`/`.bat`; files stored with CRLF were renormalized once.
 
 ### Fixed
+- Pin NexusAndroid 0.23.7, NexusBrowser 2.35.5, NexusFree 1.2.4, NexusInDesign 4.1.3, NexusKeypad 1.8.27,
+  NexusRelay 1.12.12 and NexusWindows 3.16.12 in both AI plugin catalogs: product icons on a transparent background,
+  with the knot badge of the medallion kept whole.
 - Pin NexusBrowser 2.35.4 in both AI plugin catalogs: the spinning toolbar logo is cut to its circle and flashes at start.
 - Pin NexusBrowser 2.35.3 in both AI plugin catalogs: property-based robustness tests and the fixes they found.
 - `products.json`: NexusInDesign links to its new site page; NexusFree no longer points to a missing banner.
