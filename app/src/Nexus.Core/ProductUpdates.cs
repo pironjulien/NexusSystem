@@ -136,7 +136,7 @@ public static class ProductUpdates
         }
     }
 
-    // NexusBrowser 2.26.0: the bridge starts its own task "Nexus Browser Update"; same answers as NexusRelay's daemon.
+    // NexusBrowser 2.26.0: the bridge starts its own task "NexusBrowser Update"; same answers as NexusRelay's daemon.
     static async Task<UpdateRequest> BrowserAsync(HttpClient http, CancellationToken cancel)
     {
         if (BrowserBridge.Token(UserFolders.FromEnvironment()) is not { } token) return UpdateRequest.Unreachable;

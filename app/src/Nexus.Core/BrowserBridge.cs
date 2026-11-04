@@ -9,7 +9,7 @@ public enum BridgeState
 {
     /// <summary>No bridge token: NexusBrowser is not installed.</summary>
     NotInstalled,
-    /// <summary>The bridge does not answer on 127.0.0.1:9225 (its task "Nexus Browser Bridge" starts it at sign-in).</summary>
+    /// <summary>The bridge does not answer on 127.0.0.1:9225 (its task "NexusBrowser Bridge" starts it at sign-in).</summary>
     Offline,
     /// <summary>The bridge answers, but Chrome itself is closed. This is idle, not a pairing failure.</summary>
     BrowserClosed,

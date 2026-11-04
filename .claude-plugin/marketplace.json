@@ -37,10 +37,10 @@
         "source": "git-subdir",
         "url": "https://github.com/pironjulien/NexusWindows.git",
         "path": "plugin",
-        "ref": "v3.16.16"
+        "ref": "v3.16.17"
       },
       "description": "Windows desktop apps through native UI Automation: observe, click, type, menus, shortcuts and launch. Foreground interaction is explicit when required. Starts the native NexusWindows engine installed by NexusSystem (or NexusWindows' get.ps1).",
-      "version": "3.16.16",
+      "version": "3.16.17",
       "category": "productivity",
       "keywords": [
         "windows",
@@ -59,10 +59,10 @@
         "source": "git-subdir",
         "url": "https://github.com/pironjulien/NexusBrowser.git",
         "path": "plugin",
-        "ref": "v2.35.10"
+        "ref": "v2.35.12"
       },
       "description": "Your real Chrome (your sessions) driven in background tabs: forms, network, dialogs, cross-origin iframes, exports, downloads. Served by the local NexusBrowser daemon; requires its Chrome extension, both installed by NexusSystem (or NexusBrowser's get.ps1).",
-      "version": "2.35.10",
+      "version": "2.35.12",
       "category": "productivity",
       "keywords": [
         "chrome",

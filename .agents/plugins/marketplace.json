@@ -24,7 +24,7 @@
         "source": "git-subdir",
         "url": "https://github.com/pironjulien/NexusWindows.git",
         "path": "plugin",
-        "ref": "v3.16.16"
+        "ref": "v3.16.17"
       },
       "policy": {
         "installation": "AVAILABLE",
@@ -38,7 +38,7 @@
         "source": "git-subdir",
         "url": "https://github.com/pironjulien/NexusBrowser.git",
         "path": "plugin",
-        "ref": "v2.35.10"
+        "ref": "v2.35.12"
       },
       "policy": {
         "installation": "AVAILABLE",
