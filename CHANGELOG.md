@@ -7,6 +7,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Changed
+- Same `.gitattributes` as every Nexus repository (2026-11-04): LF in Git and on disk, CRLF only for `.cmd`/`.bat`; files stored with CRLF were renormalized once.
+
 ### Fixed
 - Pin NexusBrowser 2.35.4 in both AI plugin catalogs: the spinning toolbar logo is cut to its circle and flashes at start.
 - Pin NexusBrowser 2.35.3 in both AI plugin catalogs: property-based robustness tests and the fixes they found.
