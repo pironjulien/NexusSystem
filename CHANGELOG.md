@@ -7,6 +7,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Changed
+- Pin NexusBrowser 2.35.12 and NexusWindows 3.16.17 in both AI plugin catalogs: product names without a space
+  everywhere; NexusBrowser's scheduled tasks are renamed "NexusBrowser Bridge/MCP/Update" on update.
+
 ## [1.6.53] - 2026-11-04
 
 ### Changed
