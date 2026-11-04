@@ -1,7 +1,7 @@
-# Fiche Microsoft Store de l'appli NexusSystem (brouillon, non envoyé)
+# Fiche Microsoft Store de l'appli NexusSystem
 
-Champs de Partner Center (Store listings), en français puis en anglais. Rien n'est envoyé sans la revue de la
-centrale et le « oui » de Julien. Captures : `dist/captures/` (1920 × 1080), choix plus bas.
+Champs de Partner Center (Store listings), en français puis en anglais : la fiche en ligne reprend ce texte, mis à
+jour à chaque soumission. Captures : `dist/captures/` (1920 × 1080), choix plus bas.
 
 ## Réglages hors fiche
 - **Nom réservé** : « NexusSystem », dans le Partner Center de Julien. À soumettre avant le 26/01/2027.
@@ -34,7 +34,8 @@ Comme dans le Microsoft Store, chaque produit a sa carte : installé ou non, à 
 l'avoir. « Installer par l'IA » ouvre Claude Code ou Codex avec la demande déjà écrite : vous appuyez sur Entrée et
 votre IA installe le produit avec son installeur officiel (pour Antigravity, la demande est copiée et Antigravity
 s'ouvre). Un produit vendu sur un store s'obtient sur ce store. « Rechercher des mises à jour » vérifie tout d'un
-coup, et « Tout installer par l'IA » prépare tout ce qui manque.
+coup, et « Tout installer par l'IA » prépare tout ce qui manque. Une nouvelle version se voit d'un coup d'œil : un
+compteur sur « Mises à jour », un point sur le produit concerné et un bandeau en haut de l'accueil.
 
 La page de chaque produit montre sa présentation et sa vidéo, toujours à jour, et ce qu'il reste à faire sur votre
 PC (Chrome à relier, le débogage USB du téléphone), avec un bouton quand l'appli peut faire le clic à votre place.
@@ -46,6 +47,8 @@ Produits IA :
 • NexusRelay : vos IA se parlent entre elles.
 • NexusAGYmail : Gmail pour Antigravity, avec garde-fous.
 • NexusKeypad : le MX Creative Keypad de Logitech devient le tableau de bord de vos IA.
+Produits Adobe :
+• NexusInDesign : Adobe InDesign piloté par vos IA (mises en page, styles et exports, avec retour arrière).
 Produits Windows :
 • NexusWpp : votre PC en un coup d'œil, en direct sur votre fond d'écran (Microsoft Store).
 
@@ -53,9 +56,10 @@ Pas de compte, pas de publicité, pas de télémétrie.
 
 **Nouveautés de cette version**
 
-Une vraie boutique : les produits rangés par groupe, installé ou non et à jour ou non d'un coup d'œil, « Installer
-par l'IA » qui ouvre votre IA avec la demande déjà écrite, et la page de chaque produit avec sa vidéo. La liste des
-produits se met à jour seule, sans nouvelle version de l'appli.
+Un accueil comme celui du Microsoft Store : une grande bannière, des tuiles, et les produits en lignes compactes par
+groupe. Les mises à jour se voient d'un coup d'œil : un compteur sur « Mises à jour », un point sur chaque produit
+concerné et un bandeau en haut de l'accueil. Chaque page produit a « Rechercher une mise à jour » et l'activité de
+vos IA sur 24 heures.
 
 **Fonctionnalités** (20 au plus, 200 caractères chacune)
 1. Une carte par produit : installé ou non, à jour ou non.
@@ -68,6 +72,8 @@ produits se met à jour seule, sans nouvelle version de l'appli.
 8. Les produits vendus sur un store s'obtiennent sur leur store.
 9. Français et anglais, thème clair et sombre, style Windows 11.
 10. Sans compte, sans publicité, sans télémétrie.
+11. Une mise à jour disponible se voit d'un coup d'œil : compteur, point sur le produit et bandeau.
+12. Ce que vos IA ont fait avec chaque produit ces dernières 24 heures.
 
 **Mots-clés** (7 au plus) : IA, agent, MCP, Claude, Codex, Antigravity, automatisation
 
@@ -85,7 +91,8 @@ As in the Microsoft Store, each product has its card: installed or not, up to da
 "Install with my AI" opens Claude Code or Codex with the request already written: you press Enter and your AI app
 installs the product with its official installer (for Antigravity, the request is copied and Antigravity opens). A
 product sold on a store is got from that store. "Get updates" checks everything at once, and "Install all with my AI"
-prepares whatever is missing.
+prepares whatever is missing. A new version is seen at a glance: a count on "Updates", a dot on the product and a
+banner at the top of the home page.
 
 Each product's page shows its presentation and its video, always up to date, and what is left to do on your PC (Chrome
 to pair, USB debugging on the phone), with a button whenever the app can make the click for you.
@@ -97,6 +104,8 @@ AI products:
 • NexusRelay: your AI apps talk to each other.
 • NexusAGYmail: Gmail for Antigravity, with safeguards.
 • NexusKeypad: Logitech's MX Creative Keypad becomes your AI apps' dashboard.
+Adobe products:
+• NexusInDesign: Adobe InDesign driven by your AI apps (layouts, styles and exports, with rollback).
 Windows products:
 • NexusWpp: your PC at a glance, live on your wallpaper (Microsoft Store).
 
@@ -104,9 +113,9 @@ No account, no ads, no telemetry.
 
 **What's new in this version**
 
-A real store: products in groups, installed or not and up to date or not at a glance, "Install with my AI" opening
-your AI app with the request already written, and each product's page with its video. The product list updates
-itself, without a new version of the app.
+A home like the Microsoft Store's: a large banner, tiles, and the products in compact rows by group. Updates are seen
+at a glance: a count on "Updates", a dot on every product that has one and a banner at the top of the home page.
+Every product page has "Check for an update" and what your AI apps did with it in the last 24 hours.
 
 **Product features**
 1. One card per product: installed or not, up to date or not.
@@ -119,6 +128,8 @@ itself, without a new version of the app.
 8. Products sold on a store are got from their store.
 9. French and English, light and dark theme, Windows 11 style.
 10. No account, no ads, no telemetry.
+11. An available update is seen at a glance: a count, a dot on the product and a banner.
+12. What your AI apps did with each product in the last 24 hours.
 
 **Search terms**: AI, agent, MCP, Claude, Codex, Antigravity, automation
 
