@@ -53,7 +53,7 @@ $ProgressPreference = 'SilentlyContinue'  # Invoke-WebRequest is many times slow
 $Ok = [string][char]0x2713
 $No = [string][char]0x2717
 $Marketplace = 'nexus-plugins'
-$NexusMaintenanceVersion = '1.6.52'
+$NexusMaintenanceVersion = '1.6.53'
 
 # AI apps, in display order. Claude Desktop also carries Claude Code (its Code tab reads the same ~\.claude).
 $AiNames = [ordered]@{
@@ -1873,7 +1873,7 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
     # The Codex project, only when Codex answers (Claude Code is the host); as the host, Codex needs none.
     if ($wants['relay'] -and $targets['relay'] -contains 'codex' -and $targets['relay'] -contains 'claude-code') {
         $step++
-        Say "  $step. Codex, once: Add a project, name ""Nexus Relay"", folder $env:USERPROFILE\.nexus\relay\codex-projet"
+        Say "  $step. Codex, once: Add a project, name ""NexusRelay"", folder $env:USERPROFILE\.nexus\relay\codex-projet"
         Say '     (https://github.com/pironjulien/NexusRelay#quick-start)'
     }
     if ($wants['agymail']) {
@@ -1899,7 +1899,7 @@ function Invoke-NexusPack([string[]]$Only, [string[]]$Skip, [bool]$DryRun, [bool
         windows = 'Open Notepad and write a shopping list: milk, eggs, bread.'
         android = 'Look at my phone and tell me what is on the screen.'
         browser = 'Open https://example.com in a background tab and give me the page as Markdown.'
-        relay   = 'Use Nexus Relay to ask Codex for a second opinion on this file.'
+        relay   = 'Use NexusRelay to ask Codex for a second opinion on this file.'
         agymail = 'Find my unread emails from today and sum them up.'
         indesign = 'Create an A4 InDesign document with a title on its first page and show me the preview.'
     }

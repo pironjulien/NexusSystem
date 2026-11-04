@@ -7,7 +7,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.6.53] - 2026-11-04
+
 ### Changed
+- Product names are written without a space everywhere, like their repositories: pin NexusAndroid 0.23.9,
+  NexusInDesign 4.1.5 and NexusRelay 1.13.2 in both AI plugin catalogs; the installer, the app and INSTALL-AI.md
+  name the Codex project "NexusRelay" (NexusRelay 1.13.2 still finds a project named "Nexus Relay").
+- Pin NexusAndroid 0.23.8, NexusBrowser 2.35.9, NexusFree 1.2.5, NexusInDesign 4.1.4, NexusKeypad 1.8.28,
+  NexusRelay 1.13.1 and NexusWindows 3.16.15 in both AI plugin catalogs: plugin display names without a space.
 - Same `.gitattributes` as every Nexus repository (2026-11-04): LF in Git and on disk, CRLF only for `.cmd`/`.bat`; files stored with CRLF were renormalized once.
 
 ### Fixed
