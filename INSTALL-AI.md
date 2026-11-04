@@ -75,7 +75,7 @@ Read the `✓` / `✗` summary printed by `get-nexus.ps1`, then give the user **
 2. **If `android` (`NexusAndroid`) was installed:**
    - Tell the user: *"On your Android phone, enable **Developer options > USB debugging**, plug the phone into the PC with a USB data cable, and tap **Allow** on the phone screen."*
 3. **If `relay` (`NexusRelay`) was installed and both Claude Code and Codex are present:**
-   - Tell the user to add the `Nexus Relay` project folder printed in the installer summary once inside the Codex app.
+   - Tell the user to add the `NexusRelay` project folder printed in the installer summary once inside the Codex app.
 4. **If `keypad` (`NexusKeypad`) was installed:**
    - Tell the user: *"In **Logi Options+ > MX Creative Keypad**, drag the keys from the **Trinity** group onto the 9 keypad buttons."*
 5. **Restart the AI app:**

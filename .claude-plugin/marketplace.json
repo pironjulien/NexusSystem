@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Computer use in the background for Claude Code: your Android phone, your Windows desktop apps, your real Chrome, a direct line to Codex and Antigravity, your Logitech keypad. Each plugin connects to its product's native Windows engine (no Python), installed by NexusSystem.",
-    "version": "1.6.52"
+    "version": "1.6.53"
   },
   "plugins": [
     {
@@ -15,10 +15,10 @@
         "source": "git-subdir",
         "url": "https://github.com/pironjulien/NexusAndroid.git",
         "path": "plugin",
-        "ref": "v0.23.8"
+        "ref": "v0.23.9"
       },
       "description": "Android phone over plain ADB (no root, no app): screen, gestures, SMS/RCS, notifications, files, settings. Served by the local NexusAndroid daemon, installed by NexusSystem (or NexusAndroid's get.ps1); needs USB debugging on the phone.",
-      "version": "0.23.8",
+      "version": "0.23.9",
       "category": "productivity",
       "keywords": [
         "android",
@@ -81,10 +81,10 @@
         "source": "git-subdir",
         "url": "https://github.com/pironjulien/NexusRelay.git",
         "path": "plugin",
-        "ref": "v1.13.1"
+        "ref": "v1.13.2"
       },
       "description": "Direct link between Claude, Codex and Antigravity on one Windows PC: topic rooms, multi-agent review, delegated tasks. Served by the local NexusRelay daemon, installed by NexusSystem (or NexusRelay's get.ps1).",
-      "version": "1.13.1",
+      "version": "1.13.2",
       "category": "productivity",
       "keywords": [
         "multi-agent",
@@ -126,10 +126,10 @@
         "source": "git-subdir",
         "url": "https://github.com/pironjulien/NexusInDesign.git",
         "path": "plugin",
-        "ref": "v4.1.4"
+        "ref": "v4.1.5"
       },
       "description": "Adobe InDesign for Claude Code and Codex through its COM automation only (no panel, no UXP plugin, no network): open, script, preview, preflight and export, every change backed up and checked. Starts the native NexusInDesign engine installed by NexusSystem (or NexusInDesign's get.ps1).",
-      "version": "4.1.4",
+      "version": "4.1.5",
       "category": "productivity",
       "keywords": [
         "indesign",
