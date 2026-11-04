@@ -28,6 +28,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
   background at every size, like the site: no dark square around it, and the knot badge at the bottom of the ring is
   kept whole (it was dimmed with the inner circuits). NexusFree, NexusInDesign and NexusWpp cards now come from the
   same kit as the other products (`tools/icon-from-site.ps1`).
+- At 32 px and less (taskbar, Start, Alt+Tab, Explorer, small `nexus.ico` entries) a small icon replaces the
+  medallion: the silver ring drawn plain, without the "JULIENPIRON.FR" lettering unreadable at that size, and the
+  pictogram enlarged. Ships with the app version after 1.0.14.0 (already in certification).
 
 ### Fixed (app 1.0.14.0)
 - A Microsoft Store product (NexusWpp) shows its installed version and the version the Store serves, with "New version
