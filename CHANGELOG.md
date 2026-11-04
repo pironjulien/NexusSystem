@@ -20,6 +20,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Pin NexusWindows 3.16.9 in both AI plugin catalogs: its diagnostic logs keep the engine's fixed failure reasons.
 - Pin NexusRelay 1.12.4 in both AI plugin catalogs so the installed skills describe equal peers under `host: all`.
 
+### Changed (app 1.0.14.0, icons)
+- The app and its package logos (Start, taskbar, Store, tiles) show the julienpiron.fr medallion on a transparent
+  background at every size, like the site: no dark square around it, and the knot badge at the bottom of the ring is
+  kept whole (it was dimmed with the inner circuits). NexusFree, NexusInDesign and NexusWpp cards now come from the
+  same kit as the other products (`tools/icon-from-site.ps1`).
+
 ### Fixed (app 1.0.14.0)
 - A Microsoft Store product (NexusWpp) shows its installed version and the version the Store serves, with "New version
   X" and an "Update" button like the AI products. It said only "Installed · Microsoft Store" while a PC stayed on

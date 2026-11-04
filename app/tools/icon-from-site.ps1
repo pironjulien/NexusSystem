@@ -17,7 +17,7 @@ param(
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Drawing
 $assets = Join-Path $PSScriptRoot '..\src\Nexus.App\Assets'
-$names = 'system', 'windows', 'android', 'browser', 'keypad', 'relay', 'agymail'
+$names = 'system', 'windows', 'android', 'browser', 'keypad', 'relay', 'agymail', 'free', 'indesign', 'wpp'
 $scales = 100, 125, 150, 200, 400
 $targetSizes = 16, 20, 24, 30, 32, 36, 40, 44, 48, 60, 64, 72, 80, 96, 256
 
