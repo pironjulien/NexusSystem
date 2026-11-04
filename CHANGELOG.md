@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 ## [Unreleased]
 
 ### Fixed
+- Pin NexusBrowser 2.35.4 in both AI plugin catalogs: the spinning toolbar logo is cut to its circle and flashes at start.
 - Pin NexusBrowser 2.35.3 in both AI plugin catalogs: property-based robustness tests and the fixes they found.
 - `products.json`: NexusInDesign links to its new site page; NexusFree no longer points to a missing banner.
 - `INSTALL-AI.md` lists the `free` key (NexusFree) in the product table.
