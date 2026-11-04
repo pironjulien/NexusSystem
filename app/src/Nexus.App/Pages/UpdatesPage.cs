@@ -109,38 +109,13 @@ public sealed partial class UpdatesPage : UserControl
         Say(Text.Get("Updates.Checking"), InfoBarSeverity.Informational);
         try
         {
-            await Catalog.RefreshLatestAsync(folders, lifetime.Token);
-            var started = false;
-            var maintenanceAsked = false;
-            foreach (var product in Catalog.Shown.Products.Where(product => ProductUpdates.IsInstalled(product, found, folders) && ProductUpdates.CanRequest(product, folders)))
-            {
-                // One maintenance run covers every product it manages.
-                var managed = MaintenanceUpdates.Supports(product) && MaintenanceUpdates.IsInstalled(folders);
-                if (managed && maintenanceAsked) continue;
-                maintenanceAsked |= managed;
-                started |= await ProductUpdates.RequestManagedAsync(product, folders, Http, lifetime.Token) == UpdateRequest.Started;
-            }
-            // Store products: winget takes the Store's current package (the Store's own updates can lag for days).
-            var store = "";
-            foreach (var view in Installed().Where(view => view.UpdateAvailable && view.Product.StoreUrl is not null).ToList())
-            {
-                Say(Text.Format("State.StoreUpdatingOne", view.Product.Name), InfoBarSeverity.Informational);
-                var updating = Catalog.UpdateStoreAsync(view.Product, lifetime.Token);
-                Fill();
-                store = await updating;
-            }
+            var (text, severity) = await Catalog.CheckUpdatesAsync(Catalog.Shown.Products, found, folders,
+                progress => { Say(progress, InfoBarSeverity.Informational); Fill(); }, lifetime.Token);
             if (lifetime.IsCancellationRequested) return;
             Fill();
-            var late = Installed().Where(view => view.UpdateAvailable).Select(view => view.Product.Name).ToList();
-            if (late.Count > 0) Say(Text.Format("Updates.Some", string.Join(", ", late)), InfoBarSeverity.Warning);
-            else Say(started ? Text.Get("Updates.Started") : store.Length > 0 ? store : Text.Get("Updates.UpToDate"));
+            Say(text, severity);
         }
         catch (OperationCanceledException) { }
-        catch (Exception error)
-        {
-            AppLog.Error("updates", error);
-            Say(Text.Get("Updates.Failed"), InfoBarSeverity.Error);
-        }
         finally { check.IsEnabled = true; }
     }
 }

@@ -81,7 +81,7 @@ public static class Products
     // The full plugin for Logi Options+, installed by the pack when Logi Options+ is there: one way per product, and the
     // Logitech Marketplace editions are trimmed to its rules.
     public static readonly Product Keypad = new("keypad", "NexusKeypad", "#f78fb3", Availability.Ready,
-        "https://julienpiron.fr/nexuskeypad/", [], Device: "Logi Options+");
+        "https://julienpiron.fr/nexuskeypad/", [], JournalFolder: "keypad", Device: "Logi Options+");
 
     // Two AI apps talking: one host opens the exchanges (NexusRelay 1.4.0: the first of Claude Code, Codex, Antigravity
     // here), the others answer. Claude Desktop's chat is not a relay client.
@@ -91,7 +91,7 @@ public static class Products
 
     // Claude and Codex have their own official Gmail connector.
     public static readonly Product AgyMail = new("agymail", "NexusAGYmail", "#ffb5a2", Availability.Ready,
-        "https://julienpiron.fr/nexusagymail/", [AiApp.Antigravity], Server: "nexus-agymail", AntigravityPlugin: "nexus-agymail");
+        "https://julienpiron.fr/nexusagymail/", [AiApp.Antigravity], Server: "nexus-agymail", AntigravityPlugin: "nexus-agymail", JournalFolder: "agymail");
 
     // Adobe InDesign through its COM automation (NexusInDesign 4.0.0): the engine from its get.ps1, the plugin for
     // Claude Code and Codex from the catalog.

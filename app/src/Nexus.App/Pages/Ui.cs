@@ -125,22 +125,25 @@ static class Ui
         };
     }
 
-    /// <summary>A ✓ / ✗ line: green or red mark, then the text.</summary>
-    public static StackPanel Mark(bool ok, string text) => new()
+    /// <summary>A ✓ / ✗ line: green or red mark, then the text, which wraps instead of being cut.</summary>
+    public static Grid Mark(bool ok, string text)
     {
-        Orientation = Orientation.Horizontal,
-        Spacing = 8,
-        Children =
+        var line = new Grid { ColumnSpacing = 8 };
+        line.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        line.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        line.Children.Add(new FontIcon
         {
-            new FontIcon
-            {
-                Glyph = ok ? "" : "",
-                FontSize = 14,
-                Foreground = ok ? Theme("SystemFillColorSuccessBrush") : Theme("SystemFillColorCriticalBrush"),
-            },
-            new TextBlock { Text = text },
-        },
-    };
+            Glyph = ok ? "" : "",
+            FontSize = 14,
+            VerticalAlignment = VerticalAlignment.Top,
+            Margin = new Thickness(0, 3, 0, 0),
+            Foreground = ok ? Theme("SystemFillColorSuccessBrush") : Theme("SystemFillColorCriticalBrush"),
+        });
+        var words = new TextBlock { Text = text, TextWrapping = TextWrapping.WrapWholeWords };
+        Grid.SetColumn(words, 1);
+        line.Children.Add(words);
+        return line;
+    }
 
     /// <summary>Logo, then title and text that wrap in the remaining width.</summary>
     public static Grid Header(UIElement logo, string title, string text)

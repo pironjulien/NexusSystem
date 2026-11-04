@@ -105,6 +105,48 @@ static class Catalog
         }));
     }
 
+    /// <summary>
+    /// "Get updates" for these products (all of them on the Updates page, one on its own page): reads the published
+    /// versions again, asks the products that update themselves to do it now (one maintenance run covers every product
+    /// it manages) and takes the Store's current package of a Store product. Never closes an AI session. Returns what to
+    /// tell the user.
+    /// </summary>
+    public static async Task<(string Text, InfoBarSeverity Severity)> CheckUpdatesAsync(IEnumerable<Product> products,
+        IReadOnlyList<AiApp> found, UserFolders folders, Action<string> progress, CancellationToken cancel = default)
+    {
+        var chosen = products.ToList();
+        try
+        {
+            await RefreshLatestAsync(folders, cancel);
+            var started = false;
+            var maintenanceAsked = false;
+            foreach (var product in chosen.Where(product => ProductUpdates.IsInstalled(product, found, folders) && ProductUpdates.CanRequest(product, folders)))
+            {
+                var managed = MaintenanceUpdates.Supports(product) && MaintenanceUpdates.IsInstalled(folders);
+                if (managed && maintenanceAsked) continue;
+                maintenanceAsked |= managed;
+                started |= await ProductUpdates.RequestManagedAsync(product, folders, Http, cancel) == UpdateRequest.Started;
+            }
+            // Store products: winget takes the Store's current package (the Store's own updates can lag for days).
+            var store = "";
+            foreach (var view in chosen.Select(product => Read(product, found, folders)).Where(view => view.UpdateAvailable && view.Product.StoreUrl is not null).ToList())
+            {
+                var updating = UpdateStoreAsync(view.Product, cancel);
+                progress(Text.Format("State.StoreUpdatingOne", view.Product.Name));
+                store = await updating;
+            }
+            var late = chosen.Select(product => Read(product, found, folders)).Where(view => view.UpdateAvailable).Select(view => view.Product.Name).ToList();
+            if (late.Count > 0) return (Text.Format("Updates.Some", string.Join(", ", late)), InfoBarSeverity.Warning);
+            return (started ? Text.Get("Updates.Started") : store.Length > 0 ? store : Text.Get("Updates.UpToDate"), InfoBarSeverity.Success);
+        }
+        catch (OperationCanceledException) when (cancel.IsCancellationRequested) { throw; }
+        catch (Exception error)
+        {
+            AppLog.Error("updates", error);
+            return (Text.Get("Updates.Failed"), InfoBarSeverity.Error);
+        }
+    }
+
     public static bool HasLatest { get { lock (Latest) return Latest.Count > 0; } }
 
     /// <summary>The state line of a card or a page: a colored dot and a few words.</summary>

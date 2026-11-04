@@ -7,6 +7,20 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Changed (app 1.0.15.0)
+- Home laid out like the Microsoft Store's: the banner shows each product's poster across the whole slide, with its
+  icon, name and button over it, and two product tiles beside it; each group is one panel of compact rows (icon,
+  name, sentence, state, button).
+- An update is seen at a glance: a count on "Updates" in the menu, a dot on every product that has one, and a banner
+  at the top of the home page naming them with "See updates". The published versions are read at start and every
+  30 minutes.
+- Every installed product's page has "Check for an update" under its state, the same check as the Updates page.
+- NexusKeypad and NexusAGYmail pages show what the AI apps did with them (24 h), like the other AI products.
+
+### Fixed (app 1.0.15.0)
+- Long ✓ / ✗ lines and the "On this PC" summary wrap instead of being cut (NexusWpp's "Installed from the
+  Microsoft Store" line).
+
 ### Changed
 - Pin NexusKeypad 1.8.30 in both AI plugin catalogs: each Marketplace edition's release now carries a ready profile
   (`.lp5`) to import in Logi Options+.

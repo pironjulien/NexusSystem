@@ -13,9 +13,10 @@ change ─► test locally ─► push main ─► CI: tests + build ─► vX.Y
 
 - Work in the product's own repository (`NexusHarness\<Product>`, one public repository per product).
 - Run the product's `test.ps1` (xUnit and the product's own checks) until it is green.
-- NexusSystem app: the user's PC runs the local copy, not the Store app (Store certification takes hours). After every
-  app change merged to `main`, the AI publishes `app/src/Nexus.App` outside OneDrive and runs
-  `app/tools/install-local.ps1 -Source <publish folder>`: the **NexusSystem (local)** shortcut then opens the change.
+- NexusSystem app: the user's PC runs the Microsoft Store app, the very build the public gets (since 2026-11-04:
+  certification is fast). A change is checked before submission with `app/tools/capture.ps1` (every page, both
+  languages and themes, on a made-up profile) and the test package; after certification, `winget install --id
+  9NSH2P3QLWT1 --source msstore --force` takes it on the PC without waiting for the Store's own update.
 - Plugin changes live in the product's `plugin/` folder, the single source for the three AI apps:
   `.claude-plugin/` and `.mcp.json` (Claude Code), `.codex-plugin/` and `.codex-mcp.json` (Codex), Antigravity's
   manifest and guide (shipped with the engine and installed by its installer).

@@ -30,7 +30,49 @@ public sealed partial class MainWindow : Window
         BuildMenu("home");
         // The online catalog may add, move or release a product: the menu and the page follow it at once.
         _ = RefreshCatalogAsync();
+        // An update is seen at a glance, as in the Store: a count on "Updates" and a dot on each product that has one.
+        // The published versions are read at start and every 30 minutes; the badges follow the PC every few seconds.
+        _ = RefreshLatestAsync();
+        badges.Tick += (_, _) => DrawBadges();
+        badges.Start();
+        latest.Tick += async (_, _) => await RefreshLatestAsync();
+        latest.Start();
     }
+
+    readonly DispatcherTimer badges = new() { Interval = TimeSpan.FromSeconds(5) };
+    readonly DispatcherTimer latest = new() { Interval = TimeSpan.FromMinutes(30) };
+    readonly IReadOnlyList<AiApp> found = AiApps.Find(UserFolders.FromEnvironment());
+
+    async Task RefreshLatestAsync()
+    {
+        try
+        {
+            await Catalog.RefreshLatestAsync(UserFolders.FromEnvironment());
+            DrawBadges();
+        }
+        catch (Exception error) { AppLog.Error("releases", error); }
+    }
+
+    /// <summary>The products of this PC with a newer published version.</summary>
+    public IReadOnlyList<Product> WithUpdate() => Catalog.Shown.Products
+        .Select(product => Catalog.Read(product, found, UserFolders.FromEnvironment()))
+        .Where(view => view.UpdateAvailable).Select(view => view.Product).ToList();
+
+    void DrawBadges()
+    {
+        var late = WithUpdate().Select(product => product.Key).ToHashSet();
+        foreach (var item in Nav.MenuItems.Concat(Nav.FooterMenuItems).OfType<NavigationViewItem>())
+        {
+            var tag = (string)item.Tag;
+            if (tag == "updates")
+                item.InfoBadge = late.Count > 0 ? new InfoBadge { Value = late.Count, Style = (Style)Application.Current.Resources["AttentionValueInfoBadgeStyle"] } : null;
+            else if (tag != "home")
+                item.InfoBadge = late.Contains(tag) ? new InfoBadge { Style = (Style)Application.Current.Resources["AttentionDotInfoBadgeStyle"] } : null;
+        }
+    }
+
+    /// <summary>Called by the home page: show the Updates page.</summary>
+    public void OpenUpdates() => Nav.SelectedItem = MenuItem("updates");
 
     async Task RefreshCatalogAsync()
     {
@@ -55,6 +97,7 @@ public sealed partial class MainWindow : Window
                 Nav.MenuItems.Add(Item(product.Name, product.Key, Ui.LogoSource(product)));
         }
         Nav.SelectedItem = MenuItem(selected);
+        DrawBadges();
     }
 
     static NavigationViewItem Item(string text, string tag, ImageSource logo) => new()

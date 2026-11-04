@@ -40,10 +40,12 @@ public sealed partial class ProductPage : UserControl
         // The banner, in the product's color: icon, name, publisher and group, one sentence; the one button and its state.
         var stateHost = new ContentControl { HorizontalAlignment = HorizontalAlignment.Right };
         var actionHost = new ContentControl { HorizontalAlignment = HorizontalAlignment.Right };
+        var check = new HyperlinkButton { Content = Text.Get("CheckUpdate"), HorizontalAlignment = HorizontalAlignment.Right, Padding = new Thickness(0) };
         var drawn = "";
         void DrawState()
         {
             var now = Catalog.Read(product, ais, folders);
+            check.Visibility = now.Installed ? Visibility.Visible : Visibility.Collapsed;
             if (Catalog.Signature(now) == drawn) return;
             drawn = Catalog.Signature(now);
             stateHost.Content = Catalog.State(now);
@@ -66,7 +68,30 @@ public sealed partial class ProductPage : UserControl
         words.VerticalAlignment = VerticalAlignment.Center;
         Grid.SetColumn(words, 1);
         hero.Children.Add(words);
-        var side = Ui.Column(10, actionHost, stateHost);
+        // Every installed product's page can look for its update itself, as the Updates page does for all of them.
+        check.Click += async (_, _) =>
+        {
+            check.IsEnabled = false;
+            notice.Severity = InfoBarSeverity.Informational;
+            notice.Message = Text.Get("Updates.Checking");
+            notice.IsOpen = true;
+            try
+            {
+                var (text, severity) = await Catalog.CheckUpdatesAsync([product], ais, folders, progress =>
+                {
+                    notice.Message = progress;
+                    DrawState();
+                }, lifetime.Token);
+                if (lifetime.IsCancellationRequested) return;
+                DrawState();
+                notice.Severity = severity;
+                notice.Message = severity == InfoBarSeverity.Warning ? Text.Format("UpdateOne", product.Name) : text;
+                notice.IsOpen = true;
+            }
+            catch (OperationCanceledException) { }
+            finally { check.IsEnabled = true; }
+        };
+        var side = Ui.Column(10, actionHost, stateHost, check);
         side.VerticalAlignment = VerticalAlignment.Center;
         side.MinWidth = 220;
         Grid.SetColumn(side, 2);
@@ -87,7 +112,13 @@ public sealed partial class ProductPage : UserControl
         left.VerticalAlignment = left is Border ? VerticalAlignment.Top : VerticalAlignment.Stretch;
 
         // Right: "On this PC", then the journal, then the guides, in their own scroll.
-        var summary = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12, Children = { summaryIcon, summaryTitle } };
+        // A grid, not a horizontal panel: the sentence wraps in the card's width instead of being cut.
+        var summary = new Grid { ColumnSpacing = 12 };
+        summary.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        summary.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        summary.Children.Add(summaryIcon);
+        Grid.SetColumn(summaryTitle, 1);
+        summary.Children.Add(summaryTitle);
         summaryTitle.VerticalAlignment = VerticalAlignment.Center;
         summaryTitle.Style = (Style)Application.Current.Resources["BodyStrongTextBlockStyle"];
         summaryIcon.FontSize = 20;
