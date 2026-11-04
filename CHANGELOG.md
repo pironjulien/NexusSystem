@@ -8,6 +8,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 ## [Unreleased]
 
 ### Changed
+- Pin NexusKeypad 1.8.30 in both AI plugin catalogs: each Marketplace edition's release now carries a ready profile
+  (`.lp5`) to import in Logi Options+.
 - Pin NexusBrowser 2.35.14 in both AI plugin catalogs: Chrome's toolbar icon is the site medallion without its
   lettering.
 - App icons at 32 px and less (`Square44x44Logo` target sizes, `nexus.ico`): the same julienpiron.fr medallion
