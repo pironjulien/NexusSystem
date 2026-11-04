@@ -15,10 +15,10 @@
         "source": "git-subdir",
         "url": "https://github.com/pironjulien/NexusAndroid.git",
         "path": "plugin",
-        "ref": "v0.23.6"
+        "ref": "v0.23.7"
       },
       "description": "Android phone over plain ADB (no root, no app): screen, gestures, SMS/RCS, notifications, files, settings. Served by the local NexusAndroid daemon, installed by NexusSystem (or NexusAndroid's get.ps1); needs USB debugging on the phone.",
-      "version": "0.23.6",
+      "version": "0.23.7",
       "category": "productivity",
       "keywords": [
         "android",
@@ -37,10 +37,10 @@
         "source": "git-subdir",
         "url": "https://github.com/pironjulien/NexusWindows.git",
         "path": "plugin",
-        "ref": "v3.16.11"
+        "ref": "v3.16.12"
       },
       "description": "Windows desktop apps through native UI Automation: observe, click, type, menus, shortcuts and launch. Foreground interaction is explicit when required. Starts the native NexusWindows engine installed by NexusSystem (or NexusWindows' get.ps1).",
-      "version": "3.16.11",
+      "version": "3.16.12",
       "category": "productivity",
       "keywords": [
         "windows",
@@ -59,10 +59,10 @@
         "source": "git-subdir",
         "url": "https://github.com/pironjulien/NexusBrowser.git",
         "path": "plugin",
-        "ref": "v2.35.4"
+        "ref": "v2.35.5"
       },
       "description": "Your real Chrome (your sessions) driven in background tabs: forms, network, dialogs, cross-origin iframes, exports, downloads. Served by the local NexusBrowser daemon; requires its Chrome extension, both installed by NexusSystem (or NexusBrowser's get.ps1).",
-      "version": "2.35.4",
+      "version": "2.35.5",
       "category": "productivity",
       "keywords": [
         "chrome",
@@ -81,10 +81,10 @@
         "source": "git-subdir",
         "url": "https://github.com/pironjulien/NexusRelay.git",
         "path": "plugin",
-        "ref": "v1.12.11"
+        "ref": "v1.12.12"
       },
       "description": "Direct link between Claude, Codex and Antigravity on one Windows PC: topic rooms, multi-agent review, delegated tasks. Served by the local NexusRelay daemon, installed by NexusSystem (or NexusRelay's get.ps1).",
-      "version": "1.12.11",
+      "version": "1.12.12",
       "category": "productivity",
       "keywords": [
         "multi-agent",
@@ -103,10 +103,10 @@
         "source": "git-subdir",
         "url": "https://github.com/pironjulien/NexusKeypad.git",
         "path": "connecteurs",
-        "ref": "v1.8.26"
+        "ref": "v1.8.27"
       },
       "description": "NexusKeypad in Claude and Codex: live states for the Logitech keypad (hooks), Claude's exact usage (5-hour and weekly) for the keypad. No alert, no network. Needs NexusKeypad, installed by NexusSystem (or NexusKeypad's get.ps1).",
-      "version": "1.8.26",
+      "version": "1.8.27",
       "category": "productivity",
       "keywords": [
         "logitech",
@@ -126,10 +126,10 @@
         "source": "git-subdir",
         "url": "https://github.com/pironjulien/NexusInDesign.git",
         "path": "plugin",
-        "ref": "v4.1.2"
+        "ref": "v4.1.3"
       },
       "description": "Adobe InDesign for Claude Code and Codex through its COM automation only (no panel, no UXP plugin, no network): open, script, preview, preflight and export, every change backed up and checked. Starts the native NexusInDesign engine installed by NexusSystem (or NexusInDesign's get.ps1).",
-      "version": "4.1.2",
+      "version": "4.1.3",
       "category": "productivity",
       "keywords": [
         "indesign",
@@ -148,10 +148,10 @@
         "source": "git-subdir",
         "url": "https://github.com/pironjulien/NexusFree.git",
         "path": "plugin",
-        "ref": "v1.2.3"
+        "ref": "v1.2.4"
       },
       "description": "Administrator elevation and SYSTEM privileged execution without UAC friction for the Trinity (sfc, dism, services, registry, installations). Starts the native NexusFree engine installed by NexusSystem (or NexusFree's get.ps1).",
-      "version": "1.2.3",
+      "version": "1.2.4",
       "category": "productivity",
       "keywords": [
         "elevation",
