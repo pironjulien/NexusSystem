@@ -50,9 +50,13 @@ static class PluginSources
         var folder = Path.Combine(checkout, path);
         lock (typeof(PluginSources))
         {
+            // A checkout of this tag made for another folder (a catalog once pinned to a wrong path) is reused: its
+            // sparse checkout gains this folder. A broken one is removed (Git's pack files are read-only) and cloned again.
+            if (!Directory.Exists(folder) && Directory.Exists(Path.Combine(checkout, ".git")))
+                Run(checkout, "sparse-checkout", "add", path);
             if (!Directory.Exists(folder))
             {
-                if (Directory.Exists(checkout)) Directory.Delete(checkout, true);
+                Remove(checkout);
                 Git(null, "clone", "--quiet", "--depth", "1", "--branch", tag, "--filter=blob:none", "--sparse",
                     $"https://github.com/pironjulien/{product}.git", checkout);
                 Git(checkout, "sparse-checkout", "set", path);
@@ -62,7 +66,21 @@ static class PluginSources
         return folder;
     }
 
+    static void Remove(string directory)
+    {
+        if (!Directory.Exists(directory)) return;
+        foreach (var file in Directory.EnumerateFiles(directory, "*", SearchOption.AllDirectories))
+            File.SetAttributes(file, FileAttributes.Normal);
+        Directory.Delete(directory, true);
+    }
+
     static void Git(string? directory, params string[] arguments)
+    {
+        var (code, error) = Run(directory, arguments);
+        Assert.True(code == 0, $"git {string.Join(' ', arguments)}: {error}");
+    }
+
+    static (int Code, string Error) Run(string? directory, params string[] arguments)
     {
         var start = new ProcessStartInfo("git") { UseShellExecute = false, CreateNoWindow = true, RedirectStandardError = true };
         if (directory is not null) start.WorkingDirectory = directory;
@@ -70,6 +88,6 @@ static class PluginSources
         using var git = Process.Start(start)!;
         var error = git.StandardError.ReadToEnd();
         git.WaitForExit();
-        Assert.True(git.ExitCode == 0, $"git {string.Join(' ', arguments)}: {error}");
+        return (git.ExitCode, error);
     }
 }

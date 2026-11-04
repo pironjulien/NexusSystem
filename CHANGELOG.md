@@ -17,6 +17,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Every installed product's page has "Check for an update" under its state, the same check as the Updates page.
 - NexusKeypad and NexusAGYmail pages show what the AI apps did with them (24 h), like the other AI products.
 
+### Fixed
+- NexusKeypad 1.8.30 pinned to its `connecteurs` folder again in both AI plugin catalogs (it pointed at the
+  Logitech plugin folder). The catalog tests reuse or rebuild a cached checkout instead of failing on Git's
+  read-only files.
+
 ### Fixed (app 1.0.15.0)
 - Long ✓ / ✗ lines and the "On this PC" summary wrap instead of being cut (NexusWpp's "Installed from the
   Microsoft Store" line).
