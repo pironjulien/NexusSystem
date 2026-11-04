@@ -8,6 +8,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 ## [Unreleased]
 
 ### Changed
+- Pin NexusBrowser 2.35.14 in both AI plugin catalogs: Chrome's toolbar icon is the site medallion without its
+  lettering.
 - App icons at 32 px and less (`Square44x44Logo` target sizes, `nexus.ico`): the same julienpiron.fr medallion
   as the large icon, with only its unreadable lettering erased, instead of the plain silver ring.
 - Pin NexusBrowser 2.35.13 (task rename steps written to install.log), NexusKeypad 1.8.29 (relay conversations
