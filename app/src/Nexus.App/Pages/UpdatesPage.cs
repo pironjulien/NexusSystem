@@ -20,6 +20,7 @@ public sealed partial class UpdatesPage : UserControl
     readonly CancellationTokenSource lifetime = new();
     static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(15) };
     string shown = "";
+    const double ActionWidth = 220;
 
     public UpdatesPage()
     {
@@ -71,7 +72,9 @@ public sealed partial class UpdatesPage : UserControl
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2, GridUnitType.Star) });
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(3, GridUnitType.Star) });
-            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            // The same width on every row, whatever its button ("See", "Open in the Store", "Update with my AI"): an
+            // Auto column made the star columns, and so the state column, start further left on a Store product's row.
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(ActionWidth) });
             var logo = Ui.Logo(view.Product, 44);
             row.Children.Add(logo);
             var name = Ui.Column(2, Ui.Strong(view.Product.Name), Ui.Body(Catalog.Group(view.Product.Group), secondary: true));
@@ -87,6 +90,7 @@ public sealed partial class UpdatesPage : UserControl
             open.Click += (_, _) => MainWindow.Instance?.Open(product);
             UIElement action = Catalog.Action(view, found, Say) is { } button ? button : open;
             ((FrameworkElement)action).VerticalAlignment = VerticalAlignment.Center;
+            ((FrameworkElement)action).HorizontalAlignment = HorizontalAlignment.Right;
             Grid.SetColumn((FrameworkElement)action, 3);
             row.Children.Add(action);
             rows.Children.Add(Ui.Card(row, padding: 12));

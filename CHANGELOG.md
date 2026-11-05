@@ -7,6 +7,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Fixed
+- NexusFree showed "Installed · version 1.2.5" instead of "Up to date": the app never read its latest release, as
+  neither `products.json` nor the app's list of GitHub repositories named NexusFree. Both do now, and a test requires a
+  release repository for every ready product. The catalog fix reaches the Store app already installed.
+
+### Fixed (app 1.0.16.0)
+- On the Updates page the state column starts at the same place on every row: the button column has one width, so a
+  Microsoft Store product's "Open in the Store" no longer pushes its state left, and the busy ring of an update takes
+  the dot's slot.
+
 ### Changed (app 1.0.15.0)
 - Home laid out like the Microsoft Store's: the banner shows each product's poster across the whole slide, with its
   icon, name and button over it, and two product tiles beside it; each group is one panel of compact rows (icon,

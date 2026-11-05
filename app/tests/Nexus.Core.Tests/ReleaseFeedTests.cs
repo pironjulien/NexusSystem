@@ -24,7 +24,9 @@ public class ReleaseFeedTests
     [Fact]
     public void EveryProductWithReleasesHasItsRepository()
     {
-        foreach (var product in new[] { Products.Windows, Products.Android, Products.Browser, Products.Relay, Products.AgyMail, Products.Keypad })
+        // 2026-11-05: NexusFree had no repository here, so the app never read its latest release and showed it
+        // "Installed" instead of "Up to date". Every ready product (not a Store one) is released on GitHub.
+        foreach (var product in Products.All.Where(p => p.Availability == Availability.Ready))
             Assert.Equal(product.Name, ReleaseFeed.Repository(product));
     }
 }

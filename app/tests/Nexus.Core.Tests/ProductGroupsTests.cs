@@ -54,6 +54,8 @@ public class ProductGroupsTests
                 (product.Availability, product.Group, product.StoreUrl, product.PackageFamily, product.Server));
             Assert.NotNull(product.AboutFr);
             Assert.NotNull(product.AboutEn);
+            // The app reads the newest version of a ready product from its GitHub releases: none, no "Up to date".
+            if (product.Availability == Availability.Ready) Assert.Equal(product.Name, ReleaseFeed.Repository(product));
         }
     }
 

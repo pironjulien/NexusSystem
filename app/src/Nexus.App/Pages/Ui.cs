@@ -213,7 +213,8 @@ static class Ui
     public static Grid State(string text, string brush, bool busy = false)
     {
         var grid = new Grid { ColumnSpacing = 6 };
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        // The dot and the busy ring share one slot as wide as the ring: the words start at the same place on every row.
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(14) });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         grid.Children.Add(busy ? new ProgressRing { Width = 14, Height = 14, IsActive = true, VerticalAlignment = VerticalAlignment.Center }
             : new Microsoft.UI.Xaml.Shapes.Ellipse { Width = 8, Height = 8, Fill = Theme(brush), VerticalAlignment = VerticalAlignment.Center });

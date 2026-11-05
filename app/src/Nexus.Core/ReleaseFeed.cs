@@ -15,6 +15,7 @@ public static class ReleaseFeed
         ["windows"] = "NexusWindows",
         ["android"] = "NexusAndroid",
         ["browser"] = "NexusBrowser",
+        ["free"] = "NexusFree",
         ["relay"] = "NexusRelay",
         ["agymail"] = "NexusAGYmail",
         ["indesign"] = "NexusInDesign",

@@ -108,6 +108,7 @@
       "name": "NexusFree",
       "group": "ai",
       "state": "ready",
+      "repository": "NexusFree",
       "accent": "#f5a623",
       "page": "https://julienpiron.fr/nexusfree/",
       "about": {
