@@ -71,7 +71,7 @@ Read the `✓` / `✗` summary printed by `get-nexus.ps1`, then give the user **
      ```powershell
      powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$env:LOCALAPPDATA\NexusBrowser\app\scripts\guide-extension.ps1" -WaitSeconds 0
      ```
-   - Tell the user: *"Chrome just opened on `chrome://extensions` and the extension folder path is in your clipboard. Turn on **Developer mode** (top right), click **Load unpacked**, press `Ctrl+V`, and click **Select Folder**."*
+   - Relay what the script prints, and nothing else: it says when the extension is already in Chrome and connected (then there is nothing to add: never send the user to the Chrome Web Store as well, two copies would run side by side), opens the Chrome Web Store only when the store serves this version, and otherwise opens `chrome://extensions` with the folder path in the clipboard. In that last case, tell the user: *"Turn on **Developer mode** (top right), click **Load unpacked**, press `Ctrl+V`, and click **Select Folder**."*
 2. **If `android` (`NexusAndroid`) was installed:**
    - Tell the user: *"On your Android phone, enable **Developer options > USB debugging**, plug the phone into the PC with a USB data cable, and tap **Allow** on the phone screen."*
 3. **If `relay` (`NexusRelay`) was installed and both Claude Code and Codex are present:**
