@@ -66,7 +66,7 @@
         "source": "git-subdir",
         "url": "https://github.com/pironjulien/NexusKeypad.git",
         "path": "connecteurs",
-        "ref": "v1.8.46"
+        "ref": "v1.8.47"
       },
       "policy": {
         "installation": "AVAILABLE",
