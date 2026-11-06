@@ -7,7 +7,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.6.54] - 2026-11-06
+
 ### Fixed
+- A product update that failed during the hourly maintenance only said "The product update failed.": the published
+  installer's output and errors are now kept in `~\.nexus\nexussystem\maintenance\logs` (UTF-8, the 20 newest),
+  and the product's entry in `~\.nexus\status\nexussystem-update.json` names that file (`log`) and the installer's
+  exit code in its message. The same applies when the installer exits cleanly without reaching the published version;
+  a successful run removes its log.
 - NexusFree showed "Installed · version 1.2.5" instead of "Up to date": the app never read its latest release, as
   neither `products.json` nor the app's list of GitHub repositories named NexusFree. Both do now, and a test requires a
   release repository for every ready product. The catalog fix reaches the Store app already installed.

@@ -9,6 +9,7 @@ $ErrorActionPreference='Stop'
 $pack=Join-Path (Split-Path $PSScriptRoot) 'get-nexus.ps1'
 $ast=[Management.Automation.Language.Parser]::ParseFile($pack,[ref]$null,[ref]$null)
 foreach($definition in $ast.FindAll({param($node) $node -is [Management.Automation.Language.FunctionDefinitionAst]},$true)) {. ([scriptblock]::Create($definition.Extent.Text))}
+$realLoggedScriptFile=${function:Invoke-LoggedScriptFile}
 $original=@{}; foreach($key in @('USERPROFILE','LOCALAPPDATA','APPDATA','CODEX_HOME','NEXUS_PACK','NEXUS_PACK_TARGETS','NEXUS_MCP_TOKEN')){$original[$key]=[Environment]::GetEnvironmentVariable($key,'Process')}
 $work=Join-Path ([IO.Path]::GetTempPath()) "nexus-maintenance-test-$PID"
 $Marketplace='nexus-plugins'; $EmitEvents=$false; $script:NexusPackScript=$pack
@@ -201,8 +202,9 @@ try{
         return [pscustomobject]@{file=$pack;tag=$tag;version=$tag.Substring(1);sha256=(Get-FileHash -LiteralPath $pack).Hash}
     }
     function Get-NexusInstalledVersion($Product){if($Product.Key -eq 'windows'){return $script:installed};if($Product.Key -eq 'browser'){return $script:browserInstalled};return $null}
-    function Invoke-ScriptFile([string]$What,[string]$File,[string[]]$Arguments=@()){
+    function Invoke-LoggedScriptFile([string]$What,[string]$File,[string[]]$Arguments,[string]$Log){
         Assert (($Arguments -join ',') -eq '-UpdateOnly') 'Maintenance used a broad installer.'
+        [IO.File]::WriteAllText($Log,"fixture installer output`nError: fixture cause`n")
         Assert ($env:NEXUS_PACK_TARGETS -eq 'codex') 'Maintenance widened the active profile selection.'
         Assert ($env:NEXUS_MCP_TOKEN -ceq 'fixture credential') 'The installer did not inherit the same current credential used by route inspection.'
         if($script:installerThrows){throw 'fixture installer exception'}
@@ -217,6 +219,7 @@ try{
     $status=Get-NexusMaintenanceStatus
     Assert ($status.products.Count -eq 1 -and $status.products[0].installedVersion -eq '3.9.5' -and $status.products[0].loadedVersions[0] -eq '3.9.4') 'Published/installed/loaded were conflated.'
     Assert ($script:installs -eq 1 -and $script:pluginRefresh -eq 1) 'Expected update did not run once.'
+    Assert ($null -eq $status.products[0].log -and -not @(Get-ChildItem -LiteralPath (Join-Path (Get-NexusMaintenanceRoot) 'logs') -File -ErrorAction SilentlyContinue).Count) 'A successful installer left its output behind.'
     Assert ($script:downloads -notcontains 'NexusSystem') 'Qualification tried to download/execute the older public manager.'
     Assert ((Invoke-NexusMaintenance -Current) -eq 2 -and $script:installs -eq 1) 'Retry reinstalled an already installed version.'
     $script:loaded='3.9.5'
@@ -271,6 +274,10 @@ try{
     Assert ((Invoke-NexusMaintenance -Current) -eq 1 -and (Get-NexusMaintenanceStatus).state -eq 'failed') 'Network error was swallowed.'
     $script:networkFailure=$false;$script:installed='3.9.4';$script:installerFailure=$true
     Assert ((Invoke-NexusMaintenance -Current) -eq 1) 'Installer failure was swallowed.'
+    $failed=(Get-NexusMaintenanceStatus).products[0]
+    Assert ($failed.state -eq 'failed' -and $failed.log -and $failed.message -like "*installer exit code 1*$($failed.log)") 'A failed installer was not referenced from the status file.'
+    Assert ((Test-Path -LiteralPath $failed.log) -and [IO.File]::ReadAllText($failed.log) -like '*fixture cause*') 'A failed installer left no readable output.'
+    Assert ($failed.log.StartsWith((Join-Path (Get-NexusMaintenanceRoot) 'logs'),[StringComparison]::OrdinalIgnoreCase)) 'The installer output was kept in the disposable run folder.'
     Assert ($env:NEXUS_MCP_TOKEN -ceq 'inherited-before-installation') 'Installer failure did not restore its caller environment.'
     Remove-Item Env:NEXUS_MCP_TOKEN
     $script:installerFailure=$false;$script:installerThrows=$true
@@ -280,6 +287,18 @@ try{
     $beforeDownloads=$script:downloads.Count
     Assert ((Invoke-NexusMaintenance -Current) -eq 0 -and (Get-NexusMaintenanceStatus).state -eq 'disabled' -and $script:downloads.Count -eq $beforeDownloads) 'Automatic-update opt-out was not respected at run time.'
     Write-Host 'OK exclusion, network and installer failures remain explicit'
+
+    # The real logged runner: a child Windows PowerShell's host output, errors and exit code reach the UTF-8 log.
+    $child=Join-Path $work 'failing-installer.ps1'
+    [IO.File]::WriteAllText($child,"param([switch]`$UpdateOnly)`nWrite-Host ('host line '+`$UpdateOnly)`nWrite-Output 'output line'`n[Console]::Error.WriteLine('stderr line')`nWrite-Error 'error line'`nexit 3`n")
+    $childLog=Get-NexusMaintenanceLogPath 'fixture'
+    Assert ((& $realLoggedScriptFile 'Fixture maintenance' $child @('-UpdateOnly') $childLog) -eq 3) 'The child exit code was lost.'
+    $text=[IO.File]::ReadAllText($childLog)
+    foreach($expected in 'host line True','output line','stderr line','error line','Exit code: 3'){Assert ($text -like "*$expected*") "The installer log lacks '$expected'."}
+    1..25|ForEach-Object{[IO.File]::WriteAllText((Join-Path (Split-Path $childLog) "old-$_.log"),'old')}
+    $null=Get-NexusMaintenanceLogPath 'fixture'
+    Assert (@(Get-ChildItem -LiteralPath (Split-Path $childLog) -Filter '*.log' -File).Count -le 19) 'Installer logs grow without bound.'
+    Write-Host 'OK a failing installer leaves a readable log referenced from the status file'
     Write-Host 'OK maintenance contract'
 }finally{
     foreach($key in $original.Keys){[Environment]::SetEnvironmentVariable($key,$original[$key],'Process')}

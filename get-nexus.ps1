@@ -53,7 +53,7 @@ $ProgressPreference = 'SilentlyContinue'  # Invoke-WebRequest is many times slow
 $Ok = [string][char]0x2713
 $No = [string][char]0x2717
 $Marketplace = 'nexus-plugins'
-$NexusMaintenanceVersion = '1.6.53'
+$NexusMaintenanceVersion = '1.6.54'
 
 # AI apps, in display order. Claude Desktop also carries Claude Code (its Code tab reads the same ~\.claude).
 $AiNames = [ordered]@{
@@ -410,6 +410,60 @@ function Invoke-ScriptFile([string]$What, [string]$File, [string[]]$Arguments = 
     # A child Windows PowerShell running the checked file, never code in memory; its output in this console.
     $shell = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
     return Invoke-Native $What { Invoke-Console $shell (@('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $File) + $Arguments) }
+}
+
+function Invoke-LoggedScriptFile([string]$What, [string]$File, [string[]]$Arguments, [string]$Log) {
+    # Invoke-ScriptFile for unattended maintenance: the child's output and errors are also written to $Log (UTF-8),
+    # so a failed installer stays readable once the hidden task's console is gone.
+    $shell = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
+    New-Item -ItemType Directory -Force (Split-Path $Log) | Out-Null
+    $writer = [IO.StreamWriter]::new($Log, $false, [Text.UTF8Encoding]::new($false))
+    # The child writes in the console's code page and this process decodes with it: UTF-8 on both sides keeps
+    # accented messages intact (no console, as under some hosts: the default decoding is kept).
+    $savedEncoding = $null
+    try { $savedEncoding = [Console]::OutputEncoding; [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false) } catch { $savedEncoding = $null }
+    try {
+        $writer.AutoFlush = $true
+        $writer.WriteLine("$What, $([DateTimeOffset]::Now.ToString('O'))")
+        $writer.WriteLine("$File $($Arguments -join ' ')")
+        $writer.WriteLine('')
+        $code = Invoke-Native $What {
+            & $shell -NoProfile -ExecutionPolicy Bypass -File $File @Arguments 2>&1 | ForEach-Object {
+                $line = if ($_ -is [Management.Automation.ErrorRecord]) { $_.Exception.Message } else { "$_" }
+                $writer.WriteLine($line)
+                $line
+            }
+        }
+        $writer.WriteLine('')
+        $writer.WriteLine("Exit code: $code")
+    } finally {
+        $writer.Dispose()
+        if ($savedEncoding) { try { [Console]::OutputEncoding = $savedEncoding } catch { Write-Verbose 'Console encoding not restored.' } }
+    }
+    return $code
+}
+
+function Get-NexusMaintenanceLogPath([string]$Key) {
+    # One file per installer run under maintenance\logs; only the newest 20 are kept.
+    $folder = Join-Path (Get-NexusMaintenanceRoot) 'logs'
+    New-Item -ItemType Directory -Force $folder | Out-Null
+    Get-ChildItem -LiteralPath $folder -Filter '*.log' -File -ErrorAction SilentlyContinue | Sort-Object LastWriteTimeUtc -Descending |
+        Select-Object -Skip 19 | Remove-Item -Force -ErrorAction SilentlyContinue
+    return Join-Path $folder ("$Key-$([DateTime]::UtcNow.ToString('yyyyMMdd-HHmmss'))-$PID.log")
+}
+
+function Invoke-NexusMaintenanceInstaller($Product, $Row, [string]$File, [string[]]$Arguments, [string]$Published) {
+    # Runs a product's published installer, then checks the installed version. A failure keeps the installer's
+    # output and names it in the status row; a success removes it.
+    $log = Get-NexusMaintenanceLogPath $Product.Key
+    $code = Invoke-LoggedScriptFile "$($Product.Name) maintenance" $File $Arguments $log
+    if ($code) { $Row.log = $log; throw "The product update failed (installer exit code $code). Installer output: $log" }
+    $installed = Get-NexusInstalledVersion $Product; $Row.installedVersion = $installed
+    if (-not $installed -or [version]$installed -lt [version]$Published) {
+        $Row.log = $log; throw "The installed version did not reach the published version. Installer output: $log"
+    }
+    Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
+    return $installed
 }
 
 function Invoke-Installer([string]$What, [string]$Repo, [string]$Work) {
@@ -1492,7 +1546,7 @@ function Invoke-NexusMaintenance([switch]$Current,[switch]$Force) {
                     # installer, unattended (NEXUS_PACK), replaces the engine and refreshes the AI connections it owns.
                     $installed=Get-NexusInstalledVersion $product
                     if (-not $installed) { continue }
-                    $row=[ordered]@{key=$product.Key;publishedVersion=$null;installedVersion=$installed;loadedVersions=@();state='pending';activationPending=$false;retryable=$false;message='';profiles=@()}
+                    $row=[ordered]@{key=$product.Key;publishedVersion=$null;installedVersion=$installed;loadedVersions=@();state='pending';activationPending=$false;retryable=$false;message='';log=$null;profiles=@()}
                     try {
                         $tag=Get-LatestTag $product.Repo
                         if ($tag -notmatch '^v\d+\.\d+\.\d+$') { throw 'Invalid published version.' }
@@ -1500,9 +1554,7 @@ function Invoke-NexusMaintenance([switch]$Current,[switch]$Force) {
                         if ([version]$published -gt [version]$installed) {
                             $release=Get-NexusPublishedInstaller $product.Repo $work
                             if ($release.tag -ne $tag) { throw 'Release changed while preparing the update; retry on the next cycle.' }
-                            if (Invoke-ScriptFile "$($product.Name) maintenance" $release.file) { throw 'The product update failed.' }
-                            $installed=Get-NexusInstalledVersion $product; $row.installedVersion=$installed
-                            if (-not $installed -or [version]$installed -lt [version]$published) { throw 'The installed version did not reach the published version.' }
+                            $installed=Invoke-NexusMaintenanceInstaller $product $row $release.file @() $published
                         }
                         $row.state='success'; $row.message='Published version installed.'
                         if ($product.Key -in 'android','relay','agymail','indesign','free') { Write-NexusProductStatus $product.Key $installed $row.publishedVersion }
@@ -1515,7 +1567,7 @@ function Invoke-NexusMaintenance([switch]$Current,[switch]$Force) {
                 $active=@($profiles | Where-Object {$_.route -and $_.route -ne 'custom'})
                 $installed=Get-NexusInstalledVersion $product
                 if (-not $installed -and -not $active.Count) { continue }
-                $row=[ordered]@{key=$product.Key;publishedVersion=$null;installedVersion=$installed;loadedVersions=@();state='pending';activationPending=$false;retryable=$false;message='';profiles=$profiles}
+                $row=[ordered]@{key=$product.Key;publishedVersion=$null;installedVersion=$installed;loadedVersions=@();state='pending';activationPending=$false;retryable=$false;message='';log=$null;profiles=$profiles}
                 try {
                     if (-not $active.Count) { $row.state='kept'; $row.message='No active owned route; disabled and custom routes were preserved.' }
                     else {
@@ -1542,9 +1594,7 @@ function Invoke-NexusMaintenance([switch]$Current,[switch]$Force) {
                                 if ($product.Key -eq 'windows' -and @($active | Where-Object {$_.key -eq 'antigravity'}).Count) {$parameters+='RefreshExistingProfiles';$arguments+='-RefreshExistingProfiles'}
                                 Assert-NexusUpdateContract $release.file $parameters
                                 Assert-NexusOfficialUpdateEnvironment $product.Key
-                                if (Invoke-ScriptFile "$($product.Name) maintenance" $release.file $arguments) { throw 'The product update failed.' }
-                                $installed=Get-NexusInstalledVersion $product; $row.installedVersion=$installed
-                                if (-not $installed -or [version]$installed -lt [version]$published) { throw 'The installed version did not reach the published version.' }
+                                $installed=Invoke-NexusMaintenanceInstaller $product $row $release.file $arguments $published
                             }
                             Invoke-NexusPluginMaintenance $product $active
                             foreach($integration in $active | Where-Object {$_.route -eq 'catalogue'}) {
