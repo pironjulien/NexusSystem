@@ -103,10 +103,10 @@
         "source": "git-subdir",
         "url": "https://github.com/pironjulien/NexusKeypad.git",
         "path": "connecteurs",
-        "ref": "v1.8.37"
+        "ref": "v1.8.38"
       },
       "description": "NexusKeypad in Claude and Codex: live states for the Logitech keypad (hooks), Claude's exact usage (5-hour and weekly) for the keypad. No alert, no network. Needs NexusKeypad, installed by NexusSystem (or NexusKeypad's get.ps1).",
-      "version": "1.8.37",
+      "version": "1.8.38",
       "category": "productivity",
       "keywords": [
         "logitech",
