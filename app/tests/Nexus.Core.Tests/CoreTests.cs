@@ -58,6 +58,9 @@ public class AiAppsTests
     }
 }
 
+// Same collection as DeclarationStateTests: both set the process-wide CODEX_HOME, and in parallel this test read the
+// other test's fake profile (Android declared for Codex).
+[Collection("bridge")]
 public class DeclarationsTests
 {
     [Fact]
