@@ -8,6 +8,10 @@ versions have no GitHub release since 1.0.5.0). The format follows [Keep a Chang
 
 ## [Unreleased]
 
+### Fixed
+- Tests: no test can show a Windows error box. The test process sets the error mode (no critical-error, crash or
+  missing-file box) when it loads, and every process it starts inherits it; a test checks it in a child process.
+
 ## [1.7.3] - 2026-11-07
 
 ### Fixed
