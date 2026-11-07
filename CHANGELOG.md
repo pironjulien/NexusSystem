@@ -9,6 +9,13 @@ versions have no GitHub release since 1.0.5.0). The format follows [Keep a Chang
 ## [Unreleased]
 
 ### Fixed
+- `get-nexus.ps1` removes the PowerShell worker of releases up to 1.6.54 (`~\.nexus\nexussystem\maintenance\get-nexus.ps1`)
+  when a development engine is selected as well: on the author's workstation it stayed, and the workstation sync kept
+  installing products with that 1.6 script (07/11/2026). The public installation already removed it.
+- `app/tools/sandbox.ps1` stops with the reason when the Windows Sandbox is gone before the guest's result (closed,
+  connection lost, never started: `app/tools/sandbox-watch.ps1`, checked every 5 s through `wsb list`, 15 s of grace)
+  instead of waiting until its 30-minute timeout. On 07/11/2026 the Sandbox's connection was lost before the guest's
+  user logon (its logon command never ran) and the script kept waiting.
 - Tests: no test can show a Windows error box. The test process sets the error mode (no critical-error, crash or
   missing-file box) when it loads, and every process it starts inherits it; a test checks it in a child process.
 

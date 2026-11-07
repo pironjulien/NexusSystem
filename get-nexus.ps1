@@ -1178,9 +1178,11 @@ function Register-NexusMaintenanceTask($Engine, [switch]$Start) {
     $previous=Get-ScheduledTask -TaskName 'NexusSystem Update' -ErrorAction SilentlyContinue
     if ($previous -and -not $previous.Settings.Enabled) { $settings.Enabled=$false }
     Register-ScheduledTask -TaskName 'NexusSystem Update' -Action $action -Trigger $triggers -Settings $settings -Principal $principal -Description 'Verified Nexus releases; installed products and existing active AI routes only. Sessions are preserved.' -Force | Out-Null
-    # The PowerShell worker of releases up to 1.6.54 is replaced by the engine (kept while it is the running file).
+    # The PowerShell worker of releases up to 1.6.54 is replaced by the engine (kept while it is the running file), on
+    # the author's workstation as well: there the task runs the development engine, and a worker left beside it kept
+    # serving older scripts that still called it (until 1.7.3 it was kept whenever a development engine was selected).
     $legacy=Join-Path (Get-NexusMaintenanceRoot) 'get-nexus.ps1'
-    if (-not $Engine.development -and (Test-Path -LiteralPath $legacy) -and $legacy -ine $script:NexusPackScript) { Remove-Item -LiteralPath $legacy -Force }
+    if ((Test-Path -LiteralPath $legacy) -and $legacy -ine $script:NexusPackScript) { Remove-Item -LiteralPath $legacy -Force }
     if ($Start -and $settings.Enabled -and (-not $previous -or $previous.State -ne 'Running')) { Start-ScheduledTask -TaskName 'NexusSystem Update' }
 }
 function Install-NexusMaintenance([switch]$Start) {

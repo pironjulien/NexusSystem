@@ -75,12 +75,23 @@ $hostBefore = @(Get-AppxPackage -Name $identity.Name | ForEach-Object { $_.Packa
 $process = Start-Process -FilePath $sandbox -ArgumentList ('"' + $configurationPath + '"') -WindowStyle Hidden -PassThru
 $resultPath = Join-Path $outputDir 'result.json'
 $deadline = (Get-Date).AddMinutes($TimeoutMinutes)
+. (Join-Path $PSScriptRoot 'sandbox-watch.ps1')
+$watch = Get-NexusSandboxWatch (Get-Date)
+$nextWatch = Get-Date
 try {
     while (-not (Test-Path -LiteralPath $resultPath)) {
         if ((Get-Date) -gt $deadline) { throw "Sandbox timed out. Its isolated session and partial report were preserved: $reportRoot" }
         # Current Windows versions hand off from this launcher to the Sandbox client asynchronously.
         if ($process.HasExited -and $process.ExitCode -ne 0) {
             throw "Sandbox launcher failed ($($process.ExitCode)). See $reportRoot"
+        }
+        # A Sandbox that is gone (closed, connection lost, crashed) never writes its result: stop with the reason.
+        if ((Get-Date) -ge $nextWatch) {
+            $nextWatch = (Get-Date).AddSeconds(5)
+            $phaseFile = Join-Path $outputDir 'phase.json'
+            $phase = if (Test-Path -LiteralPath $phaseFile) { try { (Get-Content -Raw -LiteralPath $phaseFile | ConvertFrom-Json).Phase } catch { '' } } else { '' }
+            $stop = Get-NexusSandboxStopReason $watch (Test-NexusSandboxRunning $sandboxCli.Source) (Get-Date) $phase
+            if ($stop -and -not (Test-Path -LiteralPath $resultPath)) { throw "$stop Report: $reportRoot" }
         }
         Start-Sleep -Seconds 1
     }

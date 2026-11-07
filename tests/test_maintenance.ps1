@@ -95,7 +95,9 @@ try{
     $choices=Join-Path $env:USERPROFILE '.nexus\nexussystem.json'
     @{developmentCoordinator=$built}|ConvertTo-Json|Set-Content -LiteralPath $choices
     $publicBefore=[IO.File]::ReadAllText($engine); $before=$script:requests.Count
+    [IO.File]::WriteAllText($legacy,'# PowerShell worker of 1.6.54')
     Install-NexusMaintenance -Start
+    Assert (-not (Test-Path -LiteralPath $legacy)) 'The PowerShell worker of 1.6.54 stayed beside the development engine.'
     Assert ($script:task.Action.Execute -eq $built -and $script:task.Action.Arguments -eq '--current') 'The development engine was not the task action.'
     Assert ($script:requests.Count -eq $before -and [IO.File]::ReadAllText($engine) -ceq $publicBefore) 'Development registration downloaded or replaced a public engine.'
     Assert (-not $script:task.Settings.Enabled -and $script:maintenanceStarts -eq 1) 'Development registration overrode task disablement or started it.'
