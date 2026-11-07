@@ -7,6 +7,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.7.1] - 2026-11-07
+
+### Changed
+- A catalog release is published only after the full installation passes on a clean Windows runner from its tagged
+  commit, with the very maintenance engines it publishes (`pack.yml`, now also run by hand instead of `test.yml`):
+  every product installed, every declared server reached, a second run green, and the installed engine started from
+  PowerShell 7 returning 0. `get-nexus.ps1 -MaintenanceFrom` (tests only, with a local `-Catalog`) takes that engine
+  from a folder with its `SHA256SUMS.txt`, checked the same way, since its release does not exist yet.
+
 ### Fixed
 - Maintenance started from a PowerShell 7 window no longer breaks product installers: Windows PowerShell inherited
   the PowerShell 7 module path, lost `Get-FileHash` and stopped the update (seen with NexusFree 1.3.0).

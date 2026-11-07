@@ -17,6 +17,8 @@
 #   -DryRun        show the plan and do nothing
 #   -NoGuide       do not open Chrome on its extensions page at the end (the guide is printed instead)
 #   -Catalog       marketplace given to Claude Code (default pironjulien/NexusSystem; a local folder for tests)
+#   -MaintenanceFrom  tests only, with a local -Catalog: a folder holding this version's maintenance engine and its
+#                  SHA256SUMS.txt, built before the release exists (the release workflow's pack check); checked the same way
 #   This PC's own choices: %USERPROFILE%\.nexus\nexussystem.json, {"skip": ["claude-desktop"]}, adds its names to -Skip
 #                  (the NexusSystem app reads the same file).
 #   -Json          also print one "NEXUS_PACK_EVENT {json}" line per event (found, plan, step, cell, done), for the
@@ -33,6 +35,7 @@ param(
     [switch]$DryRun,
     [switch]$NoGuide,
     [string]$Catalog = 'pironjulien/NexusSystem',
+    [string]$MaintenanceFrom = '',
     [switch]$Json,
     [switch]$Maintain,
     [switch]$MaintenanceStatus,
@@ -56,7 +59,7 @@ $ProgressPreference = 'SilentlyContinue'  # Invoke-WebRequest is many times slow
 $Ok = [string][char]0x2713
 $No = [string][char]0x2717
 $Marketplace = 'nexus-plugins'
-$NexusMaintenanceVersion = '1.7.0'
+$NexusMaintenanceVersion = '1.7.1'
 
 # AI apps, in display order. Claude Desktop also carries Claude Code (its Code tab reads the same ~\.claude).
 $AiNames = [ordered]@{
@@ -1100,14 +1103,24 @@ function Save-NexusMaintenanceEngine([string]$Destination) {
     $tag="v$NexusMaintenanceVersion"
     $name=Get-NexusMaintenanceEngineName
     $base="https://github.com/pironjulien/NexusSystem/releases/download/$tag"
-    $response=Invoke-WebRequest -UseBasicParsing "$base/SHA256SUMS.txt" -TimeoutSec 30
-    $manifest=if ($response.Content -is [byte[]]) {[Text.Encoding]::UTF8.GetString($response.Content)} else {[string]$response.Content}
+    if ($MaintenanceFrom) {
+        # Tests only: this version's engine built before its release exists, beside its own SHA256SUMS.txt.
+        $manifest=[IO.File]::ReadAllText((Join-Path $MaintenanceFrom 'SHA256SUMS.txt'))
+    } else {
+        $response=Invoke-WebRequest -UseBasicParsing "$base/SHA256SUMS.txt" -TimeoutSec 30
+        $manifest=if ($response.Content -is [byte[]]) {[Text.Encoding]::UTF8.GetString($response.Content)} else {[string]$response.Content}
+    }
     $expected=Get-ExpectedSha256 $manifest $name
     if ((Test-Path -LiteralPath $Destination -PathType Leaf) -and (Get-FileHash -LiteralPath $Destination -Algorithm SHA256).Hash -ieq $expected) { return }
     New-Item -ItemType Directory -Force (Split-Path $Destination) | Out-Null
     $temporary="$Destination.$PID.tmp"
     try {
-        Save-VerifiedFile "$base/$name" $temporary $expected
+        if ($MaintenanceFrom) {
+            Copy-Item -LiteralPath (Join-Path $MaintenanceFrom $name) -Destination $temporary -Force
+            if ((Get-FileHash -LiteralPath $temporary -Algorithm SHA256).Hash -ine $expected) { throw "SHA-256 mismatch for $name in $MaintenanceFrom." }
+        } else {
+            Save-VerifiedFile "$base/$name" $temporary $expected
+        }
         $gh=Get-Command gh.exe -ErrorAction SilentlyContinue
         if ($gh) {
             # gh needs a sign-in (gh auth login or GH_TOKEN) to read attestations, otherwise it exits with code 4: the
@@ -1471,6 +1484,10 @@ $script:NexusPackScript = $PSCommandPath
 # -MaintenanceCurrent: the hand-over contract of releases up to 1.6.54 (-Maintain -MaintenanceCurrent); this release's
 # engine always runs as current from -Maintain.
 if ($MaintenanceCurrent -and -not $Maintain) { throw '-MaintenanceCurrent is an option of -Maintain.' }
+if ($MaintenanceFrom -and ($Maintain -or $InstallMaintenance -or -not (Test-Path -LiteralPath $Catalog -PathType Container) -or
+        -not (Test-Path -LiteralPath (Join-Path $MaintenanceFrom 'SHA256SUMS.txt') -PathType Leaf))) {
+    throw '-MaintenanceFrom is a test option: an installation from a local -Catalog, with a folder holding SHA256SUMS.txt.'
+}
 if ($InstallMaintenance) {
     if ($DryRun) { exit 0 }
     Install-NexusMaintenance -Start

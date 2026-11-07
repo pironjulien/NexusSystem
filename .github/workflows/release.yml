@@ -33,13 +33,23 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
+  # Nothing is published before the full installation passes on a clean Windows from the tagged commit, with the very
+  # engines about to be published (pack.yml): a release can no longer ship what only that check would catch.
+  pack:
+    needs: engine
+    permissions:
+      contents: read
+    uses: ./.github/workflows/pack.yml
+    with:
+      engine-artifact: engine
+
   # A catalog release (vX.Y.Z) is published here, whole, from its tag: get-nexus.ps1, the maintenance engines, their
   # SHA-256 and a provenance attestation (gh attestation verify <file> --repo pironjulien/NexusSystem; its Sigstore
   # bundle is attached as NexusSystem-X.Y.Z.intoto.jsonl, like the products' releases), with that version's CHANGELOG
   # section as notes. Releases are immutable: nothing is added once published (gh release verify vX.Y.Z).
   # A NexusSystem app release (nexussystem-v*) carries the Store app's version, no pack file.
   release:
-    needs: engine
+    needs: [engine, pack]
     runs-on: ubuntu-latest
     permissions:
       contents: write

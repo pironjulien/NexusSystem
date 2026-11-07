@@ -60,8 +60,12 @@ Claude Code and Codex read the catalog from `main`: no NexusSystem release is ne
 A NexusSystem release (`vX.Y.Z` here) is needed only when `get-nexus.ps1` or the maintenance engine
 (`app/src/Nexus.Maintenance`, `Nexus.Core`) changes: raise the version, add its
 `CHANGELOG.md` section, merge, then push the tag `vX.Y.Z` alone (`git tag vX.Y.Z origin/main && git push origin vX.Y.Z`);
-the [`release`](.github/workflows/release.yml) workflow publishes it with its files. The Store app is resubmitted only
-for its own interface or features.
+the [`release`](.github/workflows/release.yml) workflow publishes it with its files. Before publishing anything it
+builds the engines, then runs the full installation on a clean Windows runner from the tagged commit with those very
+engines ([`pack`](.github/workflows/pack.yml): every product installed, every declared server reached, a second run
+green, the installed engine started from PowerShell 7 returning 0); a red `pack` publishes nothing. Fix on `main`,
+then tag the next patch version (a tag never moves). The Store app is resubmitted only for its own interface or
+features.
 
 Releases are immutable in every product repository (Settings > General > Releases): a published release gets no file
 added, replaced or removed, and its tag never moves. Every file is attached at creation, as the workflows above do;
@@ -86,7 +90,8 @@ step has no API; asking the user is the last resort.
 
 - The product's CI and the release run are green; the stable release lists the same `SHA256SUMS.txt` as the
   promoted development build.
-- `gh workflow run test.yml -R pironjulien/NexusSystem` (job `pack`) installs every product on a clean Windows
-  runner and reaches every server each AI app declares.
+- `gh workflow run pack.yml -R pironjulien/NexusSystem` installs every product on a clean Windows runner with this
+  commit's maintenance engine and reaches every server each AI app declares (a NexusSystem release runs it itself and
+  publishes only when it is green). Run it by hand after a product release or a catalog change.
 - What a running AI session uses is checked separately from what is installed: a new session or a normal reload
   picks up a new version; maintenance never closes an AI app.

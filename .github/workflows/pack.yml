@@ -1,0 +1,109 @@
+name: pack
+# The one-liner on a clean runner: the official Claude Code installer, the pinned signed Codex engine, and the folders
+# by which Claude Desktop and Antigravity are found. Codex must install real plugins; an empty .codex folder cannot
+# stand in for its engine. Each product's own installer runs (its latest release); then every server that each AI app
+# declares is reached as that app would reach it (InstallTests), and the installed maintenance engine runs once from
+# PowerShell 7, as the PC starts it. The engine is this commit's, given to get-nexus.ps1 with -MaintenanceFrom since its
+# release does not exist yet: the release workflow passes the very engines it is about to publish and publishes only
+# once this check is green; by hand (gh workflow run pack.yml) it builds this commit's engine.
+on:
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      engine-artifact:
+        description: Artifact of this run holding NexusMaintenance-x64.exe (empty = build it from this commit)
+        type: string
+        default: ''
+permissions:
+  contents: read
+jobs:
+  pack:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Official Codex engine (pinned release, SHA-256 and OpenAI signature verified)
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $ProgressPreference = 'SilentlyContinue' # PowerShell 5.1 progress makes this large binary download very slow.
+          $toolDir = Join-Path $env:RUNNER_TEMP 'codex-0.165.0'
+          New-Item -ItemType Directory -Force $toolDir | Out-Null
+          $engine = Join-Path $toolDir 'codex.exe'
+          Invoke-WebRequest -UseBasicParsing 'https://github.com/openai/codex/releases/download/rust-v0.165.0/codex-x86_64-pc-windows-msvc.exe' -OutFile $engine
+          if ((Get-FileHash -LiteralPath $engine -Algorithm SHA256).Hash -ne 'D4B2E6A054EA1DFE53217F9D8942C5F8A9F4B76171A1E0BB76CED5759915300A') { throw 'Codex release SHA-256 mismatch' }
+          $signature = Get-AuthenticodeSignature -LiteralPath $engine
+          if ($signature.Status -ne 'Valid' -or -not $signature.SignerCertificate -or
+              $signature.SignerCertificate.Subject -notmatch '(^|,\s*)(CN|O)="OpenAI OpCo, LLC"(?=,|$)') { throw 'Codex release lacks a valid OpenAI signature' }
+          if ((& $engine --version) -ne 'codex-cli 0.165.0' -or $LASTEXITCODE) { throw 'Unexpected Codex engine version' }
+          Add-Content -LiteralPath $env:GITHUB_PATH -Value $toolDir
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68  # v6.0.0
+        with:
+          global-json-file: global.json
+      - name: Maintenance engine of the release being checked
+        if: inputs.engine-artifact != ''
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
+        with:
+          name: ${{ inputs.engine-artifact }}
+          path: ${{ runner.temp }}/engine
+      - name: Maintenance engine of this commit (by hand)
+        if: inputs.engine-artifact == ''
+        shell: pwsh
+        run: |
+          dotnet publish app/src/Nexus.Maintenance/Nexus.Maintenance.csproj -c Release -r win-x64 -o "$env:RUNNER_TEMP/engine-build"
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          New-Item -ItemType Directory -Force "$env:RUNNER_TEMP/engine" | Out-Null
+          Copy-Item "$env:RUNNER_TEMP/engine-build/NexusMaintenance.exe" "$env:RUNNER_TEMP/engine/NexusMaintenance-x64.exe"
+      - name: Engine checksums, as the release lists them
+        shell: pwsh
+        run: |
+          $folder = Join-Path $env:RUNNER_TEMP 'engine'
+          $lines = Get-ChildItem -LiteralPath $folder -Filter 'NexusMaintenance-*.exe' | ForEach-Object {
+            "$((Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant())  $($_.Name)" }
+          if (-not $lines) { throw 'No maintenance engine to check.' }
+          Set-Content -LiteralPath (Join-Path $folder 'SHA256SUMS.txt') -Value $lines -Encoding ascii
+          $lines
+      - name: AI apps present (Claude Code installed, Claude Desktop and Antigravity found by their folders)
+        shell: powershell
+        run: |
+          # Anthropic's official installer as a file, run with -File (never code run in memory from the network).
+          $installer = Join-Path $env:RUNNER_TEMP 'claude-install.ps1'
+          Invoke-WebRequest -UseBasicParsing https://claude.ai/install.ps1 -OutFile $installer
+          powershell.exe -NoProfile -ExecutionPolicy Bypass -File $installer
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          New-Item -ItemType Directory -Force "$env:APPDATA\Claude", "$env:USERPROFILE\.gemini\antigravity" | Out-Null
+      - name: get-nexus.ps1 (Windows PowerShell 5.1), this commit's catalog
+        shell: powershell
+        run: |
+          $env:PATH = "$env:USERPROFILE\.local\bin;$env:PATH"
+          ./get-nexus.ps1 -Catalog $PWD -NoGuide -MaintenanceFrom (Join-Path $env:RUNNER_TEMP 'engine')
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+      - name: Every declared server starts
+        shell: powershell
+        run: |
+          $env:PATH = "$env:USERPROFILE\.local\bin;" + [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + [Environment]::GetEnvironmentVariable('Path', 'User')
+          $env:NEXUS_MCP_TOKEN = [Environment]::GetEnvironmentVariable('NEXUS_MCP_TOKEN', 'User')
+          $env:NEXUS_PACK_CHECK_AIS = 'claude-code,claude-desktop,codex,antigravity'
+          $env:NEXUS_PACK_CHECK_PRODUCTS = 'windows,android,browser,relay'
+          dotnet test --project tests/NexusSystem.Tests --filter-class NexusSystem.Tests.InstallTests
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          $env:NEXUS_PACK_CHECK_AIS = 'antigravity'; $env:NEXUS_PACK_CHECK_PRODUCTS = 'agymail'
+          dotnet test --project tests/NexusSystem.Tests --filter-class NexusSystem.Tests.InstallTests
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          claude mcp list
+      - name: Second run changes nothing and stays green
+        shell: powershell
+        run: |
+          $env:PATH = "$env:USERPROFILE\.local\bin;$env:PATH"
+          ./get-nexus.ps1 -Catalog $PWD -NoGuide -MaintenanceFrom (Join-Path $env:RUNNER_TEMP 'engine')
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+      - name: The installed maintenance engine, started from PowerShell 7, checks the products and succeeds
+        shell: pwsh
+        run: |
+          $task = Get-ScheduledTask -TaskName 'NexusSystem Update'
+          $action = $task.Actions[0]
+          $run = Start-Process -FilePath $action.Execute -ArgumentList ("$($action.Arguments) --force".Trim()) -Wait -PassThru
+          Get-Content -Raw (Join-Path $env:USERPROFILE '.nexus\status\nexussystem-update.json')
+          if ($run.ExitCode) { throw "NexusMaintenance exit code $($run.ExitCode)" }
