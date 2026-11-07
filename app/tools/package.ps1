@@ -14,8 +14,10 @@ param(
     [string]$Version = '',
     [ValidateSet('x64', 'ARM64')]
     [string[]]$Platforms = @(),
-    # Outside OneDrive: each Store build weighs ~600 MB and would fill the cloud quota.
-    [string]$Out = (Join-Path $env:LOCALAPPDATA 'NexusApps\dist\msix')
+    # Default: ~\.nexus\build\NexusSystem\store<version> (store1.0.17.0) with -Store, ~\.nexus\build\NexusSystem\msix without. Outside
+    # OneDrive (each Store build weighs ~600 MB) and outside %LOCALAPPDATA%: run from an MSIX app (Claude), writes there
+    # go to the app's private LocalCache, where Chrome never sees them, and Partner Center received a 0-byte package.
+    [string]$Out = ''
 )
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot
@@ -24,6 +26,9 @@ if ($Store -and (-not $IdentityName -or -not $Publisher)) { throw '-Store needs 
 if (-not $Version) { $Version = ([xml](Get-Content -Raw (Join-Path $root 'Directory.Build.props'))).Project.PropertyGroup.Version | Where-Object { $_ } | Select-Object -First 1 }
 if ($Version -notmatch '^\d+\.\d+\.\d+\.0$') { throw "Version '$Version': a package version is four numbers ending in .0 (the Store reserves the last one)." }
 if (-not $Platforms) { $Platforms = if ($Store) { 'x64', 'ARM64' } else { 'x64' } }
+if (-not $Out) {
+    $Out = Join-Path $HOME ('.nexus\build\NexusSystem\' + $(if ($Store) { "store$Version" } else { 'msix' }))
+}
 $outDir = [IO.Path]::GetFullPath($Out) + '\'
 $symbolArguments = @()
 if ($Store) {

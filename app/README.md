@@ -9,7 +9,7 @@ dotnet test --project tests/Nexus.Core.Tests                       # core
 dotnet build src/Nexus.App -c Release -p:Platform=x64 -r win-x64   # hub
 pwsh -File tools/capture.ps1                                       # pictures, demo profile, foreground never taken
 pwsh -File tools/package.ps1                                       # test MSIX (identity NexusSystemTest)
-pwsh -File tools/package.ps1 -Store -IdentityName julienpiron.fr.NexusSystem -Publisher CN=C3E3A6F0-11D2-4EE1-B3F2-34EED4CAE7FA -PublisherDisplayName julienpiron.fr -Out $env:LOCALAPPDATA\NexusApps\dist\store107   # x64 + ARM64 bundle and public symbols, version from Directory.Build.props
+pwsh -File tools/package.ps1 -Store -IdentityName julienpiron.fr.NexusSystem -Publisher CN=C3E3A6F0-11D2-4EE1-B3F2-34EED4CAE7FA -PublisherDisplayName julienpiron.fr   # x64 + ARM64 bundle and public symbols, version from Directory.Build.props, output in ~\.nexus\build\NexusSystem\store<version>
 pwsh -File tools/wack.ps1 -Msix <the .msix>                        # Windows App Certification Kit (elevated)
 ```
 

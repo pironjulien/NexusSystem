@@ -71,8 +71,9 @@ verdict must be exit code 0, or 2 (`pending`) only for the reasons the step list
 AI app runs, so NexusWindows has no running connection to attest it; no Chrome runs, so NexusBrowser's extension
 cannot answer while its daemon runs the installed engine. Any other pending row, a failed product or a catalogue
 route kept instead of maintained fails it; a red `pack` publishes nothing. Fix on `main`,
-then tag the next patch version (a tag never moves). The Store app is resubmitted only for its own interface or
-features.
+then tag the next patch version (a tag never moves). The Store app is resubmitted for its own interface or features,
+and also when what it embeds changes: `get-nexus.ps1` (embedded at build time) or the maintenance engine
+(`app/src/Nexus.Maintenance`, `Nexus.Core`).
 
 Releases are immutable in every product repository (Settings > General > Releases): a published release gets no file
 added, replaced or removed, and its tag never moves. Every file is attached at creation, as the workflows above do;
@@ -85,9 +86,17 @@ Store reviews never block local tests or the GitHub channels.
 | Store | Product | How it is published |
 |---|---|---|
 | MCP registry | MCP products | Automatic, at promotion (GitHub OIDC). |
-| Microsoft Store | NexusSystem app | Partner Center submission by the AI; the submission API needs a Microsoft Entra app the user authorizes once. |
+| Microsoft Store | NexusSystem app | Partner Center submission by the AI (see below); the submission API needs a Microsoft Entra app the user authorizes once. |
 | Chrome Web Store | NexusBrowser extension | Sent by the AI when the user asks, never by GitHub: `scripts/publish-store.ps1` (NexusBrowser) sends the latest stable release's extension as the `cws-publisher` service account (gcloud token, no stored secret) and says when an earlier version is still in review. The developer dashboard, when a step has no API, through NexusWindows. |
 | Logitech Marketplace | NexusKeypad | Logitech's developer portal (no public API). |
+
+NexusSystem app package: build it from a clean, pushed commit (`git status` empty, `HEAD` on `origin/main`), never
+from a modified tree, so the submitted package is exactly a commit anyone can rebuild. `app/tools/package.ps1 -Store`
+writes it to `~\.nexus\build\NexusSystem\store<version>`, never under `%LOCALAPPDATA%` (an MSIX app such as Claude
+redirects writes there into its private cache, and Partner Center received a 0-byte package). Before submitting, run
+`app/tools/sandbox.ps1 -Msix <package.msix> -ExpectedSha256 <SHA256> -Version <version> -Certification -TestSignInGuest`
+(native start and Windows App Certification Kit in a fresh Windows Sandbox; the Store package is unsigned, so it is
+test-signed inside the guest only) when the script exists, and submit only on a pass (see `app/README.md`).
 
 Prefer keyless access (GitHub OIDC with the store's identity federation) over stored secrets. Pages that Chrome
 protects from extensions (Chrome Web Store dashboard) are driven through Windows UI Automation (NexusWindows) when a
