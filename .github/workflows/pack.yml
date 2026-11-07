@@ -100,6 +100,15 @@ jobs:
           $env:PATH = "$env:USERPROFILE\.local\bin;$env:PATH"
           ./get-nexus.ps1 -Catalog $PWD -NoGuide -MaintenanceFrom (Join-Path $env:RUNNER_TEMP 'engine')
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
+      # The engine only refreshes Codex's catalog from the official repository (it keeps another source and reports
+      # it): point Codex at it, as on a user's PC, before the engine's cycle.
+      - name: Codex catalog from the official repository, as users have it
+        shell: pwsh
+        run: |
+          codex plugin marketplace remove nexus-plugins
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          codex plugin marketplace add pironjulien/NexusSystem --json
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
       - name: The installed maintenance engine, started from PowerShell 7 as just installed, checks the products and succeeds
         shell: pwsh
         run: |
