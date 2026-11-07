@@ -10,10 +10,12 @@ public class WindowsRuntimeTests
     static readonly string Hash = new('a', 64);
     static readonly string[] ClaudeArguments = ["--mcp", "--agent", "claude"];
 
-    static (string Manifest, string Executable) Install(FakeProfile profile, string? executable = null, int schema = 2)
+    static readonly string[] FrameworkDependent = ["NexusWindows.exe", "NexusWindows.dll", "NexusWindows.deps.json", "NexusWindows.runtimeconfig.json"];
+
+    static (string Manifest, string Executable) Install(FakeProfile profile, string? executable = null, int schema = 2, string[]? names = null)
     {
         var artifacts = new Dictionary<string, string>();
-        foreach (var name in new[] { "NexusWindows.exe", "NexusWindows.dll", "NexusWindows.deps.json", "NexusWindows.runtimeconfig.json" })
+        foreach (var name in names ?? FrameworkDependent)
         {
             var file = profile.Write($".nexus\\nexus-windows\\native\\{Hash}\\{name}", "fixture:" + name);
             artifacts[name] = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(file)));
@@ -36,6 +38,27 @@ public class WindowsRuntimeTests
         Assert.Equal(executable, installation.ExecutablePath);
         Assert.True(ProductUpdates.IsInstalled(Products.Windows, [], profile.Folders));
         Assert.Empty(ProductUpdates.Read(Products.Windows, profile.Folders));
+    }
+
+    [Fact]
+    public void SingleFileNativeAotEngineIsAVerifiedInstallation()
+    {
+        using var profile = new FakeProfile();
+        var (_, executable) = Install(profile, names: ["NexusWindows.exe", "garde-fous.json"]);
+        Assert.Equal(executable, Assert.IsType<WindowsInstallation>(WindowsRuntime.ReadInstallation(profile.Folders)).ExecutablePath);
+        File.AppendAllText(executable, "changed");
+        Assert.Null(WindowsRuntime.ReadInstallation(profile.Folders));
+    }
+
+    [Theory]
+    [InlineData("NexusWindows.dll")]
+    [InlineData("NexusWindows.deps.json")]
+    [InlineData("NexusWindows.runtimeconfig.json")]
+    public void PartialFrameworkDependentSetIsNotAnInstallation(string missing)
+    {
+        using var profile = new FakeProfile();
+        Install(profile, names: [.. FrameworkDependent.Where(name => name != missing)]);
+        Assert.Null(WindowsRuntime.ReadInstallation(profile.Folders));
     }
 
     [Theory]

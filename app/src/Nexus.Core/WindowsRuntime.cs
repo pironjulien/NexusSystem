@@ -23,6 +23,24 @@ public static class WindowsRuntime
     /// <summary>The stable path NexusWindows' installer keeps for every client: what the catalog plugins start.</summary>
     public static string StablePath(UserFolders folders) => Path.Combine(folders.Nexus, "nexus-windows", "NexusWindows.exe");
 
+    static readonly string[] ManagedFiles = ["NexusWindows.dll", "NexusWindows.deps.json", "NexusWindows.runtimeconfig.json"];
+
+    /// <summary>
+    /// The installed file that holds the engine's code, from its recorded artifacts: NexusWindows.dll for a
+    /// framework-dependent engine (recorded with its .deps.json and .runtimeconfig.json, all three together), or
+    /// NexusWindows.exe alone once compiled ahead of time (Native AOT). Null for a partial or unknown set.
+    /// </summary>
+    internal static string? CodeArtifact(JsonElement artifacts)
+    {
+        if (artifacts.ValueKind != JsonValueKind.Object || !artifacts.TryGetProperty("NexusWindows.exe", out _)) return null;
+        return ManagedFiles.Count(name => artifacts.TryGetProperty(name, out _)) switch
+        {
+            0 => "NexusWindows.exe",
+            3 => "NexusWindows.dll",
+            _ => null,
+        };
+    }
+
     public static WindowsInstallation? ReadInstallation(UserFolders folders)
     {
         try
@@ -39,11 +57,11 @@ public static class WindowsRuntime
             if (executable is null || !Path.IsPathFullyQualified(executable) ||
                 !Path.GetFullPath(executable).Equals(Path.GetFullPath(expected), StringComparison.OrdinalIgnoreCase)) return null;
             // The immutable folder name is a source fingerprint, not the executable's SHA256.
-            // Validate the installed artifacts against their own manifest, including managed code and runtime config.
+            // Validate the installed artifacts against their own manifest, including managed code and runtime config
+            // when the engine is framework-dependent.
             var artifacts = data.GetProperty("NativeArtifacts");
             if (artifacts.ValueKind != JsonValueKind.Object) return null;
-            foreach (var required in new[] { "NexusWindows.exe", "NexusWindows.dll", "NexusWindows.deps.json", "NexusWindows.runtimeconfig.json" })
-                if (!artifacts.TryGetProperty(required, out _)) return null;
+            if (CodeArtifact(artifacts) is null) return null;
             foreach (var artifact in artifacts.EnumerateObject())
             {
                 if (artifact.Name.IndexOfAny(['/', '\\', ':']) >= 0 || artifact.Name is "." or "..") return null;

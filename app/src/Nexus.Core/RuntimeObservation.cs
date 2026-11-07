@@ -82,9 +82,11 @@ public static partial class RuntimeObservation
             if (receipt.ValueKind == JsonValueKind.Object && receipt.Text("version") is { } version && Semantic().IsMatch(version))
             {
                 versions.Add(version);
+                // The recorded code file: NexusWindows.dll (framework-dependent) or NexusWindows.exe (Native AOT).
                 if (installed is not { } record ||
                     !string.Equals(receipt.Text("executable"), record.Text("NativeExecutable"), StringComparison.OrdinalIgnoreCase) ||
-                    !string.Equals(receipt.Text("assemblySha256"), record.Item("NativeArtifacts")?.Text("NexusWindows.dll"), StringComparison.OrdinalIgnoreCase))
+                    record.Item("NativeArtifacts") is not { } artifacts || WindowsRuntime.CodeArtifact(artifacts) is not { } code ||
+                    !string.Equals(receipt.Text("assemblySha256"), artifacts.Text(code), StringComparison.OrdinalIgnoreCase))
                     unknown = true;
                 else active = version;
             }
@@ -119,7 +121,10 @@ public static partial class RuntimeObservation
             Math.Abs((birth.UtcDateTime - started).TotalSeconds) >= 0.01 ||
             receipt.Item("processStartTicks")?.ToString() != birth.UtcDateTime.Ticks.ToString(CultureInfo.InvariantCulture)) return false;
         var assembly = receipt.Text("assembly");
-        var expected = Path.Combine(Path.GetDirectoryName(process.ExecutablePath!)!, "NexusWindows.dll");
+        // The engine's own rule (RuntimeReceipt): its assembly beside the executable, or the executable itself once
+        // compiled ahead of time (Native AOT has no assembly file).
+        var dll = Path.Combine(Path.GetDirectoryName(process.ExecutablePath!)!, "NexusWindows.dll");
+        var expected = File.Exists(dll) ? dll : process.ExecutablePath!;
         return assembly is not null && assembly.Equals(expected, StringComparison.OrdinalIgnoreCase) &&
             receipt.Text("assemblySha256") is { } digest && Hex64().IsMatch(digest) && File.Exists(assembly) &&
             MaintenanceServices.Sha256(assembly).Equals(digest, StringComparison.OrdinalIgnoreCase);

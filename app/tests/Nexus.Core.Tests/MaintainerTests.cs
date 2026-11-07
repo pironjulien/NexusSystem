@@ -213,7 +213,11 @@ public class MaintainerTests
         var digest = MaintenanceServices.Sha256(assembly);
         profile.Write(@".nexus\nexus-windows\installation.json", JsonSerializer.Serialize(new
         {
-            NativeExecutable = engine, NativeArtifacts = new Dictionary<string, string> { ["NexusWindows.dll"] = digest },
+            NativeExecutable = engine, NativeArtifacts = new Dictionary<string, string>
+            {
+                ["NexusWindows.exe"] = MaintenanceServices.Sha256(engine), ["NexusWindows.dll"] = digest,
+                ["NexusWindows.deps.json"] = new string('d', 64), ["NexusWindows.runtimeconfig.json"] = new string('e', 64),
+            },
         }));
         var birth = DateTime.UtcNow;
         profile.Write($@".nexus\status\runtime\windows-codex-800-{birth.Ticks}-session.json", JsonSerializer.Serialize(new
@@ -243,6 +247,43 @@ public class MaintainerTests
         Assert.True(live.Unknown);
     }
 
+    [Fact]
+    public void LoadedNativeAotRuntimeIsAttestedByItsExecutable()
+    {
+        // Native AOT: no NexusWindows.dll; the engine's receipt names the executable as the file holding its code.
+        using var profile = new FakeProfile();
+        var native = Path.Combine(profile.Root, ".nexus", "nexus-windows", "native", new string('a', 64));
+        var engine = profile.Write(Path.Combine(native, "NexusWindows.exe"), "single-file engine");
+        var digest = MaintenanceServices.Sha256(engine);
+        var manifest = profile.Write(@".nexus\nexus-windows\installation.json", JsonSerializer.Serialize(new
+        {
+            NativeExecutable = engine, NativeArtifacts = new Dictionary<string, string> { ["NexusWindows.exe"] = digest },
+        }));
+        var birth = DateTime.UtcNow;
+        profile.Write($@".nexus\status\runtime\windows-codex-800-{birth.Ticks}-session.json", JsonSerializer.Serialize(new
+        {
+            schema = 1, product = "windows", pid = 800, agent = "codex", state = "idle", processStartUtc = birth.ToString("O"),
+            processStartTicks = birth.Ticks.ToString(System.Globalization.CultureInfo.InvariantCulture), executable = engine, assembly = engine, assemblySha256 = digest, version = "3.17.0",
+        }));
+        var stable = Path.Combine(profile.Root, ".nexus", "nexus-windows", "NexusWindows.exe");
+        List<ProcessInfo> table =
+        [
+            new(800, 801, "NexusWindows.exe", $"\"{engine}\" --mcp --agent codex", engine, birth),
+            new(801, 802, "NexusWindows.exe", "NexusWindows.exe --mcp --agent codex", stable, birth),
+            new(802, 1, "codex.exe", "codex.exe app-server", @"C:\signed\codex.exe", birth),
+        ];
+        var live = RuntimeObservation.Observe(Windows, profile.Folders, table);
+        Assert.Equal(["3.17.0"], live.Versions);
+        Assert.False(live.Unknown);
+        // A partial framework-dependent record (an assembly without its host files) attests nothing.
+        File.WriteAllText(manifest, JsonSerializer.Serialize(new
+        {
+            NativeExecutable = engine, NativeArtifacts = new Dictionary<string, string> { ["NexusWindows.exe"] = digest, ["NexusWindows.dll"] = digest },
+        }));
+        live = RuntimeObservation.Observe(Windows, profile.Folders, table);
+        Assert.Null(Assert.Single(live.Agents).Version);
+        Assert.True(live.Unknown);
+    }
     [Fact]
     public async Task UpdatePreservesRunningSessionsAndNeverReinstalls()
     {

@@ -29,6 +29,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
   missing script now fails the build instead of the running app.
 - Every project builds with the same rigor from `Directory.Build.props`: warnings as errors, the recommended .NET
   analyzers and code style at build (the app, its tests and the probe were missing some of them).
+- NexusWindows checks accept a single-file Native AOT engine (`NexusWindows.exe` alone, attested by its own hash in
+  the installation and in the runtime receipt) as well as the framework-dependent one, whose `NexusWindows.dll`,
+  `.deps.json` and `.runtimeconfig.json` must be recorded together; a partial set is not an installation.
 
 ### Fixed
 - Dependabot never proposed a NuGet update: on its Linux runner `USERPROFILE` is unset, so the build folder became
