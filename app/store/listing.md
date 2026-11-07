@@ -56,10 +56,9 @@ Pas de compte, pas de publicité, pas de télémétrie.
 
 **Nouveautés de cette version**
 
-Un accueil comme celui du Microsoft Store : une grande bannière, des tuiles, et les produits en lignes compactes par
-groupe. Les mises à jour se voient d'un coup d'œil : un compteur sur « Mises à jour », un point sur chaque produit
-concerné et un bandeau en haut de l'accueil. Chaque page produit a « Rechercher une mise à jour » et l'activité de
-vos IA sur 24 heures.
+Vos produits Nexus s'installent et restent à jour grâce à un moteur de maintenance Windows natif : ni fenêtre
+PowerShell, ni console. Les mises à jour des produits fonctionnent aussi lancées depuis PowerShell 7, et une CLI
+GitHub déconnectée n'empêche plus une installation. Basée sur Windows App SDK 2.6.5.
 
 **Fonctionnalités** (20 au plus, 200 caractères chacune)
 1. Une carte par produit : installé ou non, à jour ou non.
@@ -113,9 +112,9 @@ No account, no ads, no telemetry.
 
 **What's new in this version**
 
-A home like the Microsoft Store's: a large banner, tiles, and the products in compact rows by group. Updates are seen
-at a glance: a count on "Updates", a dot on every product that has one and a banner at the top of the home page.
-Every product page has "Check for an update" and what your AI apps did with it in the last 24 hours.
+Your Nexus products are installed and kept up to date by a native Windows maintenance engine: no PowerShell window,
+no console. Product updates also work when started from PowerShell 7, and a signed-out GitHub CLI no longer stops an
+installation. Built on Windows App SDK 2.6.5.
 
 **Product features**
 1. One card per product: installed or not, up to date or not.
