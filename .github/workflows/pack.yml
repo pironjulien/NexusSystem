@@ -109,11 +109,14 @@ jobs:
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           codex plugin marketplace add pironjulien/NexusSystem --json
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
-      - name: The installed maintenance engine, started from PowerShell 7 as just installed, checks the products and succeeds
+      - name: The installed maintenance engine, started from PowerShell 7 as just installed, checks the products, none failed
         shell: pwsh
         run: |
           $task = Get-ScheduledTask -TaskName 'NexusSystem Update'
           $action = $task.Actions[0]
           $run = Start-Process -FilePath $action.Execute -ArgumentList '--current', '--force' -Wait -PassThru
-          Get-Content -Raw (Join-Path $env:USERPROFILE '.nexus\status\nexussystem-update.json')
-          if ($run.ExitCode) { throw "NexusMaintenance exit code $($run.ExitCode)" }
+          $status = Get-Content -Raw (Join-Path $env:USERPROFILE '.nexus\status\nexussystem-update.json')
+          $status
+          # 0 checked, 2 pending: installed, activation left to the next reload of a running connection. 1 is a failure.
+          $failed = @(($status | ConvertFrom-Json).products | Where-Object state -eq 'failed')
+          if ($run.ExitCode -notin 0, 2 -or $failed) { throw "NexusMaintenance exit code $($run.ExitCode); failed: $($failed.key -join ', ')" }
