@@ -31,8 +31,16 @@ publishes the pre-release `vX.Y.Z-dev.N`, a build record that nothing installs. 
 
 ## 3. Stable, right after the build
 
-The local test is the validation: when the pushed version is not released yet, the same `Release` run promotes its
-development build at once. The shared [`product-promote`](.github/workflows/product-promote.yml) publishes the SAME
+When the pushed version is not released yet, the same `Release` run promotes its development build, but only once
+every check of its commit is green. The shared [`product-promote`](.github/workflows/product-promote.yml) first reads
+that commit through the GitHub API (job `checks`, read only: `actions`, `checks`, `contents`, `statuses`): the latest
+run of each of the product's workflows (the `Release` workflow itself left out), other apps' check runs and commit
+statuses. It waits for those still running (`checks-timeout-minutes`, 60 by default) and refuses, naming each one, if
+one is red or cancelled, if a workflow the product declares in `required-workflows` (its `release.yml`: Tests,
+Security, CodeQL, Scorecard and its own) is missing or never ran, or if the wait runs out. A refused build stays a
+development build: fix it on `main` with a new patch version, or re-run the failed check and promote it by hand. Each
+product's `promote` job grants `contents: write`, `id-token: write`, `actions: read`, `checks: read` and
+`statuses: read`, and pins both shared workflows to the same NexusSystem release by commit SHA. Then it publishes the SAME
 files, checked against their checksums, as `vX.Y.Z` with the CHANGELOG section, then the product's `server.json` to
 the MCP registry. Nothing is rebuilt; the build provenance of each file stays valid (`gh attestation verify <file>
 --repo pironjulien/<Product> --signer-repo pironjulien/NexusSystem --source-ref refs/heads/main`: the shared workflow
@@ -58,7 +66,9 @@ returns at once while its `nextCheckAt` is ahead), then read
 
 Claude Code and Codex read the catalog from `main`: no NexusSystem release is needed for a plugin or engine update.
 A NexusSystem release (`vX.Y.Z` here) is needed only when `get-nexus.ps1` or the maintenance engine
-(`app/src/Nexus.Maintenance`, `Nexus.Core`) changes: raise the version, add its
+(`app/src/Nexus.Maintenance`, `Nexus.Core`) changes, or a shared product workflow (`product-dev-release.yml`,
+`product-promote.yml`: the products pin them by the release's commit SHA, then move to it in their `release.yml`,
+NexusWindows' `release-assets.yml`): raise the version, add its
 `CHANGELOG.md` section, merge, then push the tag `vX.Y.Z` alone (`git tag vX.Y.Z origin/main && git push origin vX.Y.Z`);
 the [`release`](.github/workflows/release.yml) workflow publishes it with its files. Before publishing anything it
 builds the engines, then runs the full installation on a clean Windows runner from the tagged commit with those very
@@ -104,8 +114,8 @@ step has no API; asking the user is the last resort.
 
 ## 5. Checks before saying "done"
 
-- The product's CI and the release run are green; the stable release lists the same `SHA256SUMS.txt` as the
-  promoted development build.
+- The product's CI and the release run are green (the promotion itself refuses a commit with a red, cancelled or
+  missing check); the stable release lists the same `SHA256SUMS.txt` as the promoted development build.
 - `gh workflow run pack.yml -R pironjulien/NexusSystem` installs every product on a clean Windows runner with this
   commit's maintenance engine and reaches every server each AI app declares (a NexusSystem release runs it itself and
   publishes only when it is green). Run it by hand after a product release or a catalog change.

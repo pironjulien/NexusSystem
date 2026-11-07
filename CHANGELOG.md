@@ -7,13 +7,25 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.7.2] - 2026-11-07
+
 ### Added
+- `tests/NexusSystem.Tests/PromoteGateTests.cs`: the promotion's checks step, run exactly as the workflow runs it,
+  against a local stand-in for the GitHub API (red refused at once, running awaited, absent or unfinished refused, the
+  latest run of each workflow counted, the calling workflow and dynamic workflows left out, paginated check runs).
 - `tests/test_engine_replacement.ps1`, run on every push after the native build: the real `NexusMaintenance.exe` is
   started, its file is renamed aside and replaced before any of its code runs (as its self-update does), and it must
   still complete its cycle. Native AOT maps the whole image at start, so a running engine never reads its path again,
   unlike the .NET single-file bundle of NexusFree 1.3.2 (the same test fails on a single-file build of this engine).
 
 ### Changed
+- `product-promote.yml` publishes a product's stable release only once every check of the build's commit is green
+  (NexusBrowser 2.35.28 was promoted with its Tests workflow red: the promotion depended on its own build only). A new
+  read-only job `checks` reads the commit through the GitHub API (`actions`, `checks`, `contents`, `statuses: read`):
+  the latest run of each product workflow except the calling one, other apps' check runs and commit statuses. It
+  waits for those still running (`checks-timeout-minutes`, 60 by default) and refuses, naming each, a red or cancelled
+  one, a workflow declared in `required-workflows` (default `tests.yml security.yml codeql.yml`) that is missing or
+  never ran, or a wait that runs out. The caller's job now grants `actions: read`, `checks: read`, `statuses: read`.
 - The release's pack check runs the maintenance engine with exactly the command line its task registered, against
   the release being checked rather than the one already published: `get-nexus.ps1 -MaintenanceFrom` (tests only) now
   registers the task with `--test-catalog <local catalog> --test-engines <folder>`, and the engine then takes that
@@ -27,7 +39,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
   `app/tools/wack.ps1` go there too by default (`sandbox-<id>`, `wack`).
 
 ### Changed (app 1.0.17.0)
-- The app installs and maintains the Nexus products with catalog 1.7.1: the hourly maintenance is the native
+- The app installs and maintains the Nexus products with catalog 1.7.2: the hourly maintenance is the native
   `NexusMaintenance.exe` engine (no PowerShell, no console host), product installers keep working from a
   PowerShell 7 window, and a signed-out GitHub CLI no longer stops an installation.
 - Windows App SDK 2.6.5 and current NuGet packages; the install script is embedded from the catalog at build time

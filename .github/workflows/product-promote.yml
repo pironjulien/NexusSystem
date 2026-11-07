@@ -1,10 +1,17 @@
 # Shared by the Nexus products (workflow_call): promote a tested development build to the stable release, right after
 # the push that built it, or by hand. A build whose stable version already exists is left as is (tag output empty).
+# Nothing is published before every check of the build's commit is green (job checks): the product's own workflows on
+# that commit (each workflow file it declares in required-workflows must have run there: Tests, Security, CodeQL...),
+# other apps' check runs and the commit statuses. Those still running are awaited up to checks-timeout-minutes; one
+# red, cancelled, absent or unfinished refuses the promotion and is named. The calling workflow itself is left out:
+# its build ran test.ps1 before this point.
 # The SAME files, checked against their SHA256SUMS.txt, become the release vX.Y.Z at the same commit, with that
 # version's CHANGELOG section as notes; nothing is rebuilt between the tested build and the stable release. With
 # mcp-registry, the product's server.json at the promoted tag then goes to the official MCP registry by GitHub OIDC,
 # every .mcpb package it lists checked against the release's SHA256SUMS.txt.
 # registry-only re-sends a stable release's server.json without promoting anything.
+# The calling job grants contents: write and id-token: write (registry), plus actions: read, checks: read and
+# statuses: read for the checks (read only, in their own job).
 name: product-promote
 
 on:
@@ -34,6 +41,18 @@ on:
         required: false
         type: string
         default: ''
+      required-workflows:
+        description: >-
+          Workflow files of .github/workflows (space-separated) that must have run green on the build's commit; every
+          other check found on that commit must be green too
+        required: false
+        type: string
+        default: tests.yml security.yml codeql.yml
+      checks-timeout-minutes:
+        description: How long to wait for the commit's checks still running before refusing
+        required: false
+        type: number
+        default: 60
     outputs:
       tag:
         description: The stable tag published (vX.Y.Z)
@@ -42,8 +61,194 @@ on:
 permissions: {}
 
 jobs:
-  promote:
+  # The development build to promote and its commit; nothing to do (commit empty) when its version is released.
+  resolve:
     if: inputs.registry-only == ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      dev: ${{ steps.build.outputs.dev }}
+      commit: ${{ steps.build.outputs.commit }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Development build to promote
+        id: build
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PROMOTE: ${{ inputs.promote }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          dev="$PROMOTE"
+          if [[ -z "$dev" ]]; then
+            dev=$(gh release list --repo "$REPOSITORY" --limit 100 --json tagName,isPrerelease,createdAt \
+              --jq '[.[] | select(.isPrerelease and (.tagName | test("-dev\\.[0-9]+$")))] | sort_by(.createdAt) | last | .tagName')
+          fi
+          [[ "$dev" =~ ^v([0-9]+\.[0-9]+\.[0-9]+)-dev\.[0-9]+$ ]] || { echo "Not a development build: $dev"; exit 1; }
+          stable="v${BASH_REMATCH[1]}"
+          if gh release view "$stable" --repo "$REPOSITORY" >/dev/null 2>&1; then
+            # A push that did not raise the version: its development build stays a development build.
+            echo "::notice::$stable is already released: nothing promoted (raise the version to release $dev)."
+            exit 0
+          fi
+          commit=$(gh release view "$dev" --repo "$REPOSITORY" --json targetCommitish --jq .targetCommitish)
+          [[ "$commit" =~ ^[0-9a-f]{40}$ ]] || commit=$(git rev-list -n 1 "$dev")
+          [[ "$commit" =~ ^[0-9a-f]{40}$ ]] || { echo "No commit found for $dev"; exit 1; }
+          echo "dev=$dev" >> "$GITHUB_OUTPUT"
+          echo "commit=$commit" >> "$GITHUB_OUTPUT"
+
+  # Every check of the build's commit green before anything is published (read only, no checkout). All the runs of the
+  # calling workflow on that commit are left out, an earlier refused promotion included; everything else counts.
+  checks:
+    needs: resolve
+    if: needs.resolve.outputs.commit != ''
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      checks: read
+      contents: read
+      statuses: read
+    steps:
+      - name: Every check of the commit is green
+        shell: python
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          COMMIT: ${{ needs.resolve.outputs.commit }}
+          DEV: ${{ needs.resolve.outputs.dev }}
+          RUN_ID: ${{ github.run_id }}
+          REQUIRED: ${{ inputs.required-workflows }}
+          TIMEOUT_MINUTES: ${{ inputs.checks-timeout-minutes }}
+          POLL_SECONDS: '30'
+        run: |
+          # The build's commit: the product's workflow runs (latest run of each .github/workflows file, the calling workflow
+          # left out), other apps' check runs and commit statuses. Red: refused at once. Running or not started yet: awaited.
+          import json, os, re, sys, time, urllib.error, urllib.request
+
+          api = os.environ.get("GITHUB_API_URL", "https://api.github.com").rstrip("/")
+          token = os.environ["GH_TOKEN"]
+          repo, commit, dev = os.environ["REPOSITORY"], os.environ["COMMIT"], os.environ.get("DEV", "")
+          run_id = os.environ["RUN_ID"]
+          required = os.environ.get("REQUIRED", "").split()
+          deadline = time.monotonic() + float(os.environ.get("TIMEOUT_MINUTES") or 60) * 60
+          poll = float(os.environ.get("POLL_SECONDS") or 30)
+          GREEN = {"success", "neutral", "skipped"}
+          RUNNING = {"queued", "in_progress", "waiting", "requested", "pending"}
+
+
+          class Transient(Exception):
+              pass
+
+
+          def get(path, key=None):
+              url, items = f"{api}/repos/{repo}/{path}", []
+              while url:
+                  request = urllib.request.Request(url, headers={
+                      "Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json",
+                      "X-GitHub-Api-Version": "2022-11-28", "User-Agent": "nexus-product-promote"})
+                  try:
+                      with urllib.request.urlopen(request, timeout=60) as response:
+                          body, link = json.load(response), response.headers.get("Link") or ""
+                  except urllib.error.HTTPError as error:
+                      if error.code >= 500 or error.code == 429:
+                          raise Transient(f"{path}: HTTP {error.code}")
+                      sys.exit(f"::error::GitHub API {path}: HTTP {error.code} {error.reason} (the caller's job must grant "
+                               "actions: read, checks: read, contents: read, statuses: read)")
+                  except (urllib.error.URLError, TimeoutError) as error:
+                      raise Transient(f"{path}: {error}")
+                  if key is None:
+                      return body
+                  items += body[key]
+                  found = re.search(r'<([^>]+)>;\s*rel="next"', link)
+                  url = found.group(1) if found else None
+              return items
+
+
+          def workflow(path):
+              return path.split("@", 1)[0]
+
+
+          def survey():
+              """(red, waiting, green): one line per check."""
+              red, waiting, green = [], [], []
+              own = workflow(get(f"actions/runs/{run_id}")["path"])
+              files = {entry["name"] for entry in get(f"contents/.github/workflows?ref={commit}") if entry["type"] == "file"}
+              for name in required:
+                  if name not in files:
+                      red.append(f"required workflow {name}: no .github/workflows/{name} at {commit}")
+              latest = {}
+              for run in get(f"actions/runs?head_sha={commit}&per_page=100", "workflow_runs"):
+                  path = workflow(run["path"])
+                  if not path.startswith(".github/workflows/") or path == own:
+                      continue
+                  if path not in latest or run["id"] > latest[path]["id"]:
+                      latest[path] = run
+              for name in required:
+                  if name in files and f".github/workflows/{name}" not in latest:
+                      waiting.append(f"required workflow {name}: no run on {commit}")
+              for path, run in sorted(latest.items()):
+                  line = f"workflow {run['name']} ({path}): {run['status']}"
+                  if run["status"] != "completed":
+                      waiting.append(f"{line}, {run['html_url']}")
+                  elif run["conclusion"] in GREEN:
+                      green.append(f"{line}, {run['conclusion']}")
+                  else:
+                      red.append(f"{line}, {run['conclusion']}, {run['html_url']}")
+              for check in get(f"commits/{commit}/check-runs?per_page=100", "check_runs"):
+                  if (check.get("app") or {}).get("slug") == "github-actions":
+                      continue  # the workflow runs above
+                  line = f"check {check['name']} ({(check.get('app') or {}).get('slug')}): {check['status']}"
+                  if check["status"] != "completed":
+                      waiting.append(line)
+                  elif check["conclusion"] in GREEN:
+                      green.append(f"{line}, {check['conclusion']}")
+                  else:
+                      red.append(f"{line}, {check['conclusion']}, {check.get('html_url')}")
+              for status in get(f"commits/{commit}/status?per_page=100", "statuses"):
+                  line = f"status {status['context']}: {status['state']}"
+                  if status["state"] == "success":
+                      green.append(line)
+                  elif status["state"] in RUNNING:
+                      waiting.append(line)
+                  else:
+                      red.append(f"{line}, {status.get('target_url')}")
+              return red, waiting, green
+
+
+          def refuse(reason, lines):
+              text = f"{dev or commit} is not promoted: {reason}\n" + "\n".join(f"- {line}" for line in lines)
+              print("\n".join(f"::error::{line}" for line in text.splitlines()))
+              summary = os.environ.get("GITHUB_STEP_SUMMARY")
+              if summary:
+                  with open(summary, "a", encoding="utf-8") as handle:
+                      handle.write(text + "\n")
+              sys.exit(1)
+
+
+          while True:
+              try:
+                  red, waiting, green = survey()
+              except Transient as error:
+                  red, waiting, green = [], [f"GitHub API unavailable ({error})"], []
+              if red:
+                  refuse("a check of its commit is red, cancelled or missing. Fix it on main (a new version), or re-run the "
+                         "failed check then promote this build by hand.", red)
+              if not waiting:
+                  print(f"Every check of {commit} is green:\n" + "\n".join(f"- {line}" for line in green))
+                  break
+              if time.monotonic() >= deadline:
+                  refuse("checks of its commit did not finish in time or never ran. Promote it by hand once they are green.",
+                         waiting)
+              print("Waiting for:\n" + "\n".join(f"- {line}" for line in waiting), flush=True)
+              time.sleep(poll)
+
+  promote:
+    needs: [resolve, checks]
+    if: needs.resolve.outputs.commit != ''
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -58,34 +263,24 @@ jobs:
         id: publish
         env:
           GH_TOKEN: ${{ github.token }}
-          PROMOTE: ${{ inputs.promote }}
+          DEV: ${{ needs.resolve.outputs.dev }}
+          COMMIT: ${{ needs.resolve.outputs.commit }}
           PRODUCT: ${{ inputs.product }}
           REPOSITORY: ${{ github.repository }}
         run: |
           set -euo pipefail
-          dev="$PROMOTE"
-          if [[ -z "$dev" ]]; then
-            dev=$(gh release list --repo "$REPOSITORY" --limit 100 --json tagName,isPrerelease,createdAt \
-              --jq '[.[] | select(.isPrerelease and (.tagName | test("-dev\\.[0-9]+$")))] | sort_by(.createdAt) | last | .tagName')
-          fi
-          [[ "$dev" =~ ^v([0-9]+\.[0-9]+\.[0-9]+)-dev\.[0-9]+$ ]] || { echo "Not a development build: $dev"; exit 1; }
+          [[ "$COMMIT" =~ ^[0-9a-f]{40}$ ]] || { echo "Not a commit: $COMMIT"; exit 1; }
+          [[ "$DEV" =~ ^v([0-9]+\.[0-9]+\.[0-9]+)-dev\.[0-9]+$ ]] || { echo "Not a development build: $DEV"; exit 1; }
           version="${BASH_REMATCH[1]}"
           stable="v$version"
-          if gh release view "$stable" --repo "$REPOSITORY" >/dev/null 2>&1; then
-            # A push that did not raise the version: its development build stays a development build.
-            echo "::notice::$stable is already released: nothing promoted (raise the version to release $dev)."
-            exit 0
-          fi
-          commit=$(gh release view "$dev" --repo "$REPOSITORY" --json targetCommitish --jq .targetCommitish)
-          [[ "$commit" =~ ^[0-9a-f]{40}$ ]] || commit=$(git rev-list -n 1 "$dev")
           mkdir dist
-          gh release download "$dev" --repo "$REPOSITORY" --dir dist
+          gh release download "$DEV" --repo "$REPOSITORY" --dir dist
           (cd dist && tr -d '\r' < SHA256SUMS.txt | sha256sum --strict -c -)
-          git show "$commit:CHANGELOG.md" > changelog.md
+          git show "$COMMIT:CHANGELOG.md" > changelog.md
           awk -v v="$version" 'index($0, "## [" v "]") == 1 {on=1; next} on && /^## / {exit} on {print}' changelog.md > notes.md
-          [[ -s notes.md ]] || { echo "CHANGELOG.md has no [$version] section at $commit."; exit 1; }
-          gh release create "$stable" dist/* --repo "$REPOSITORY" --target "$commit" --title "$PRODUCT $version" --notes-file notes.md --latest
-          echo "Promoted $dev ($commit) to $stable with the same files."
+          [[ -s notes.md ]] || { echo "CHANGELOG.md has no [$version] section at $COMMIT."; exit 1; }
+          gh release create "$stable" dist/* --repo "$REPOSITORY" --target "$COMMIT" --title "$PRODUCT $version" --notes-file notes.md --latest
+          echo "Promoted $DEV ($COMMIT) to $stable with the same files, every check of its commit green."
           echo "tag=$stable" >> "$GITHUB_OUTPUT"
 
   registry:
