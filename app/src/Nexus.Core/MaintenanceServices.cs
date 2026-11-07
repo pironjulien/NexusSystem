@@ -23,6 +23,25 @@ public partial class MaintenanceServices(UserFolders folders)
 
     public UserFolders Folders { get; } = folders;
 
+    /// <summary>Tests only (--test-catalog, --test-engines): the release being checked before it is published.</summary>
+    public TestRelease? TestRelease { get; init; }
+
+    /// <summary>
+    /// The tag of the test release: its catalogue's version, which must be this engine's own, and this engine must be
+    /// the one its SHA256SUMS.txt lists (by SHA-256). Nothing is downloaded or replaced.
+    /// </summary>
+    public string TestReleaseTag(TestRelease test)
+    {
+        var version = JsonFiles.Read(Path.Combine(test.Catalog, ".claude-plugin", "marketplace.json"))?.Item("metadata")?.Text("version");
+        if (version != ManagerVersion)
+            throw new InvalidDataException($"The test catalogue {test.Catalog} is version {version ?? "unknown"}, not this engine's {ManagerVersion}.");
+        var manifest = Path.Combine(test.Engines, "SHA256SUMS.txt");
+        var expected = ReleaseRules.ExpectedSha256(File.ReadAllText(manifest), PublishedEngineName);
+        if (!expected.Equals(ManagerSha256(), StringComparison.OrdinalIgnoreCase))
+            throw new InvalidDataException($"This engine is not the {PublishedEngineName} that {manifest} lists (SHA-256 mismatch).");
+        return "v" + version;
+    }
+
     static readonly Lazy<HttpClient> Http = new(() =>
     {
         var http = new HttpClient(new HttpClientHandler { AllowAutoRedirect = true }) { Timeout = TimeSpan.FromSeconds(60) };
@@ -353,7 +372,7 @@ public partial class MaintenanceServices(UserFolders folders)
 
     /// <summary>Refreshes the public catalogue plugins of the routes that use them (Codex and Claude Code).</summary>
     public virtual Task MaintainPluginsAsync(MaintenanceProduct product, IReadOnlyList<MaintenanceRoute> routes, CancellationToken cancel) =>
-        Task.Run(() => PluginMaintenance.Refresh(product, routes, Folders), cancel);
+        Task.Run(() => PluginMaintenance.Refresh(product, routes, Folders, TestRelease?.Catalog), cancel);
 
     /// <summary>A program run hidden to its end, its output captured (UTF-8).</summary>
     public static (int Code, string Output, string Error) Run(string file, IEnumerable<string> arguments, string? input = null)

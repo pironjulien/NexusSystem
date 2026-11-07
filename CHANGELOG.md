@@ -7,6 +7,20 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Changed
+- The release's pack check runs the maintenance engine with exactly the command line its task registered, against
+  the release being checked rather than the one already published: `get-nexus.ps1 -MaintenanceFrom` (tests only) now
+  registers the task with `--test-catalog <local catalog> --test-engines <folder>`, and the engine then takes that
+  catalogue as the release, after checking that it carries the engine's version and that the engine is the one the
+  folder's `SHA256SUMS.txt` lists (SHA-256); it never replaces itself and Codex reads that catalogue in place.
+- The pack check no longer accepts every pending result: exit code 0, or 2 only when each pending product is
+  NexusWindows with no AI app running or NexusBrowser with its daemon on the installed engine and no Chrome running.
+
+### Fixed
+- Maintenance no longer fails a product when Codex's Nexus catalogue comes from another source (a local folder, a
+  fork): that route is kept, not refreshed, and the product's status names the source instead of "Codex catalogue
+  refresh failed".
+
 ## [1.7.1] - 2026-11-07
 
 ### Changed

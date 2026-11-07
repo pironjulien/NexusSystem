@@ -48,7 +48,16 @@ public sealed partial class Maintainer(MaintenanceServices services)
                 Directory.CreateDirectory(work);
                 services.WriteStatus(state);
                 string tag, version;
-                if (current)
+                if (services.TestRelease is { } test)
+                {
+                    // Tests only: the release being checked, from its local catalogue and engine folder, verified by
+                    // SHA-256 against this engine; never replaced by, nor compared with, the published release.
+                    tag = services.TestReleaseTag(test);
+                    version = tag[1..];
+                    state.Latest = version;
+                    state.Catalogue = tag;
+                }
+                else if (current)
                 {
                     // Explicit qualification of this build: published products only, no self-replacement and no
                     // downgrade or durable copy of a development engine.
@@ -78,6 +87,8 @@ public sealed partial class Maintainer(MaintenanceServices services)
                     }
                 }
                 if (bootstrap is null) await MaintainProductsAsync(state, previous, work, cancel).ConfigureAwait(false);
+                if (services.TestRelease is { } checkedRelease)
+                    state.Message = $"Test release {state.Catalogue}: catalogue {checkedRelease.Catalog}, engine verified against {checkedRelease.Engines}. {state.Message}";
             }
             catch (Exception error) when (error is not OperationCanceledException)
             {
@@ -208,7 +219,10 @@ public sealed partial class Maintainer(MaintenanceServices services)
                             installed = await RunInstallerAsync(product, row, release.Path, arguments, published, targets, cancel).ConfigureAwait(false);
                         }
                         await services.MaintainPluginsAsync(product, active, cancel).ConfigureAwait(false);
-                        foreach (var route in active.Where(p => p.Route == "catalogue"))
+                        // A catalogue from another source (a local folder, another repository) is the user's: kept,
+                        // reported, neither refreshed nor attested.
+                        var keptCatalogues = active.Where(p => p.State == "kept").ToList();
+                        foreach (var route in active.Where(p => p.Route == "catalogue" && p.State != "kept"))
                         {
                             if (route.PluginVersion is null || !Version.TryParse(route.PluginVersion, out var plugin) || plugin < ReleaseRules.Number(published))
                             {
@@ -238,7 +252,7 @@ public sealed partial class Maintainer(MaintenanceServices services)
                                 }
                                 continue;
                             }
-                            if (route.ActivationPending) continue;
+                            if (route.ActivationPending || keptCatalogues.Contains(route)) continue;
                             var agent = route.Key switch { "claude-code" => "claude", "codex" => "codex", "antigravity" => "antigravity", _ => null };
                             var connections = loaded.Agents.Where(a => a.Agent == agent).ToList();
                             if (connections.Count > 0 && connections.All(c => string.Equals(c.Version, installed, StringComparison.OrdinalIgnoreCase)))
@@ -274,6 +288,7 @@ public sealed partial class Maintainer(MaintenanceServices services)
                             row.ActivationPending = true;
                             if (row.State == "success") row.State = "pending";
                         }
+                        foreach (var route in keptCatalogues) row.Message += $" {route.Key}: {route.Reason}";
                         if (source == "repository")
                         {
                             if (row.State == "success") row.State = "kept";

@@ -63,7 +63,14 @@ A NexusSystem release (`vX.Y.Z` here) is needed only when `get-nexus.ps1` or the
 the [`release`](.github/workflows/release.yml) workflow publishes it with its files. Before publishing anything it
 builds the engines, then runs the full installation on a clean Windows runner from the tagged commit with those very
 engines ([`pack`](.github/workflows/pack.yml): every product installed, every declared server reached, a second run
-green, the installed engine started from PowerShell 7 (`--current --force`) with no product failed); a red `pack` publishes nothing. Fix on `main`,
+green, then the installed engine started from PowerShell 7 with exactly the command line its task registered). With
+`get-nexus.ps1 -MaintenanceFrom`, that task names the release being checked (`--test-catalog` the tagged checkout,
+`--test-engines` the engines' folder, tests only): the engine verifies itself against that folder's `SHA256SUMS.txt`
+and the catalogue's version, and checks that catalogue, Codex included, never the release already published. Its
+verdict must be exit code 0, or 2 (`pending`) only for the reasons the step lists, each a fact of a clean runner: no
+AI app runs, so NexusWindows has no running connection to attest it; no Chrome runs, so NexusBrowser's extension
+cannot answer while its daemon runs the installed engine. Any other pending row, a failed product or a catalogue
+route kept instead of maintained fails it; a red `pack` publishes nothing. Fix on `main`,
 then tag the next patch version (a tag never moves). The Store app is resubmitted only for its own interface or
 features.
 

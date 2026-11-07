@@ -132,6 +132,22 @@ try{
     Remove-Item -LiteralPath $choices
     Write-Host 'OK -Maintain hands over to the engine, then registers it'
 
+    # -MaintenanceFrom (the pack check): the engine comes from that folder, checked, and the task names the release
+    # being checked (local catalogue and engine folder), never the published one.
+    $Catalog=Join-Path $work 'catalog with space'; $MaintenanceFrom=Join-Path $work 'engines'
+    New-Item -ItemType Directory -Force $Catalog,$MaintenanceFrom | Out-Null
+    [IO.File]::WriteAllText((Join-Path $MaintenanceFrom 'NexusMaintenance-x64.exe'),'engine fixture')
+    $hash=(Get-FileHash -LiteralPath (Join-Path $MaintenanceFrom 'NexusMaintenance-x64.exe') -Algorithm SHA256).Hash.ToLowerInvariant()
+    [IO.File]::WriteAllText((Join-Path $MaintenanceFrom 'SHA256SUMS.txt'),"$hash  NexusMaintenance-x64.exe`n")
+    Remove-Item -LiteralPath $engine; $before=$script:requests.Count
+    Install-NexusMaintenance
+    Assert ($script:requests.Count -eq $before -and [IO.File]::ReadAllText($engine) -ceq 'engine fixture') 'The test engine was not taken, checked, from -MaintenanceFrom.'
+    Assert ($script:task.Action.Execute -eq $engine -and $script:task.Action.Arguments -ceq "--test-catalog `"$Catalog`" --test-engines `"$MaintenanceFrom`"") 'The task does not name the release being checked.'
+    $MaintenanceFrom=''; $Catalog='pironjulien/NexusSystem'
+    Install-NexusMaintenance
+    Assert (-not $script:task.Action.Arguments) 'A public installation kept the test release in its task.'
+    Write-Host 'OK -MaintenanceFrom registers the release being checked, by its folders'
+
     # The hand-over contract the 1.6.54 worker checks on a published file before running it.
     $names=@($ast.ParamBlock.Parameters | ForEach-Object {$_.Name.VariablePath.UserPath})
     Assert ($names -contains 'Maintain' -and $names -contains 'MaintenanceCurrent' -and $ast.Find({param($node) $node -is [Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq 'Invoke-NexusMaintenance'},$true)) 'The 1.6.54 worker would refuse to hand over to this file.'

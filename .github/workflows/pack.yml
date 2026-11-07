@@ -3,10 +3,12 @@ name: pack
 # by which Claude Desktop and Antigravity are found. Codex must install real plugins; an empty .codex folder cannot
 # stand in for its engine. Each product's own installer runs (its latest release); then every server that each AI app
 # declares is reached as that app would reach it (InstallTests), and the installed maintenance engine runs once from
-# PowerShell 7, qualified as the engine just installed (--current, as get-nexus.ps1 -Maintain runs it). The engine is
-# this commit's, given to get-nexus.ps1 with -MaintenanceFrom since its release does not exist yet: the release
-# workflow passes the very engines it is about to publish and publishes only once this check is green; by hand
-# (gh workflow run pack.yml) it builds this commit's engine.
+# PowerShell 7 with exactly the command line of its task. The engine is this commit's, given to get-nexus.ps1 with
+# -MaintenanceFrom since its release does not exist yet; the task then names that release (--test-catalog, this
+# checkout; --test-engines, the engines' folder), which the engine verifies by SHA-256, so the cycle checks this
+# commit's catalogue and engine, never the published release. Pending passes only for reasons listed in that step.
+# The release workflow passes the very engines it is about to publish and publishes only once this check is green;
+# by hand (gh workflow run pack.yml) it builds this commit's engine.
 on:
   workflow_dispatch:
   workflow_call:
@@ -100,23 +102,74 @@ jobs:
           $env:PATH = "$env:USERPROFILE\.local\bin;$env:PATH"
           ./get-nexus.ps1 -Catalog $PWD -NoGuide -MaintenanceFrom (Join-Path $env:RUNNER_TEMP 'engine')
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
-      # The engine only refreshes Codex's catalog from the official repository (it keeps another source and reports
-      # it): point Codex at it, as on a user's PC, before the engine's cycle.
-      - name: Codex catalog from the official repository, as users have it
+      # The engine's cycle exactly as the "NexusSystem Update" task starts it: the action get-nexus.ps1 registered (with
+      # -MaintenanceFrom: --test-catalog <this checkout> --test-engines <this run's engines>), no option added. The engine
+      # then checks this commit's catalogue and itself against that folder's SHA256SUMS.txt, never the published release;
+      # Codex keeps reading this checkout's catalogue in place, as get-nexus.ps1 -Catalog left it.
+      - name: The maintenance engine, started from PowerShell 7 exactly as its task starts it, checks the products
         shell: pwsh
         run: |
-          codex plugin marketplace remove nexus-plugins
-          if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          codex plugin marketplace add pironjulien/NexusSystem --json
-          if ($LASTEXITCODE) { exit $LASTEXITCODE }
-      - name: The installed maintenance engine, started from PowerShell 7 as just installed, checks the products, none failed
-        shell: pwsh
-        run: |
-          $task = Get-ScheduledTask -TaskName 'NexusSystem Update'
-          $action = $task.Actions[0]
-          $run = Start-Process -FilePath $action.Execute -ArgumentList '--current', '--force' -Wait -PassThru
-          $status = Get-Content -Raw (Join-Path $env:USERPROFILE '.nexus\status\nexussystem-update.json')
-          $status
-          # 0 checked, 2 pending: installed, activation left to the next reload of a running connection. 1 is a failure.
-          $failed = @(($status | ConvertFrom-Json).products | Where-Object state -eq 'failed')
-          if ($run.ExitCode -notin 0, 2 -or $failed) { throw "NexusMaintenance exit code $($run.ExitCode); failed: $($failed.key -join ', ')" }
+          $ErrorActionPreference = 'Stop'
+          $actions = @((Get-ScheduledTask -TaskName 'NexusSystem Update').Actions)
+          if ($actions.Count -ne 1) { throw "The task has $($actions.Count) actions." }
+          $action = $actions[0]
+          $engine = Join-Path $env:USERPROFILE '.nexus\nexussystem\maintenance\NexusMaintenance.exe'
+          $folders = foreach ($folder in $PWD, (Join-Path $env:RUNNER_TEMP 'engine')) { (Resolve-Path -LiteralPath $folder).ProviderPath.TrimEnd('\') }
+          $expected = "--test-catalog `"$($folders[0])`" --test-engines `"$($folders[1])`""
+          "Task action: $($action.Execute) $($action.Arguments)"
+          if ($action.Execute -ne $engine -or $action.Arguments -cne $expected -or $action.WorkingDirectory) {
+            throw "The task does not start the installed engine on the release being checked (expected: $engine $expected)."
+          }
+          codex plugin marketplace list --json
+          # A run already started by the task would hold the engine's lock (exit 2 without a cycle): wait for its end.
+          $deadline = (Get-Date).AddMinutes(30)
+          while ((Get-ScheduledTask -TaskName 'NexusSystem Update').State -eq 'Running') {
+            if ((Get-Date) -gt $deadline) { throw 'The task is still running after 30 minutes.' }
+            Start-Sleep -Seconds 5
+          }
+          $statusPath = Join-Path $env:USERPROFILE '.nexus\status\nexussystem-update.json'
+          if (Test-Path -LiteralPath $statusPath) { "A previous cycle left: $(Get-Content -Raw -LiteralPath $statusPath)" }
+          $started = [DateTimeOffset]::UtcNow
+          $arguments = @{}
+          if ($action.Arguments) { $arguments.ArgumentList = $action.Arguments }
+          $run = Start-Process -FilePath $action.Execute @arguments -Wait -PassThru
+          $text = Get-Content -Raw -LiteralPath $statusPath
+          $text
+          $status = $text | ConvertFrom-Json
+          if ([DateTimeOffset]$status.checked_at -lt $started) { throw 'The engine returned an earlier result (hourly pause or another run): no cycle was checked.' }
+          $version = (Get-Content -Raw .claude-plugin/marketplace.json | ConvertFrom-Json).metadata.version
+          if ($status.catalogue -ne "v$version") { throw "The cycle checked catalogue $($status.catalogue), not this commit's v$version." }
+          # A catalogue route kept as another source means the engine did not take this checkout as the release checked.
+          $kept = @($status.products | ForEach-Object { $_.profiles } | Where-Object { $_.route -eq 'catalogue' -and $_.state -eq 'kept' })
+          if ($kept) { throw "Catalogue routes kept instead of maintained: $(($kept | ForEach-Object { "$($_.key): $($_.reason)" }) -join ' | ')" }
+          if ($run.ExitCode -eq 0 -and $status.state -eq 'success') { 'Checked: every product current.'; exit 0 }
+          if ($run.ExitCode -ne 2 -or $status.state -ne 'pending') { throw "NexusMaintenance exit code $($run.ExitCode), state $($status.state)." }
+          # Pending (exit 2) passes only for the reasons below, each one a fact of a clean runner where no AI app and no
+          # Chrome run, so no running connection can attest the installed engine. Any other pending row fails.
+          $problems = foreach ($row in @($status.products | Where-Object state -eq 'pending')) {
+            $current = $row.installedVersion -and $row.installedVersion -eq $row.publishedVersion
+            switch ($row.key) {
+              'windows' {
+                # No AI app runs, so no NexusWindows engine runs under one: installed, nothing loaded, every route
+                # waiting for its host's first start.
+                $routes = @($row.profiles | Where-Object { $_.state -ne 'pending' -or $_.reason -ne 'No matching host-owned engine attestation; the existing session is preserved.' })
+                $engines = @(Get-CimInstance Win32_Process -Filter "Name = 'NexusWindows.exe'" | Where-Object CommandLine -match '--mcp')
+                if (-not $current -or @($row.loadedVersions).Count -or $routes -or $engines -or
+                    $row.message -ne 'Installed; no running connection has attested activation yet.') { "windows: $($row.message)" }
+              }
+              'browser' {
+                # The daemon runs the installed engine (same version and fingerprint); only Chrome's NexusBrowser
+                # extension cannot answer, since no Chrome runs on the runner.
+                $installed = Get-Content -Raw (Join-Path $env:LOCALAPPDATA 'NexusBrowser\current.json') | ConvertFrom-Json
+                $health = Invoke-RestMethod -TimeoutSec 5 http://127.0.0.1:16182/health
+                $loaded = @($row.loadedVersions | Where-Object { $_ -ne $row.installedVersion })
+                if (-not $current -or $loaded -or (Get-Process chrome -ErrorAction SilentlyContinue) -or $health.version -ne $row.installedVersion -or
+                    ($health.fingerprint -and $health.fingerprint -ne $installed.fingerprint) -or
+                    $row.message -ne 'Installed; an older or unattested running connection is preserved until its safe reload.') { "browser: $($row.message)" }
+              }
+              default { "$($row.key): $($row.message)" }
+            }
+          }
+          $failed = @($status.products | Where-Object { $_.state -notin 'success', 'pending', 'kept' } | ForEach-Object { "$($_.key) $($_.state): $($_.message)" })
+          if ($problems -or $failed) { throw "Not accepted: $((@($problems) + $failed) -join ' | ')" }
+          'Checked: pending only because no AI app or Chrome runs on this runner.'

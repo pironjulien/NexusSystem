@@ -128,6 +128,45 @@ public sealed class MaintenanceReceipt
 /// <summary>A file of a published release, downloaded and checked against that release's SHA256SUMS.txt.</summary>
 public sealed record PublishedFile(string Tag, string Version, string Path, string Sha256);
 
+/// <summary>
+/// Tests only: the release a commit is about to publish, before it exists (the pack check). Catalog is that commit's
+/// local catalogue (.claude-plugin/marketplace.json); Engines holds its engines and their SHA256SUMS.txt.
+/// </summary>
+public sealed record TestRelease(string Catalog, string Engines);
+
+/// <summary>NexusMaintenance.exe's command line: --current, --force, and the test release's two folders, always together.</summary>
+public sealed record MaintenanceOptions(bool Current, bool Force, TestRelease? TestRelease)
+{
+    public static bool TryParse(IReadOnlyList<string> args, out MaintenanceOptions options)
+    {
+        options = new MaintenanceOptions(false, false, null);
+        var (current, force) = (false, false);
+        string? catalog = null, engines = null;
+        for (var i = 0; i < args.Count; i++)
+        {
+            var name = args[i].ToLowerInvariant();
+            if (name == "--current" && !current) current = true;
+            else if (name == "--force" && !force) force = true;
+            else if (name is "--test-catalog" or "--test-engines" && i + 1 < args.Count && LocalFolder(args[i + 1]) is { } folder)
+            {
+                if (name == "--test-catalog" && catalog is null) catalog = folder;
+                else if (name == "--test-engines" && engines is null) engines = folder;
+                else return false;
+                i++;
+            }
+            else return false;
+        }
+        if (catalog is null != engines is null) return false;
+        options = new MaintenanceOptions(current, force, catalog is null ? null : new TestRelease(catalog, engines!));
+        return true;
+    }
+
+    /// <summary>An existing absolute local folder (drive letter, no network share), normalized; otherwise null.</summary>
+    static string? LocalFolder(string value) =>
+        value.Length > 3 && char.IsAsciiLetter(value[0]) && value[1] == ':' && value[2] is '\\' or '/' && Directory.Exists(value)
+            ? Path.GetFullPath(value).TrimEnd('\\', '/') : null;
+}
+
 /// <summary>The running engines a product's AI connections use, as observed (never inferred from installed files).</summary>
 public sealed record LoadedEngines(IReadOnlyList<string> Versions, bool Unknown, IReadOnlyList<LoadedConnection> Agents);
 

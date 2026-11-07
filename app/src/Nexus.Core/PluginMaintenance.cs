@@ -17,7 +17,8 @@ public static partial class PluginMaintenance
 {
     const string Catalog = "pironjulien/NexusSystem";
 
-    public static void Refresh(MaintenanceProduct product, IReadOnlyList<MaintenanceRoute> routes, UserFolders folders)
+    /// <param name="testCatalog">Tests only (--test-catalog): the local catalogue Codex may read in place.</param>
+    public static void Refresh(MaintenanceProduct product, IReadOnlyList<MaintenanceRoute> routes, UserFolders folders, string? testCatalog = null)
     {
         var plugin = Declarations.PluginName(product.Product);
         var id = plugin + "@" + Declarations.Marketplace;
@@ -26,7 +27,15 @@ public static partial class PluginMaintenance
             if (route.Key == "codex")
             {
                 var cli = CodexCli(folders) ?? throw new InvalidOperationException("The signed Codex CLI is unavailable; no configuration was replaced.");
-                if (!CodexMarketplace(cli, folders)) throw new InvalidOperationException("Codex catalogue refresh failed.");
+                var (source, origin) = CodexMarketplace(cli, folders, testCatalog);
+                if (source == CodexCatalogue.Other)
+                {
+                    // The user's own catalogue (a local folder, another repository): kept and reported, never failed.
+                    route.State = "kept";
+                    route.Reason = $"Codex's {Declarations.Marketplace} catalogue comes from {origin}, not the official repository: it is preserved and not refreshed by maintenance.";
+                    continue;
+                }
+                if (source == CodexCatalogue.Failed) throw new InvalidOperationException("Codex catalogue refresh failed.");
                 if (!CodexPlugin(cli, plugin, folders)) throw new InvalidOperationException("Codex plugin refresh failed.");
                 var (code, output, _) = MaintenanceServices.Run(cli, ["plugin", "list", "--json"]);
                 if (code != 0) throw new InvalidOperationException("Codex could not report its installed plugin.");
@@ -63,27 +72,53 @@ public static partial class PluginMaintenance
     [GeneratedRegex(@"^(?:https://github\.com/|git@github\.com:|ssh://git@github\.com/)?pironjulien/NexusSystem(?:\.git)?/?$", RegexOptions.IgnoreCase)]
     private static partial Regex OfficialCatalog();
 
-    /// <summary>Codex's Nexus marketplace, added once from the official repository and upgraded; another source is kept.</summary>
-    static bool CodexMarketplace(string cli, UserFolders folders)
+    /// <summary>Where Codex's Nexus catalogue comes from, as its own list reports it.</summary>
+    public enum CodexCatalogue { Missing, Official, TestCatalog, Other, Failed }
+
+    /// <summary>
+    /// Classifies `codex plugin marketplace list --json`: no Nexus catalogue yet, the official repository (GitHub
+    /// shorthand, HTTPS and SSH spell the same one), the test release's own local folder, or another source (the
+    /// user's, kept). Several Nexus catalogues are ambiguous: none is replaced. Returns the source as Codex names it.
+    /// </summary>
+    public static (CodexCatalogue Source, string? Origin) ClassifyCodexCatalogue(JsonElement listed, string? testCatalog)
+    {
+        var existing = listed.Item("marketplaces") is { ValueKind: JsonValueKind.Array } all
+            ? all.EnumerateArray().Where(m => m.Text("name") == Declarations.Marketplace).ToList() : [];
+        if (existing.Count > 1) return (CodexCatalogue.Failed, null);
+        if (existing.Count == 0) return (CodexCatalogue.Missing, null);
+        var source = existing[0].Item("marketplaceSource");
+        var root = existing[0].Text("root");
+        var origin = source?.Text("source") ?? root ?? "an unreported source";
+        if (source?.Text("sourceType") == "git" && OfficialCatalog().IsMatch(source.Value.Text("source") ?? "")) return (CodexCatalogue.Official, origin);
+        if (testCatalog is not null && SameFolder(root, testCatalog)) return (CodexCatalogue.TestCatalog, origin);
+        return (CodexCatalogue.Other, origin);
+    }
+
+    static bool SameFolder(string? folder, string expected)
+    {
+        if (string.IsNullOrEmpty(folder) || !Path.IsPathFullyQualified(folder)) return false;
+        return string.Equals(Path.GetFullPath(folder).TrimEnd('\\', '/'), Path.GetFullPath(expected).TrimEnd('\\', '/'), StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Codex's Nexus marketplace, added once from the official repository and upgraded. Another source is kept
+    /// (Other); the test release's local catalogue is read in place by Codex, as get-nexus.ps1 leaves it.
+    /// </summary>
+    static (CodexCatalogue Source, string? Origin) CodexMarketplace(string cli, UserFolders folders, string? testCatalog)
     {
         var (code, output, _) = MaintenanceServices.Run(cli, ["plugin", "marketplace", "list", "--json"]);
-        if (code != 0) return false;
+        if (code != 0) return (CodexCatalogue.Failed, null);
         using var listed = JsonDocument.Parse(output);
-        var existing = listed.RootElement.Item("marketplaces") is { ValueKind: JsonValueKind.Array } all
-            ? all.EnumerateArray().Where(m => m.Text("name") == Declarations.Marketplace).ToList() : [];
-        if (existing.Count > 1) return false;  // ambiguous: no source is replaced
-        if (existing.Count == 1)
-        {
-            // GitHub shorthand, HTTPS and SSH identify this same repository; changing spelling is not a new source.
-            var source = existing[0].Item("marketplaceSource");
-            if (source?.Text("sourceType") != "git" || !OfficialCatalog().IsMatch(source.Value.Text("source") ?? "")) return false;
-        }
-        else if (MaintenanceServices.Run(cli, ["plugin", "marketplace", "add", Catalog, "--json"]).Code != 0) return false;
-        if (MaintenanceServices.Run(cli, ["plugin", "marketplace", "upgrade", Declarations.Marketplace, "--json"]).Code != 0) return false;
+        var (source, origin) = ClassifyCodexCatalogue(listed.RootElement, testCatalog);
+        if (source is CodexCatalogue.Failed or CodexCatalogue.Other) return (source, origin);
+        if (source == CodexCatalogue.Missing && MaintenanceServices.Run(cli, ["plugin", "marketplace", "add", Catalog, "--json"]).Code != 0)
+            return (CodexCatalogue.Failed, null);
+        if (source != CodexCatalogue.TestCatalog &&
+            MaintenanceServices.Run(cli, ["plugin", "marketplace", "upgrade", Declarations.Marketplace, "--json"]).Code != 0) return (CodexCatalogue.Failed, origin);
         // The upgrade refreshes every installed plugin of this catalog (Relay and Keypad carry hooks): approve this
         // catalog's new hook versions here too. Codex asks once otherwise.
         TryApproveHooks(cli, null, folders);
-        return true;
+        return (source, origin);
     }
 
     static bool CodexPlugin(string cli, string name, UserFolders folders)

@@ -18,7 +18,9 @@
 #   -NoGuide       do not open Chrome on its extensions page at the end (the guide is printed instead)
 #   -Catalog       marketplace given to Claude Code (default pironjulien/NexusSystem; a local folder for tests)
 #   -MaintenanceFrom  tests only, with a local -Catalog: a folder holding this version's maintenance engine and its
-#                  SHA256SUMS.txt, built before the release exists (the release workflow's pack check); checked the same way
+#                  SHA256SUMS.txt, built before the release exists (the release workflow's pack check); checked the same way.
+#                  The task then starts it with --test-catalog <Catalog> --test-engines <folder>: that release, not the
+#                  published one, verified by SHA-256
 #   This PC's own choices: %USERPROFILE%\.nexus\nexussystem.json, {"skip": ["claude-desktop"]}, adds its names to -Skip
 #                  (the NexusSystem app reads the same file).
 #   -Json          also print one "NEXUS_PACK_EVENT {json}" line per event (found, plan, step, cell, done), for the
@@ -1158,6 +1160,12 @@ function Install-NexusMaintenanceEngine {
     }
     $engine=Join-Path (Get-NexusMaintenanceRoot) 'NexusMaintenance.exe'
     Save-NexusMaintenanceEngine $engine
+    if ($MaintenanceFrom) {
+        # Tests only: the task runs the engine against this local catalogue and engine folder (the release being
+        # checked, which does not exist yet); the engine verifies itself against that folder's SHA256SUMS.txt.
+        $folders=foreach ($folder in $Catalog, $MaintenanceFrom) { '"' + (Resolve-Path -LiteralPath $folder).ProviderPath.TrimEnd('\','/') + '"' }
+        return [pscustomobject]@{ path=$engine; arguments="--test-catalog $($folders[0]) --test-engines $($folders[1])"; development=$false }
+    }
     return [pscustomobject]@{ path=$engine; arguments=''; development=$false }
 }
 function Register-NexusMaintenanceTask($Engine, [switch]$Start) {

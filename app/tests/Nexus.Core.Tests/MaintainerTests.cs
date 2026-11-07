@@ -26,6 +26,7 @@ sealed class FakeServices(UserFolders folders) : MaintenanceServices(folders)
     public List<string> Downloads = [];
     public List<string> RunInstallerTargets = [];
     public string? InstalledEngine;
+    public string? KeptCatalogue;
 
     public override string ManagerVersion => Version;
     public override string ManagerSha256() => OwnSha;
@@ -84,6 +85,7 @@ sealed class FakeServices(UserFolders folders) : MaintenanceServices(folders)
         var route = Assert.Single(routes);
         Assert.Equal("codex", route.Key);
         route.PluginVersion = PluginVersion;
+        if (KeptCatalogue is not null) (route.State, route.Reason) = ("kept", KeptCatalogue);
         return Task.CompletedTask;
     }
 
@@ -408,6 +410,83 @@ public class MaintainerTests
         services.EngineSha = services.OwnSha;  // the engine already is the published one: it maintains the products
         Assert.Equal(2, await maintainer.RunAsync(false, true, TestContext.Current.CancellationToken));
         Assert.Equal((1, 1), (services.EngineRuns, services.Installs));
+    }
+
+    [Fact]
+    public async Task ATestReleaseIsTheLocalCatalogueAndThisVerifiedEngine()
+    {
+        using var profile = CodexProfile("[plugins.\"nexus-windows@nexus-plugins\"]\nenabled=true");
+        var catalog = Path.Combine(profile.Root, "catalog");
+        var engines = Path.Combine(profile.Root, "engines");
+        profile.Write(@"catalog\.claude-plugin\marketplace.json", """{"metadata":{"version":"1.6.36"}}""");
+        profile.Write(@"engines\SHA256SUMS.txt", $"{new string('a', 64)}  {MaintenanceServices.PublishedEngineName}\n");
+        // The task's own command line (no --current, no --force): the published release is never consulted.
+        var services = new FakeServices(profile.Folders) { TestRelease = new TestRelease(catalog, engines), EngineTag = "v1.6.35" };
+        var maintainer = new Maintainer(services);
+        Assert.Equal(2, await maintainer.RunAsync(false, false, TestContext.Current.CancellationToken));
+        Assert.DoesNotContain("NexusSystem", services.Downloads);
+        Assert.Null(services.InstalledEngine);
+        Assert.Equal(("1.6.36", "v1.6.36"), (Status(profile).GetProperty("latest").GetString(), Status(profile).GetProperty("catalogue").GetString()));
+        Assert.StartsWith("Test release v1.6.36: catalogue " + catalog, Status(profile).GetProperty("message").GetString());
+        Assert.Equal(1, services.Installs);
+
+        // Verified by fingerprint: another engine, or a catalogue of another version, fails the cycle.
+        File.Delete(MaintenanceUpdates.StatusPath(profile.Folders));
+        services.OwnSha = new string('d', 64);
+        Assert.Equal(1, await maintainer.RunAsync(false, false, TestContext.Current.CancellationToken));
+        Assert.Contains("SHA-256 mismatch", Status(profile).GetProperty("message").GetString());
+        (services.OwnSha, services.Version) = (new string('a', 64), "1.6.37");
+        Assert.Equal(1, await maintainer.RunAsync(false, true, TestContext.Current.CancellationToken));
+        Assert.Contains("not this engine's 1.6.37", Status(profile).GetProperty("message").GetString());
+    }
+
+    [Fact]
+    public async Task ACodexCatalogueFromAnotherSourceIsKeptAndReportedNotFailed()
+    {
+        using var profile = CodexProfile("[plugins.\"nexus-windows@nexus-plugins\"]\nenabled=true");
+        var services = new FakeServices(profile.Folders) { Loaded = "3.9.5", KeptCatalogue = "Codex's catalogue comes from C:\\local: preserved." };
+        var maintainer = new Maintainer(services);
+        Assert.Equal(0, await maintainer.RunAsync(true, false, TestContext.Current.CancellationToken));
+        var row = Row(profile);
+        Assert.Equal("success", row.GetProperty("state").GetString());
+        Assert.EndsWith("codex: Codex's catalogue comes from C:\\local: preserved.", row.GetProperty("message").GetString());
+        var route = row.GetProperty("profiles")[0];
+        Assert.Equal(("kept", false), (route.GetProperty("state").GetString(), route.GetProperty("activationPending").GetBoolean()));
+    }
+
+    [Fact]
+    public void CodexCataloguesAreClassifiedBySource()
+    {
+        static (PluginMaintenance.CodexCatalogue, string?) Classify(string json, string? test = null) =>
+            PluginMaintenance.ClassifyCodexCatalogue(JsonDocument.Parse(json).RootElement, test);
+        Assert.Equal(PluginMaintenance.CodexCatalogue.Missing, Classify("""{"marketplaces":[{"name":"other"}]}""").Item1);
+        Assert.Equal(PluginMaintenance.CodexCatalogue.Official,
+            Classify("""{"marketplaces":[{"name":"nexus-plugins","marketplaceSource":{"sourceType":"git","source":"https://github.com/pironjulien/NexusSystem.git"}}]}""").Item1);
+        const string local = """{"marketplaces":[{"name":"nexus-plugins","root":"D:\\a\\NexusSystem\\NexusSystem\\","marketplaceSource":{"sourceType":"local","source":"D:\\a\\NexusSystem\\NexusSystem"}}]}""";
+        Assert.Equal((PluginMaintenance.CodexCatalogue.Other, @"D:\a\NexusSystem\NexusSystem"), Classify(local));
+        Assert.Equal(PluginMaintenance.CodexCatalogue.TestCatalog, Classify(local, @"D:\a\NexusSystem\NexusSystem").Item1);
+        Assert.Equal(PluginMaintenance.CodexCatalogue.Other, Classify(local, @"D:\elsewhere").Item1);
+        Assert.Equal(PluginMaintenance.CodexCatalogue.Other,
+            Classify("""{"marketplaces":[{"name":"nexus-plugins","marketplaceSource":{"sourceType":"git","source":"someone/fork"}}]}""", @"D:\a").Item1);
+        Assert.Equal(PluginMaintenance.CodexCatalogue.Failed, Classify("""{"marketplaces":[{"name":"nexus-plugins"},{"name":"nexus-plugins"}]}""").Item1);
+    }
+
+    [Fact]
+    public void TheCommandLineAcceptsTheTestReleaseOnlyWhole()
+    {
+        using var profile = new FakeProfile("catalog", "engines");
+        var (catalog, engines) = (Path.Combine(profile.Root, "catalog"), Path.Combine(profile.Root, "engines"));
+        Assert.True(MaintenanceOptions.TryParse([], out var plain));
+        Assert.Equal(new MaintenanceOptions(false, false, null), plain);
+        Assert.True(MaintenanceOptions.TryParse(["--current", "--force"], out var forced));
+        Assert.Equal(new MaintenanceOptions(true, true, null), forced);
+        Assert.True(MaintenanceOptions.TryParse(["--test-catalog", catalog + "\\", "--test-engines", engines], out var test));
+        Assert.Equal(new TestRelease(catalog, engines), test.TestRelease);
+        Assert.False(MaintenanceOptions.TryParse(["--test-catalog", catalog], out _));
+        Assert.False(MaintenanceOptions.TryParse(["--test-catalog", catalog, "--test-engines", "relative"], out _));
+        Assert.False(MaintenanceOptions.TryParse(["--test-catalog", catalog, "--test-engines", Path.Combine(profile.Root, "missing")], out _));
+        Assert.False(MaintenanceOptions.TryParse(["--test-catalog", catalog, "--test-catalog", catalog, "--test-engines", engines], out _));
+        Assert.False(MaintenanceOptions.TryParse(["--unknown"], out _));
     }
 
     [Fact]
