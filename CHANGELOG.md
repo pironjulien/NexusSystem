@@ -12,6 +12,13 @@ versions have no GitHub release since 1.0.5.0). The format follows [Keep a Chang
 - Tests: no test can show a Windows error box. The test process sets the error mode (no critical-error, crash or
   missing-file box) when it loads, and every process it starts inherits it; a test checks it in a child process.
 
+## [app 1.0.18.0] - 2026-11-07
+
+### Changed
+- The app installs and maintains the Nexus products with catalog 1.7.3: its embedded `get-nexus.ps1` and maintenance
+  engine bound each AI app command line (5 minutes, then stopped with its child processes and reported with its last
+  output), and a cancelled or stopped run is reported `failed` (retryable) instead of staying `checking`.
+
 ## [1.7.3] - 2026-11-07
 
 ### Fixed
