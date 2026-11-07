@@ -13,6 +13,7 @@ namespace Nexus.App.Pages;
 static class Steps
 {
     static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(60) };
+    static readonly string[] RelayCodexKeys = ["codex_workspace", "codex_project", "codex_project_id"];
 
     /// <summary>
     /// The steps of a product on this PC: to do (shown only while there is something left to do, checked on this PC),
@@ -57,7 +58,7 @@ static class Steps
         try
         {
             using var settings = System.Text.Json.JsonDocument.Parse(File.ReadAllText(Path.Combine(folders.Home, ".nexus", "nexus-relay", "settings.json")));
-            return new[] { "codex_workspace", "codex_project", "codex_project_id" }.All(key =>
+            return RelayCodexKeys.All(key =>
                 settings.RootElement.TryGetProperty(key, out var value) && value.ValueKind == System.Text.Json.JsonValueKind.String && !string.IsNullOrWhiteSpace(value.GetString()));
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException or System.Text.Json.JsonException or InvalidOperationException) { return false; }

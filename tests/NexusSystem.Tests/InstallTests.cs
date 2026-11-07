@@ -115,8 +115,8 @@ public class InstallTests
                 {
                     var manifest = ReadJson(Path.Combine(root, ".codex-plugin", "plugin.json"));
                     // The guide and server files the manifest names: a product's plugin folder also holds Claude Code's.
-                    if ((string?)manifest?["name"] == server && (string?)manifest?["skills"] is { } skills && skills.StartsWith("./") &&
-                        (string?)manifest?["mcpServers"] is { } servers && servers.StartsWith("./") &&
+                    if ((string?)manifest?["name"] == server && (string?)manifest?["skills"] is { } skills && skills.StartsWith("./", StringComparison.Ordinal) &&
+                        (string?)manifest?["mcpServers"] is { } servers && servers.StartsWith("./", StringComparison.Ordinal) &&
                         File.Exists(Path.Combine(root, skills[2..], server, "SKILL.md")) &&
                         ReadJson(Path.Combine(root, servers[2..]))?["mcpServers"]?[server] is JsonObject found) return found.DeepClone().AsObject();
                 }

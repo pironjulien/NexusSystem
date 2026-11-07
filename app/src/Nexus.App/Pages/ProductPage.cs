@@ -11,6 +11,7 @@ namespace Nexus.App.Pages;
 /// and explanations, read live), on the right "On this PC" (ready, or what is left to do), what the AI apps did with it
 /// (its journal, 24 hours) and the guides.
 /// </summary>
+[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1001", Justification = "A XAML page is never disposed; the token source is cancelled on Unloaded.")]
 public sealed partial class ProductPage : UserControl
 {
     readonly UserFolders folders = UserFolders.FromEnvironment();
@@ -169,7 +170,7 @@ public sealed partial class ProductPage : UserControl
     }
 
     /// <summary>The connected Gmail account, as a connector shows it: its initial, its address, and "Use another account".</summary>
-    FrameworkElement GmailAccount(GmailSignIn signIn)
+    Border GmailAccount(GmailSignIn signIn)
     {
         var account = signIn.Account ?? "Gmail";
         var initial = new Border
@@ -220,7 +221,7 @@ public sealed partial class ProductPage : UserControl
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            row.Children.Add(new TextBlock { Text = entry.At.ToLocalTime().ToString("HH:mm"), Foreground = Ui.Theme("TextFillColorSecondaryBrush"), FontSize = 12.5 });
+            row.Children.Add(new TextBlock { Text = entry.At.ToLocalTime().ToString("HH:mm", System.Globalization.CultureInfo.CurrentCulture), Foreground = Ui.Theme("TextFillColorSecondaryBrush"), FontSize = 12.5 });
             var app = AiApps.All.FirstOrDefault(a => AiApps.Key(a).StartsWith(entry.Agent, StringComparison.OrdinalIgnoreCase));
             UIElement who = app is { } known ? Ui.AiLogo(known, 16) : new TextBlock { Text = entry.Agent, FontSize = 12.5 };
             Grid.SetColumn((FrameworkElement)who, 1);
@@ -248,7 +249,7 @@ public sealed partial class ProductPage : UserControl
     /// The product's page of julienpiron.fr inside the app, without the site's own header, footer and install section. Any other
     /// address (another page, GitHub, a store) opens in the default browser.
     /// </summary>
-    FrameworkElement Site(string page)
+    Grid Site(string page)
     {
         var web = new WebView2 { DefaultBackgroundColor = Ui.Transparent };
         var failed = Ui.Card(Ui.Column(8, Ui.Body(Text.Get("PageOffline"), secondary: true),

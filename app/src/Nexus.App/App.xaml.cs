@@ -1,9 +1,13 @@
+using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using Microsoft.UI.Xaml;
 using Nexus.Core;
 using Windows.Graphics;
 
 namespace Nexus.App;
 
+// WinUI owns the application's lifetime and never disposes it: the instance gate is disposed when the main window closes.
+[SuppressMessage("Design", "CA1001", Justification = "Disposed on the main window's Closed event; WinUI never disposes an Application.")]
 public partial class App : Application
 {
     AppInstanceGate? instanceGate;
@@ -13,7 +17,7 @@ public partial class App : Application
         UnhandledException += (_, e) => AppLog.Error("unhandled", e.Exception);
         // Crashes outside the UI thread and background tasks nobody awaited: written too, never silent.
         AppDomain.CurrentDomain.UnhandledException += (_, e) =>
-            AppLog.Error("unhandled (background)", e.ExceptionObject as Exception ?? new Exception(e.ExceptionObject?.ToString()));
+            AppLog.Error("unhandled (background)", e.ExceptionObject as Exception ?? new InvalidOperationException(e.ExceptionObject?.ToString()));
         TaskScheduler.UnobservedTaskException += (_, e) => AppLog.Error("unobserved task", e.Exception);
         // One line per start: an empty log then means "no error", not "the log does not work".
         AppLog.Info($"start {typeof(App).Assembly.GetName().Version}");
@@ -63,7 +67,7 @@ public partial class App : Application
         if (Option("--capture") is { } folder)
         {
             var size = (Option("--size") ?? "1366x860").Split('x');
-            _ = window.CaptureAsync(folder, new SizeInt32(int.Parse(size[0]), int.Parse(size[1])));
+            _ = window.CaptureAsync(folder, new SizeInt32(int.Parse(size[0], CultureInfo.InvariantCulture), int.Parse(size[1], CultureInfo.InvariantCulture)));
         }
         else if (argv.Contains("--quiet")) window.ShowQuietly();  // tests: never takes the user's foreground
         else window.Activate();

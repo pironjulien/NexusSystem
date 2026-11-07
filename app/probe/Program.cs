@@ -162,9 +162,16 @@ static class Native
             if (!CreateProcessW(null, commandLine, IntPtr.Zero, IntPtr.Zero, false, ExtendedStartupInfoPresent | CreateNoWindow,
                     IntPtr.Zero, null, ref info, out var process))
                 throw new Win32Exception();
-            WaitForSingleObject(process.hProcess, 120_000);
-            CloseHandle(process.hProcess);
-            CloseHandle(process.hThread);
+            try
+            {
+                if (WaitForSingleObject(process.hProcess, 120_000) != 0)
+                    throw new TimeoutException("The child started outside the package did not exit within two minutes.");
+            }
+            finally
+            {
+                CloseHandle(process.hProcess);
+                CloseHandle(process.hThread);
+            }
         }
         finally
         {

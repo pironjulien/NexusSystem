@@ -8,6 +8,7 @@ namespace Nexus.Core.Tests;
 public class WindowsRuntimeTests
 {
     static readonly string Hash = new('a', 64);
+    static readonly string[] ClaudeArguments = ["--mcp", "--agent", "claude"];
 
     static (string Manifest, string Executable) Install(FakeProfile profile, string? executable = null, int schema = 2)
     {
@@ -164,7 +165,7 @@ public class WindowsRuntimeTests
         profile.Write(@"AppData\Roaming\Claude\claude_desktop_config.json", JsonSerializer.Serialize(new
         {
             mcpServers = new Dictionary<string, object> { ["nexus-windows"] = new
-                { command = previous ? "C:\\previous\\NexusWindows.exe" : executable, args = new[] { "--mcp", "--agent", "claude" }, disabled } },
+                { command = previous ? "C:\\previous\\NexusWindows.exe" : executable, args = ClaudeArguments, disabled } },
         }));
         Assert.Equal(expected, WindowsRuntime.DesktopDeclaration(profile.Folders, WindowsRuntime.ReadInstallation(profile.Folders)));
     }
@@ -290,7 +291,7 @@ public class WindowsRuntimeTests
         Assert.False(Servers.IsCodexLauncher(new ServerProcess(10, "cmd.exe", @"cmd.exe /c C:\other\run.cmd && .\NexusWindows.exe --mcp --agent codex")));
         profile.Write(@"AppData\Roaming\Claude\claude_desktop_config.json", JsonSerializer.Serialize(new
         {
-            mcpServers = new Dictionary<string, object> { ["nexus-windows"] = new { command = stable, args = new[] { "--mcp", "--agent", "claude" } } },
+            mcpServers = new Dictionary<string, object> { ["nexus-windows"] = new { command = stable, args = ClaudeArguments } },
         }));
         Assert.Equal(DeclarationState.Declared, WindowsRuntime.DesktopDeclaration(profile.Folders, installation));
     }

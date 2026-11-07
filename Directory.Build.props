@@ -1,8 +1,16 @@
 <Project>
-  <!-- Build and test output outside OneDrive: one folder per project under ~\.nexus\build\NexusSystem. -->
+  <!-- Build and test output outside OneDrive: one folder per project under ~\.nexus\build\NexusSystem.
+       The user profile comes from .NET, not $(USERPROFILE): Dependabot restores on Linux, where USERPROFILE is unset
+       and '\.nexus' at the file system root was denied, so its NuGet updates silently found nothing. -->
   <PropertyGroup>
-    <NexusBuildRoot>$(USERPROFILE)\.nexus\build\NexusSystem\$(MSBuildProjectName)\</NexusBuildRoot>
+    <NexusBuildRoot>$([System.IO.Path]::Combine($([System.Environment]::GetFolderPath(SpecialFolder.UserProfile)), '.nexus', 'build', 'NexusSystem', '$(MSBuildProjectName)'))\</NexusBuildRoot>
     <BaseOutputPath>$(NexusBuildRoot)bin\</BaseOutputPath>
     <BaseIntermediateOutputPath>$(NexusBuildRoot)obj\</BaseIntermediateOutputPath>
+  </PropertyGroup>
+  <!-- One level of rigor for every project: warnings are errors, the recommended analyzers, code style at build. -->
+  <PropertyGroup>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
   </PropertyGroup>
 </Project>

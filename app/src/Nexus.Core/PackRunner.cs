@@ -14,8 +14,8 @@ public sealed record PackEvent(string Type, JsonElement Data)
 }
 
 /// <summary>
-/// Runs the one-line install's own script, embedded in the app at build time (pack/get-nexus.ps1, the released
-/// copy), so that the app and get-nexus never diverge: same detection, same official installers, same checks.
+/// Runs the one-line install's own script, embedded in the app at build time (the repository root's get-nexus.ps1,
+/// the released script), so that the app and get-nexus never diverge: same detection, same official installers, same checks.
 /// </summary>
 public static class PackRunner
 {

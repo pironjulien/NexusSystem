@@ -7,6 +7,19 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Changed (app)
+- Windows App SDK 2.6.5 (was 2.5.1), Windows SDK Build Tools 10.0.28000.2957 and System.Management 10.0.14.
+- The app embeds the repository root's `get-nexus.ps1` itself: the `app/pack` copy and its `sync.ps1` are gone, and a
+  missing script now fails the build instead of the running app.
+- Every project builds with the same rigor from `Directory.Build.props`: warnings as errors, the recommended .NET
+  analyzers and code style at build (the app, its tests and the probe were missing some of them).
+
+### Fixed
+- Dependabot never proposed a NuGet update: on its Linux runner `USERPROFILE` is unset, so the build folder became
+  `/.nexus` and every restore was denied. The build folder now comes from .NET's own user profile path.
+- `app/tools/capture.ps1` stopped with "capture fr dark did not finish": its fixed 90 s no longer covered nine
+  products' pictures. The deadline now follows the number of products in `products.json`.
+
 ## [1.6.54] - 2026-11-06
 
 ### Fixed

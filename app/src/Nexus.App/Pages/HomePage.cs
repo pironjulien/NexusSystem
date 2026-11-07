@@ -12,6 +12,7 @@ namespace Nexus.App.Pages;
 /// this PC (installed or not, up to date or not) and its one way in (the user's AI app or a store), and a button that
 /// has the AI install them all. Updates have their own page, as in the Store.
 /// </summary>
+[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1001", Justification = "A XAML page is never disposed; the token source is cancelled on Unloaded.")]
 public sealed partial class HomePage : UserControl
 {
     readonly UserFolders folders = UserFolders.FromEnvironment();
@@ -73,7 +74,7 @@ public sealed partial class HomePage : UserControl
     /// its name, sentence and button over it), turning every few seconds; on the right two tiles that open a product at
     /// once. The arrows or the dots move the slides by hand.
     /// </summary>
-    FrameworkElement? Hero()
+    static StackPanel? Hero()
     {
         var featured = Catalog.Shown.Products.Where(product => product.Banner is not null).ToList();
         if (featured.Count == 0) return null;
@@ -233,7 +234,7 @@ public sealed partial class HomePage : UserControl
     }
 
     /// <summary>A product as a row of the Store's lists: its icon, its name and sentence, its state and its one button.</summary>
-    FrameworkElement Row(ProductView view)
+    ContentControl Row(ProductView view)
     {
         var product = view.Product;
         var row = new Grid { ColumnSpacing = 16, Padding = new Thickness(12), MinHeight = 104 };

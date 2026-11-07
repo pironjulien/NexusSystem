@@ -131,10 +131,14 @@ $saved = @{ USERPROFILE = $env:USERPROFILE; APPDATA = $env:APPDATA; LOCALAPPDATA
 try {
     $env:USERPROFILE = $demo; $env:APPDATA = "$demo\AppData\Roaming"; $env:LOCALAPPDATA = "$demo\AppData\Local"
     $env:CODEX_HOME = "$demo\.codex"; $env:NEXUS_JOURNAL_HOME = "$demo\AppData\Local\NexusJournal"
+    # The app waits 4 s before each picture: home, Updates, and two per product (its page, then "On this PC"), plus
+    # 30 s for the start and WebView2. A fixed 90 s stopped fitting once the catalog reached nine products.
+    $products = @((Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot '..\..\products.json') | ConvertFrom-Json).products).Count
+    $ticks = (4 * (2 + 2 * $products) + 30) * 4  # 250 ms ticks
     foreach ($run in @('fr dark', 'en dark', 'fr light', 'en light')) {
         $lang, $theme = $run -split ' '
         $process = Start-Process $exe.FullName -ArgumentList "--capture `"$Out`" --size $Size --lang $lang --theme $theme" -PassThru
-        for ($i = 0; $i -lt 360 -and -not $process.HasExited; $i++) {
+        for ($i = 0; $i -lt $ticks -and -not $process.HasExited; $i++) {
             Start-Sleep -Milliseconds 250
             $owner = 0
             [void][NexusCapture.Foreground]::GetWindowThreadProcessId([NexusCapture.Foreground]::GetForegroundWindow(), [ref]$owner)

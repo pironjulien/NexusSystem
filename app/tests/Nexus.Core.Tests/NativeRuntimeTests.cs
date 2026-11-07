@@ -1,3 +1,4 @@
+using System.Globalization;
 using Nexus.Core;
 using Xunit;
 
@@ -50,7 +51,7 @@ public class NativeRuntimeTests
     [Fact]
     public void AStoredVersionIsNotARecentRuntimeCheck()
     {
-        var now = DateTimeOffset.Parse("2026-10-29T21:00:00Z");
+        var now = DateTimeOffset.Parse("2026-10-29T21:00:00Z", CultureInfo.InvariantCulture);
         var state = new ProductState("browser", "2.31.6", "2.31.6", "idle", now.AddHours(-25), null);
         Assert.False(state.IsFresh(now));
         Assert.False((state with { CheckedAt = null }).IsFresh(now));
@@ -65,6 +66,6 @@ public class NativeRuntimeTests
         profile.Write(@".nexus\status\windows-antigravity.json", """{"version":"2.1.0","updatedAt":"2026-10-29T21:00:00Z"}""");
         var state = Assert.Single(ProductUpdates.Read(Products.Windows, profile.Folders));
         Assert.Equal("unknown", state.State);
-        Assert.Equal(DateTimeOffset.Parse("2026-10-29T21:00:00Z"), state.CheckedAt);
+        Assert.Equal(DateTimeOffset.Parse("2026-10-29T21:00:00Z", CultureInfo.InvariantCulture), state.CheckedAt);
     }
 }

@@ -9,6 +9,7 @@ namespace Nexus.App.Pages;
 /// state (up to date, or the new version) and its button, and "Get updates", which reads the published versions again
 /// and asks the products that update themselves to do it now. Never closes an AI session.
 /// </summary>
+[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1001", Justification = "A XAML page is never disposed; the token source is cancelled on Unloaded.")]
 public sealed partial class UpdatesPage : UserControl
 {
     readonly UserFolders folders = UserFolders.FromEnvironment();

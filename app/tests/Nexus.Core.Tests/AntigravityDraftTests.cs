@@ -48,7 +48,7 @@ public class AntigravityDraftTests
     {
         using var antigravity = new FakeAntigravity("");
         using var profile = antigravity.Profile();
-        Assert.True(await AntigravityDraft.WriteAsync(Prompt, profile.Folders, new HttpClient(), TimeSpan.FromSeconds(10)));
+        Assert.True(await AntigravityDraft.WriteAsync(Prompt, profile.Folders, new HttpClient(), TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken));
         Assert.Equal(Prompt, antigravity.Box);
         Assert.DoesNotContain(antigravity.Methods, m => m.StartsWith("Input.dispatchKeyEvent", StringComparison.Ordinal));
     }
@@ -58,7 +58,7 @@ public class AntigravityDraftTests
     {
         using var antigravity = new FakeAntigravity("", "/c/older");
         using var profile = antigravity.Profile();
-        Assert.True(await AntigravityDraft.WriteAsync(Prompt, profile.Folders, new HttpClient(), TimeSpan.FromSeconds(10)));
+        Assert.True(await AntigravityDraft.WriteAsync(Prompt, profile.Folders, new HttpClient(), TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken));
         Assert.Equal("/", antigravity.Path);
         Assert.Equal(Prompt, antigravity.Box);
     }
@@ -68,7 +68,7 @@ public class AntigravityDraftTests
     {
         using var antigravity = new FakeAntigravity("my own draft");
         using var profile = antigravity.Profile();
-        Assert.False(await AntigravityDraft.WriteAsync(Prompt, profile.Folders, new HttpClient(), TimeSpan.FromSeconds(10)));
+        Assert.False(await AntigravityDraft.WriteAsync(Prompt, profile.Folders, new HttpClient(), TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken));
         Assert.Equal("my own draft", antigravity.Box);
         Assert.DoesNotContain("Input.insertText", antigravity.Methods);
     }
@@ -78,7 +78,7 @@ public class AntigravityDraftTests
     {
         using var profile = new FakeProfile();
         profile.Write(@"AppData\Roaming\Antigravity\DevToolsActivePort", FreePort() + "\n");
-        Assert.False(await AntigravityDraft.WriteAsync(Prompt, profile.Folders, new HttpClient(), TimeSpan.FromSeconds(2)));
+        Assert.False(await AntigravityDraft.WriteAsync(Prompt, profile.Folders, new HttpClient(), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken));
     }
 
     static int FreePort()

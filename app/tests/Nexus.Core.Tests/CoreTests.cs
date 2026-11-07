@@ -1,3 +1,4 @@
+using System.Globalization;
 using Nexus.Core;
 using Xunit;
 
@@ -96,7 +97,7 @@ public class JournalTests
     public void ReadsTheCommonFormatNewestFirst()
     {
         using var profile = new FakeProfile();
-        var month = DateTime.UtcNow.ToString("yyyy-MM");
+        var month = DateTime.UtcNow.ToString("yyyy-MM", CultureInfo.InvariantCulture);
         var now = DateTime.UtcNow;
         profile.Write($@".nexus\journal\windows\claude\{month}.jsonl",
             $"{{\"v\":1,\"ts\":\"{now.AddMinutes(-5):o}\",\"agent\":\"claude\",\"app\":\"notepad.exe\",\"action\":\"type\",\"issue\":\"✓\",\"ms\":120,\"premier_plan\":false,\"erreur\":null}}\n" +
@@ -546,7 +547,7 @@ public class DeclarationStateTests
 public class ErrorLogTests
 {
     [Fact]
-    public void Lines_are_timestamped_and_the_file_is_capped()
+    public void LinesAreTimestampedAndTheFileIsCapped()
     {
         using var profile = new FakeProfile();
         var log = new ErrorLog(Path.Combine(profile.Root, "NexusSystem", "app.log"));
@@ -561,7 +562,7 @@ public class ErrorLogTests
     }
 
     [Fact]
-    public void A_log_that_cannot_be_written_never_throws()
+    public void ALogThatCannotBeWrittenNeverThrows()
     {
         using var profile = new FakeProfile();
         var blocked = profile.Write("blocked", "a file, not a folder");
@@ -569,7 +570,7 @@ public class ErrorLogTests
     }
 
     [Fact]
-    public void AiPrompt_matches_the_selected_products_in_canonical_order()
+    public void AiPromptMatchesTheSelectedProductsInCanonicalOrder()
     {
         Assert.Equal("", Products.AiPrompt([]));
         var fr = Products.AiPrompt(["browser", "windows"], french: true);

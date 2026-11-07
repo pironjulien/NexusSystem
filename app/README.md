@@ -2,13 +2,12 @@
 
 The Windows app of NexusSystem, on the Microsoft Store as 9NSH2P3QLWT1: the hub that installs the Nexus products.
 One code base: `src/Nexus.Core` (shared logic, no UI) and `src/Nexus.App` (WinUI 3 hub). Commands below run from
-this `app/` folder; `pack/get-nexus.ps1` is a byte-for-byte copy of the repository root's `get-nexus.ps1`.
+this `app/` folder; the app embeds the repository root's `get-nexus.ps1` itself at build time.
 
 ```powershell
 dotnet test --project tests/Nexus.Core.Tests                       # core
 dotnet build src/Nexus.App -c Release -p:Platform=x64 -r win-x64   # hub
 pwsh -File tools/capture.ps1                                       # pictures, demo profile, foreground never taken
-pwsh -File pack/sync.ps1                                           # take the catalog's get-nexus.ps1 (then build with --no-incremental)
 pwsh -File tools/package.ps1                                       # test MSIX (identity NexusSystemTest)
 pwsh -File tools/package.ps1 -Store -IdentityName julienpiron.fr.NexusSystem -Publisher CN=C3E3A6F0-11D2-4EE1-B3F2-34EED4CAE7FA -PublisherDisplayName julienpiron.fr -Out $env:LOCALAPPDATA\NexusApps\dist\store107   # x64 + ARM64 bundle and public symbols, version from Directory.Build.props
 pwsh -File tools/wack.ps1 -Msix <the .msix>                        # Windows App Certification Kit (elevated)
@@ -54,7 +53,7 @@ Code CLI; a Desktop process never makes the Code connection active. Unknown Clau
 The previous `NexusWindows.Antigravity.exe` MCP client is still recognized while its older session is loaded.
 
 ## How the hub works from the Store package
-- **Install**: the pack's own script (`pack/get-nexus.ps1`, byte for byte the catalog's) runs each product's official
+- **Install**: the pack's own script (the catalog's `get-nexus.ps1`, embedded at build time) runs each product's official
   installer as a child process, so MSIX virtualization applies. From the package it skips Claude Desktop (an edit of
   its existing configuration would stay in the package): Claude Desktop gets each product as a `.mcpb` extension the
   user drops on it. Chrome is paired with the NexusBrowser extension (single-use code), no native host key needed.

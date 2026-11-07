@@ -8,7 +8,6 @@
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
     <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <RootNamespace>NexusSystem.Tests</RootNamespace>
   </PropertyGroup>
   <ItemGroup>

@@ -61,7 +61,9 @@ public class ScriptTests
     [Fact]
     public void AppEmbedsTheReleasedPackScript()
     {
-        // The app runs get-nexus.ps1 embedded at build time (app/pack, copied by app/pack/sync.ps1): never another one.
-        Assert.Equal(Repository.Text("get-nexus.ps1").ReplaceLineEndings(), Repository.Text("app/pack/get-nexus.ps1").ReplaceLineEndings());
+        // The app runs get-nexus.ps1 embedded at build time straight from the repository root: never a copy.
+        Assert.Contains(@"<EmbeddedResource Include=""$(MSBuildThisFileDirectory)..\..\..\get-nexus.ps1"" LogicalName=""get-nexus.ps1"" />",
+            Repository.Text("app/src/Nexus.Core/Nexus.Core.csproj"), StringComparison.Ordinal);
+        Assert.False(File.Exists(Repository.PathOf("app/pack/get-nexus.ps1")));
     }
 }
