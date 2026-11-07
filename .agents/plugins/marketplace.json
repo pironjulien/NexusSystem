@@ -66,7 +66,7 @@
         "source": "git-subdir",
         "url": "https://github.com/pironjulien/NexusKeypad.git",
         "path": "connecteurs",
-        "ref": "v1.8.47"
+        "ref": "v1.8.48"
       },
       "policy": {
         "installation": "AVAILABLE",
@@ -80,7 +80,7 @@
         "source": "git-subdir",
         "url": "https://github.com/pironjulien/NexusInDesign.git",
         "path": "plugin",
-        "ref": "v4.1.5"
+        "ref": "v4.2.0"
       },
       "policy": {
         "installation": "AVAILABLE",

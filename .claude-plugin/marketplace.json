@@ -103,10 +103,10 @@
         "source": "git-subdir",
         "url": "https://github.com/pironjulien/NexusKeypad.git",
         "path": "connecteurs",
-        "ref": "v1.8.47"
+        "ref": "v1.8.48"
       },
       "description": "NexusKeypad in Claude and Codex: live states for the Logitech keypad (hooks), Claude's exact usage (5-hour and weekly) for the keypad. No alert, no network. Needs NexusKeypad, installed by NexusSystem (or NexusKeypad's get.ps1).",
-      "version": "1.8.47",
+      "version": "1.8.48",
       "category": "productivity",
       "keywords": [
         "logitech",
@@ -126,10 +126,10 @@
         "source": "git-subdir",
         "url": "https://github.com/pironjulien/NexusInDesign.git",
         "path": "plugin",
-        "ref": "v4.1.5"
+        "ref": "v4.2.0"
       },
       "description": "Adobe InDesign for Claude Code and Codex through its COM automation only (no panel, no UXP plugin, no network): open, script, preview, preflight and export, every change backed up and checked. Starts the native NexusInDesign engine installed by NexusSystem (or NexusInDesign's get.ps1).",
-      "version": "4.1.5",
+      "version": "4.2.0",
       "category": "productivity",
       "keywords": [
         "indesign",
