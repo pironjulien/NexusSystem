@@ -24,7 +24,7 @@
         "source": "git-subdir",
         "url": "https://github.com/pironjulien/NexusWindows.git",
         "path": "plugin",
-        "ref": "v3.17.2"
+        "ref": "v3.17.3"
       },
       "policy": {
         "installation": "AVAILABLE",
