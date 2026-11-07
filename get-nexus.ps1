@@ -1109,8 +1109,18 @@ function Save-NexusMaintenanceEngine([string]$Destination) {
     try {
         Save-VerifiedFile "$base/$name" $temporary $expected
         $gh=Get-Command gh.exe -ErrorAction SilentlyContinue
-        if ($gh -and (Invoke-Native "NexusSystem $tag maintenance engine provenance" { & $gh.Source attestation verify $temporary --repo 'pironjulien/NexusSystem' --source-ref "refs/tags/$tag" })) {
-            throw "Build provenance failed for NexusSystem $tag."
+        if ($gh) {
+            # gh needs a sign-in (gh auth login or GH_TOKEN) to read attestations, otherwise it exits with code 4: the
+            # check then cannot run, as without gh. The SHA-256 from the release's SHA256SUMS.txt is already verified.
+            $saved=$ErrorActionPreference; $ErrorActionPreference='Continue'
+            try {
+                $global:LASTEXITCODE=0
+                $output=& $gh.Source attestation verify $temporary --repo 'pironjulien/NexusSystem' --source-ref "refs/tags/$tag" 2>&1
+                $code=$LASTEXITCODE
+            } finally { $ErrorActionPreference=$saved }
+            if ($code -eq 4) { Say "Build provenance of NexusSystem $tag not checked: gh is not signed in." DarkGray }
+            elseif ($code) { $output | Out-Host; throw "Build provenance failed for NexusSystem $tag (gh exit code $code)." }
+            else { Say "NexusSystem $tag maintenance engine provenance verified." }
         }
         if (Test-Path -LiteralPath $Destination) {
             $previous=Join-Path (Split-Path $Destination) 'NexusMaintenance.previous.exe'

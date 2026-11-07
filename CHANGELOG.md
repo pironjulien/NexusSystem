@@ -10,6 +10,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 ### Fixed
 - Maintenance started from a PowerShell 7 window no longer breaks product installers: Windows PowerShell inherited
   the PowerShell 7 module path, lost `Get-FileHash` and stopped the update (seen with NexusFree 1.3.0).
+- `get-nexus.ps1` no longer fails when the GitHub CLI is installed but not signed in: the maintenance engine's build
+  provenance is then reported as not checked (its SHA-256 is still verified), as when gh is absent.
 
 ## [1.7.0] - 2026-11-07
 
