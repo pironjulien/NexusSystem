@@ -21,18 +21,22 @@ never authorizes replacing an installed engine. Native installation and safe act
 responsibility.
 
 For this explicit development workflow, `developmentCoordinator` in `~\.nexus\nexussystem.json` selects the absolute
-path of the repository's `get-nexus.ps1`. The existing task runs it with `-Maintain -MaintenanceCurrent`: it tests
-that coordinator without replacing it with a published copy. Ordinary
-public installations keep the released, self-updating script. This selects a channel; it does not create a second
-coordinator or silently rebuild work in progress.
+path of a maintenance engine built from the repository: `app/tools/maintenance-dev.ps1` publishes it to
+`~\.nexus\nexussystem\development\NexusMaintenance.exe` and records that path. The task then starts it with
+`--current`: it tests that engine without replacing it with a published copy. Ordinary public installations keep the
+released, self-updating engine. This selects a channel; it does not create a second coordinator or silently rebuild
+work in progress.
 
 ## Distribution
 
-After a successful installation, the pack keeps its maintenance script under
-`~\.nexus\nexussystem\maintenance` and registers the current user's **NexusSystem Update** task. It runs at sign-in
-and retries periodically in the background. It uses the same official product installers as the pack, downloaded
-as files and checked against the exact release's SHA-256 manifest. The coordinator refreshes itself from the
-published NexusSystem catalog release using the same checks.
+After a successful installation, the pack installs the maintenance engine of its own release,
+`~\.nexus\nexussystem\maintenance\NexusMaintenance.exe`, and registers the current user's **NexusSystem Update**
+task, which starts that engine directly: a native Windows executable (no .NET to install, no PowerShell, no execution
+policy override, no window). It runs at sign-in and every hour in the background. It uses the same official product
+installers as the pack, downloaded as files and checked against the exact release's SHA-256 manifest (and their build
+provenance when the official `gh` tool is installed). The engine replaces itself with the one of the newest published
+NexusSystem catalog release using the same checks; it never moves to an older one. Installations made by an earlier
+release keep their PowerShell worker until its next update hands over to the engine.
 
 For an existing Store hub upgraded to the new app, the first launch establishes this same task when NexusWindows
 or NexusBrowser is already installed. It does not reinstall products. An explicit `autoUpdate: false` in
@@ -43,8 +47,10 @@ custom server, skipped product or AI app is not an invitation to install or reco
 installers are reported explicitly rather than run with guessed arguments. User choices in
 `~\.nexus\nexussystem.json` still apply.
 
-To request maintenance immediately, an agent can run the installed `get-nexus.ps1 -Maintain`. To read the latest
-result without installing or restarting anything, use `get-nexus.ps1 -MaintenanceStatus`.
+To request maintenance immediately, an agent runs the task's engine past its hourly pause, then waits for its exit
+code: `$a = (Get-ScheduledTask 'NexusSystem Update').Actions[0]; (Start-Process $a.Execute -ArgumentList
+("$($a.Arguments) --force".Trim()) -Wait -PassThru).ExitCode` (0 current, 2 pending, 1 failed). To read the latest
+result without installing or restarting anything, use `get-nexus.ps1 -MaintenanceStatus` or read the status file.
 
 ## Installation and activation
 

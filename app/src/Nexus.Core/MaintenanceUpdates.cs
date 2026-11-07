@@ -25,9 +25,13 @@ public static class MaintenanceUpdates
 {
     public const string TaskName = "NexusSystem Update";
 
-    public static string ScriptPath(UserFolders folders) => Path.Combine(folders.Nexus, "nexussystem", "maintenance", "get-nexus.ps1");
+    public static string Root(UserFolders folders) => Path.Combine(folders.Nexus, "nexussystem", "maintenance");
+    /// <summary>The durable maintenance engine the task starts (NexusMaintenance.exe, published with each catalog release).</summary>
+    public static string ExecutablePath(UserFolders folders) => Path.Combine(Root(folders), MaintenanceServices.EngineName);
+    /// <summary>The PowerShell worker of releases up to 1.6.54: it hands over to the engine at its next published update.</summary>
+    public static string ScriptPath(UserFolders folders) => Path.Combine(Root(folders), "get-nexus.ps1");
     public static string StatusPath(UserFolders folders) => Path.Combine(folders.Nexus, "status", "nexussystem-update.json");
-    public static bool IsInstalled(UserFolders folders) => File.Exists(ScriptPath(folders));
+    public static bool IsInstalled(UserFolders folders) => File.Exists(ExecutablePath(folders)) || File.Exists(ScriptPath(folders));
     /// <summary>A copied script is not a completed registration; failed first installs must be repairable.</summary>
     public static bool IsRegistered()
     {

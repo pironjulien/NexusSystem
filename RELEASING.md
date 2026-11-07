@@ -49,15 +49,16 @@ pwsh app/tools/pin-plugin.ps1 -Name nexus-<product> -Product <Product> -Tag vX.Y
 
 NexusKeypad's plugin folder is `connecteurs/` (its `plugin/` is the Logitech plugin): add `-Path connecteurs`.
 
-On the user's PC, do not wait for the hourly maintenance: once the stable release is published, run it at once,
-forced past its hourly check (`powershell -NoProfile -ExecutionPolicy Bypass -File
-"$env:USERPROFILE\.nexus\nexussystem\maintenance\get-nexus.ps1" -Maintain -ForceMaintenance`; the scheduled task
-`NexusSystem Update` returns at once while its `nextCheckAt` is ahead), then read
+On the user's PC, do not wait for the hourly maintenance: once the stable release is published, run the task's
+engine at once, forced past its hourly check (`$a = (Get-ScheduledTask 'NexusSystem Update').Actions[0];
+(Start-Process $a.Execute -ArgumentList ("$($a.Arguments) --force".Trim()) -Wait -PassThru).ExitCode`; the task alone
+returns at once while its `nextCheckAt` is ahead), then read
 `%USERPROFILE%\.nexus\status\nexussystem-update.json` and check that the product reached the new version (exit code
 2, state `pending`: installed, running sessions keep their engine until a normal reload). Between releases, changes are tested from the working folder.
 
 Claude Code and Codex read the catalog from `main`: no NexusSystem release is needed for a plugin or engine update.
-A NexusSystem release (`vX.Y.Z` here) is needed only when `get-nexus.ps1` changes: raise the version, add its
+A NexusSystem release (`vX.Y.Z` here) is needed only when `get-nexus.ps1` or the maintenance engine
+(`app/src/Nexus.Maintenance`, `Nexus.Core`) changes: raise the version, add its
 `CHANGELOG.md` section, merge, then push the tag `vX.Y.Z` alone (`git tag vX.Y.Z origin/main && git push origin vX.Y.Z`);
 the [`release`](.github/workflows/release.yml) workflow publishes it with its files. The Store app is resubmitted only
 for its own interface or features.

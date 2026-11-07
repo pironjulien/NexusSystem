@@ -51,6 +51,14 @@ jobs:
       - name: test.ps1
         shell: pwsh
         run: ./test.ps1
+      # The release builds the native maintenance engine for both architectures: the same build on every push.
+      - name: NexusMaintenance native build (x64, ARM64)
+        shell: pwsh
+        run: |
+          foreach ($arch in 'x64', 'arm64') {
+            dotnet publish app/src/Nexus.Maintenance/Nexus.Maintenance.csproj -c Release -r "win-$arch" -o "$env:RUNNER_TEMP/engine-$arch"
+            if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          }
 
   # The one-liner on a clean runner: the official Claude Code installer, the pinned signed Codex engine, and the
   # folders by which Claude Desktop and Antigravity are found. Codex must install real plugins; an empty .codex folder

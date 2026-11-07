@@ -4,12 +4,42 @@ on:
     tags: ['v*']
 permissions: {}
 jobs:
-  # A catalog release (vX.Y.Z) is published here, whole, from its tag: get-nexus.ps1, its SHA-256 and a provenance
-  # attestation (gh attestation verify get-nexus.ps1 --repo pironjulien/NexusSystem; its Sigstore bundle is attached as
-  # NexusSystem-X.Y.Z.intoto.jsonl, like the products' releases), with that version's CHANGELOG
+  # The maintenance engine of this release, native (AOT) for x64 and ARM64 Windows: get-nexus.ps1 installs the one of
+  # its own version, and the engine replaces itself with the newest published one (same checksums and provenance).
+  engine:
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68  # v6.0.0
+        with:
+          global-json-file: global.json
+      - name: NexusMaintenance x64 and ARM64
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          foreach ($arch in 'x64', 'arm64') {
+            dotnet publish app/src/Nexus.Maintenance/Nexus.Maintenance.csproj -c Release -r "win-$arch" -o "out/$arch"
+            if ($LASTEXITCODE) { exit $LASTEXITCODE }
+            Copy-Item "out/$arch/NexusMaintenance.exe" "NexusMaintenance-$arch.exe"
+          }
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        with:
+          name: engine
+          path: NexusMaintenance-*.exe
+          if-no-files-found: error
+          retention-days: 1
+
+  # A catalog release (vX.Y.Z) is published here, whole, from its tag: get-nexus.ps1, the maintenance engines, their
+  # SHA-256 and a provenance attestation (gh attestation verify <file> --repo pironjulien/NexusSystem; its Sigstore
+  # bundle is attached as NexusSystem-X.Y.Z.intoto.jsonl, like the products' releases), with that version's CHANGELOG
   # section as notes. Releases are immutable: nothing is added once published (gh release verify vX.Y.Z).
   # A NexusSystem app release (nexussystem-v*) carries the Store app's version, no pack file.
   release:
+    needs: engine
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -30,11 +60,20 @@ jobs:
           grep -qx "\$NexusMaintenanceVersion = '$version'" get-nexus.ps1 || { echo "get-nexus.ps1 is not $version"; exit 1; }
           awk -v v="$version" 'index($0, "## [" v "]") == 1 {on=1; next} on && /^## / {exit} on {print}' CHANGELOG.md > "$RUNNER_TEMP/notes.md"
           [[ -s "$RUNNER_TEMP/notes.md" ]] || { echo "CHANGELOG.md has no [$version] section."; exit 1; }
-          sha256sum get-nexus.ps1 > SHA256SUMS.txt && cat SHA256SUMS.txt
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
+        with:
+          name: engine
+      - name: Checksums
+        run: |
+          set -euo pipefail
+          sha256sum get-nexus.ps1 NexusMaintenance-x64.exe NexusMaintenance-arm64.exe > SHA256SUMS.txt && cat SHA256SUMS.txt
       - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         id: provenance
         with:
-          subject-path: get-nexus.ps1
+          subject-path: |
+            get-nexus.ps1
+            NexusMaintenance-x64.exe
+            NexusMaintenance-arm64.exe
       - name: Publish the release with its files
         env:
           GH_TOKEN: ${{ github.token }}
@@ -46,6 +85,6 @@ jobs:
             echo "$TAG already has a release: push the tag alone, the release is made here with its files."; exit 1
           fi
           cp "$BUNDLE" "NexusSystem-${TAG#v}.intoto.jsonl"
-          gh release create "$TAG" get-nexus.ps1 SHA256SUMS.txt "NexusSystem-${TAG#v}.intoto.jsonl" \
+          gh release create "$TAG" get-nexus.ps1 NexusMaintenance-x64.exe NexusMaintenance-arm64.exe SHA256SUMS.txt "NexusSystem-${TAG#v}.intoto.jsonl" \
             --repo "$GITHUB_REPOSITORY" --verify-tag --latest \
             --title "NexusSystem ${TAG#v}" --notes-file "$RUNNER_TEMP/notes.md"

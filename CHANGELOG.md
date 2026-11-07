@@ -7,8 +7,24 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Changed
+- The hourly maintenance is now `NexusMaintenance.exe`, a native Windows engine (C#, ahead-of-time compiled for x64
+  and ARM64, no .NET to install) that the **NexusSystem Update** task starts directly: no PowerShell, no execution
+  policy override, no console host. Each catalog release publishes it beside `get-nexus.ps1`, in `SHA256SUMS.txt`
+  and in its build provenance. It keeps the same rules: published releases only, installed products and existing
+  active routes only, running AI sessions preserved, the same `~\.nexus\status\nexussystem-update.json`. It replaces
+  itself with the newest published engine (never an older one); product installers now run with `RemoteSigned`.
+- `get-nexus.ps1` installs the engine of its own release, checked, and registers the task on it; `-Maintain` runs it
+  then registers it, which also hands over from the PowerShell worker of releases up to 1.6.54. Its other modes are
+  unchanged.
+- One detection for the app and the maintenance: the AI apps found (Claude Desktop's signed Code engine included),
+  each AI app's declared state of a product and Codex's `config.toml` (a lexical reader that refuses what it does not
+  understand) are read by the same C# code. The process list is read natively instead of through WMI.
+- On the author's workstation, `developmentCoordinator` now names an engine built from the repository
+  (`app/tools/maintenance-dev.ps1`).
+
 ### Changed (app)
-- Windows App SDK 2.6.5 (was 2.5.1), Windows SDK Build Tools 10.0.28000.2957 and System.Management 10.0.14.
+- Windows App SDK 2.6.5 (was 2.5.1) and Windows SDK Build Tools 10.0.28000.2957; System.Management is no longer used.
 - The app embeds the repository root's `get-nexus.ps1` itself: the `app/pack` copy and its `sync.ps1` are gone, and a
   missing script now fails the build instead of the running app.
 - Every project builds with the same rigor from `Directory.Build.props`: warnings as errors, the recommended .NET

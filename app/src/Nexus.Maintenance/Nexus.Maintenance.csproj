@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The hourly maintenance engine: a small native executable (AOT, no .NET to install, no window), started directly
+       by the "NexusSystem Update" task and published with each NexusSystem catalog release (NexusMaintenance-x64.exe,
+       NexusMaintenance-arm64.exe). -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <AssemblyName>NexusMaintenance</AssemblyName>
+    <RootNamespace>Nexus.Maintenance</RootNamespace>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RuntimeIdentifiers>win-x64;win-arm64</RuntimeIdentifiers>
+    <PublishAot>true</PublishAot>
+    <OptimizationPreference>Size</OptimizationPreference>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <UseSystemResourceKeys>true</UseSystemResourceKeys>
+    <!-- Its version is the catalog release it ships with: get-nexus.ps1's $NexusMaintenanceVersion, the only source. -->
+    <NexusCatalogScript>$(MSBuildThisFileDirectory)..\..\..\get-nexus.ps1</NexusCatalogScript>
+    <Version>$([System.Text.RegularExpressions.Regex]::Match($([System.IO.File]::ReadAllText('$(NexusCatalogScript)')), `(?&lt;=\$NexusMaintenanceVersion = ')\d+\.\d+\.\d+(?=')`))</Version>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Nexus.Core\Nexus.Core.csproj" />
+  </ItemGroup>
+  <Target Name="NexusCatalogVersion" BeforeTargets="Build;Publish">
+    <Error Condition="'$(Version)' == ''" Text="get-nexus.ps1 carries no `$NexusMaintenanceVersion = 'x.y.z'`." />
+  </Target>
+</Project>

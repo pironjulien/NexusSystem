@@ -1,4 +1,3 @@
-using System.Management;
 using System.Text.RegularExpressions;
 
 namespace Nexus.Core;
@@ -29,19 +28,8 @@ public static class Servers
     public static IReadOnlyList<RunningServer> Find()
     {
         var processes = new Dictionary<int, ServerProcess>();
-        using (var searcher = new ManagementObjectSearcher("SELECT ProcessId, ParentProcessId, Name, CommandLine, ExecutablePath FROM Win32_Process"))
-        {
-            foreach (var process in searcher.Get().Cast<ManagementObject>())
-            {
-                using (process)
-                {
-                    processes[(int)(uint)process["ProcessId"]] = new ServerProcess(
-                        (int)(uint)process["ParentProcessId"],
-                        (string?)process["Name"] ?? "",
-                        (string?)process["CommandLine"] ?? "", (string?)process["ExecutablePath"]);
-                }
-            }
-        }
+        foreach (var process in NativeProcesses.Read())
+            processes[process.ProcessId] = new ServerProcess(process.ParentProcessId, process.Name, process.CommandLine, process.ExecutablePath);
         return Match(processes);
     }
 

@@ -1,3 +1,6 @@
+using System.Diagnostics;
+using System.Text.RegularExpressions;
+
 namespace Nexus.Core;
 
 public enum AiApp
@@ -8,12 +11,15 @@ public enum AiApp
 }
 
 /// <summary>
-/// Which AI apps are on this PC, found the same way as get-nexus.ps1 (Find-AiApp), so that the app and the one-line
-/// install always agree.
+/// Which AI apps are on this PC: the app's pages and the hourly maintenance use this one detection (get-nexus.ps1's
+/// Find-AiApp is its PowerShell twin for the one-line install).
 /// </summary>
-public static class AiApps
+public static partial class AiApps
 {
     public static readonly IReadOnlyList<AiApp> All = [AiApp.ClaudeCode, AiApp.Codex, AiApp.Antigravity];
+
+    /// <summary>get-nexus.ps1's names of the AI apps, in its display order (Claude Desktop is a configuration of its own).</summary>
+    public static readonly IReadOnlyList<string> Keys = ["claude-code", "claude-desktop", "codex", "antigravity"];
 
     /// <summary>The name get-nexus.ps1 takes in -Only and -Skip.</summary>
     public static string Key(AiApp app) => app switch
@@ -32,17 +38,25 @@ public static class AiApps
 
     public static IReadOnlyList<AiApp> Find(UserFolders folders)
     {
-        var found = new List<AiApp>();
+        var keys = FindKeys(folders);
+        return All.Where(app => keys.Contains(Key(app))).ToList();
+    }
+
+    /// <summary>The AI apps found, by get-nexus.ps1 name (claude-desktop included), in <see cref="Keys"/> order.</summary>
+    public static IReadOnlyList<string> FindKeys(UserFolders folders)
+    {
+        var found = new HashSet<string>();
         var desktop = DesktopConfigFolders(folders).Count > 0;
-        if (desktop || FindClaudeCli(folders) is not null || Directory.Exists(Path.Combine(folders.Home, ".claude")))
-            found.Add(AiApp.ClaudeCode);  // Claude Desktop's Code tab is Claude Code
+        if (desktop) found.Add("claude-desktop");
+        if (desktop || Directory.Exists(Path.Combine(folders.Home, ".claude")) || FindClaudeCli(folders) is not null)
+            found.Add("claude-code");  // Claude Desktop's Code tab is Claude Code
         if (Directory.Exists(Path.Combine(folders.Home, ".codex")) || OnPath("codex") is not null)
-            found.Add(AiApp.Codex);
+            found.Add("codex");
         var gemini = Path.Combine(folders.Home, ".gemini");
         if (Directory.Exists(Path.Combine(gemini, "antigravity")) || Directory.Exists(Path.Combine(gemini, "config")) ||
             Directory.Exists(Path.Combine(folders.LocalAppData, "Programs", "Antigravity")))
-            found.Add(AiApp.Antigravity);
-        return found;
+            found.Add("antigravity");
+        return Keys.Where(found.Contains).ToList();
     }
 
     /// <summary>
@@ -62,11 +76,73 @@ public static class AiApps
         return candidates.Where(c => Directory.Exists(c) && !Directory.EnumerateFiles(c, ".user-data-left.*").Any()).ToList();
     }
 
+    [GeneratedRegex("^AnthropicPBC\\.Claude_[a-z0-9]+$", RegexOptions.IgnoreCase)]
+    private static partial Regex ClaudePackage();
+
+    [GeneratedRegex("^[0-9a-f]{12,64}$")]
+    private static partial Regex BuildFolder();
+
+    [GeneratedRegex(@"^(\d+\.\d+\.\d+)(?:\.0)?$")]
+    private static partial Regex EngineVersion();
+
+    /// <summary>
+    /// Claude Code's command: on PATH, the native installer's ~\.local\bin\claude.exe, else the Code engine Claude
+    /// Desktop installed (its known data layouts only, never a recursive search), signed by Anthropic and naming itself
+    /// Claude Code in its version resource. Discovery executes nothing.
+    /// </summary>
     public static string? FindClaudeCli(UserFolders folders)
     {
+        if (OnPath("claude") is { } command) return command;
         var local = Path.Combine(folders.Home, ".local", "bin", "claude.exe");
-        return File.Exists(local) ? local : OnPath("claude");
+        if (File.Exists(local)) return local;
+        var roots = new List<string> { Path.Combine(folders.RoamingAppData, "Claude") };
+        foreach (var (layoutRoot, suffix) in new[] { (Path.Combine(folders.LocalAppData, "Claude-Data"), Array.Empty<string>()),
+            (Path.Combine(folders.LocalAppData, "Packages"), new[] { "LocalCache", "Roaming", "Claude" }) })
+        {
+            if (!Directory.Exists(layoutRoot) || IsLink(layoutRoot)) continue;
+            foreach (var package in Directory.EnumerateDirectories(layoutRoot))
+            {
+                if (!ClaudePackage().IsMatch(Path.GetFileName(package)) || IsLink(package)) continue;
+                var folder = package;
+                var safe = true;
+                foreach (var part in suffix)
+                {
+                    folder = Path.Combine(folder, part);
+                    if (!Directory.Exists(folder) || IsLink(folder)) { safe = false; break; }
+                }
+                if (safe) roots.Add(folder);
+            }
+        }
+        foreach (var root in roots.Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            if (!Directory.Exists(root) || IsLink(root) || Directory.EnumerateFiles(root, ".user-data-left.*").Any()) continue;
+            var code = Path.Combine(root, "claude-code");
+            if (!Directory.Exists(code) || IsLink(code)) continue;
+            var versions = Directory.EnumerateDirectories(code)
+                .Where(v => Version.TryParse(Path.GetFileName(v), out var parsed) && parsed.Revision < 0 && parsed.Build >= 0 && !IsLink(v))
+                .OrderByDescending(v => Version.Parse(Path.GetFileName(v)));
+            foreach (var version in versions)
+            {
+                var builds = Directory.EnumerateDirectories(version).Where(b => BuildFolder().IsMatch(Path.GetFileName(b)) && !IsLink(b))
+                    .OrderByDescending(Directory.GetLastWriteTimeUtc);
+                foreach (var build in builds)
+                {
+                    var candidate = Path.Combine(build, "claude.exe");
+                    if (!File.Exists(candidate) || IsLink(candidate) || !Authenticode.IsSignedBy(candidate, "Anthropic, PBC")) continue;
+                    // Read the signed file's identity only after authenticating it. Another Anthropic application is
+                    // not a Code engine, even if somebody placed it in a Desktop engine directory.
+                    var identity = FileVersionInfo.GetVersionInfo(candidate);
+                    if (identity.ProductName != "Claude Code" || identity.CompanyName != "Anthropic PBC" ||
+                        EngineVersion().Match(identity.ProductVersion ?? "") is not { Success: true } engine ||
+                        engine.Groups[1].Value != Path.GetFileName(version)) continue;
+                    return candidate;
+                }
+            }
+        }
+        return null;
     }
+
+    static bool IsLink(string path) => File.GetAttributes(path).HasFlag(FileAttributes.ReparsePoint);
 
     public static string? OnPath(string command)
     {
@@ -75,7 +151,9 @@ public static class AiApps
         {
             foreach (var extension in extensions)
             {
-                var candidate = Path.Combine(folder.Trim(), command + extension.ToLowerInvariant());
+                string candidate;
+                try { candidate = Path.Combine(folder.Trim(), command + extension.ToLowerInvariant()); }
+                catch (ArgumentException) { break; }
                 if (File.Exists(candidate)) return candidate;
             }
         }

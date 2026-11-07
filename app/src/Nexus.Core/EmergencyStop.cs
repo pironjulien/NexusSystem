@@ -1,5 +1,5 @@
 using System.Globalization;
-using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace Nexus.Core;
 
@@ -18,7 +18,7 @@ public static class EmergencyStop
     public static void Press(UserFolders folders, string by = "nexus-app")
     {
         Directory.CreateDirectory(folders.Nexus);
-        var stop = new Dictionary<string, object>
+        var stop = new JsonObject
         {
             ["by"] = by,
             ["pid"] = Environment.ProcessId,
@@ -27,7 +27,7 @@ public static class EmergencyStop
             ["nonce"] = Guid.NewGuid().ToString("N"),
         };
         var temporary = StopFile(folders) + ".tmp";
-        File.WriteAllText(temporary, JsonSerializer.Serialize(stop));
+        File.WriteAllText(temporary, stop.ToJsonString());
         File.Move(temporary, StopFile(folders), overwrite: true);  // a new version each press: date and content differ
     }
 
