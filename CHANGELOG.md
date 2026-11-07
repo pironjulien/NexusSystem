@@ -1377,6 +1377,7 @@ Sent to the Store on 2026-10-27 (submission 4, x64+ARM64 bundle, Windows App Cer
   nexus-browser 2.10.0). CI on Windows.
 
 [Unreleased]: https://github.com/pironjulien/NexusSystem/compare/v1.7.3...HEAD
+[app 1.0.18.0]: https://github.com/pironjulien/NexusSystem/commit/0c79fddd9cca20dd2c854611ef4b7d0439b93cd7
 [1.7.3]: https://github.com/pironjulien/NexusSystem/compare/v1.7.2...v1.7.3
 [1.7.2]: https://github.com/pironjulien/NexusSystem/compare/v1.7.1...v1.7.2
 [app 1.0.17.0]: https://github.com/pironjulien/NexusSystem/commit/69f628fe72350f4761843c1a7f4b70833d27bd42
