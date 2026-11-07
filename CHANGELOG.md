@@ -7,6 +7,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Added
+- `tests/test_engine_replacement.ps1`, run on every push after the native build: the real `NexusMaintenance.exe` is
+  started, its file is renamed aside and replaced before any of its code runs (as its self-update does), and it must
+  still complete its cycle. Native AOT maps the whole image at start, so a running engine never reads its path again,
+  unlike the .NET single-file bundle of NexusFree 1.3.2 (the same test fails on a single-file build of this engine).
+
 ### Changed
 - The release's pack check runs the maintenance engine with exactly the command line its task registered, against
   the release being checked rather than the one already published: `get-nexus.ps1 -MaintenanceFrom` (tests only) now

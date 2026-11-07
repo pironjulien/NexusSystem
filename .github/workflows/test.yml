@@ -59,6 +59,11 @@ jobs:
             dotnet publish app/src/Nexus.Maintenance/Nexus.Maintenance.csproj -c Release -r "win-$arch" -o "$env:RUNNER_TEMP/engine-$arch"
             if ($LASTEXITCODE) { exit $LASTEXITCODE }
           }
+      # The engine replaces itself while it runs: its file is renamed aside and the new one takes its path. The real
+      # x64 engine, started then swapped before any of its code runs, must complete its cycle from its own image.
+      - name: NexusMaintenance keeps running when its file is replaced
+        shell: pwsh
+        run: ./tests/test_engine_replacement.ps1 -Engine "$env:RUNNER_TEMP/engine-x64/NexusMaintenance.exe"
 
   # The full installation on a clean Windows (job pack) is pack.yml: run by hand, and by every release before it
   # publishes anything (release.yml).
