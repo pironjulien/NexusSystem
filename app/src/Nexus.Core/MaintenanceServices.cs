@@ -229,6 +229,9 @@ public partial class MaintenanceServices(UserFolders folders)
         foreach (var argument in new[] { "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "RemoteSigned", "-File", file }.Concat(arguments))
             start.ArgumentList.Add(argument);
         start.Environment["NEXUS_PACK"] = "1";
+        // A PowerShell 7 parent's module path must not make Windows PowerShell load incompatible modules
+        // (Get-FileHash then disappears and the installer fails its integrity check).
+        start.Environment.Remove("PSModulePath");
         if (targets is null) start.Environment.Remove("NEXUS_PACK_TARGETS"); else start.Environment["NEXUS_PACK_TARGETS"] = targets;
         if (Token() is { } token) start.Environment["NEXUS_MCP_TOKEN"] = token;
         Directory.CreateDirectory(Path.GetDirectoryName(log)!);

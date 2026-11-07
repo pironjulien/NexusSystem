@@ -427,6 +427,17 @@ public class MaintainerTests
     }
 
     [Fact]
+    public async Task InstallerKeepsWindowsPowerShellModulesUnderAPowerShell7Parent()
+    {
+        // Run from pwsh (test.ps1, CI), the inherited module path names PowerShell 7 modules first.
+        using var profile = new FakeProfile();
+        var services = new MaintenanceServices(profile.Folders);
+        var child = profile.Write("hash-installer.ps1", "if (Get-Command Get-FileHash -ErrorAction SilentlyContinue) { exit 0 } else { exit 4 }\n");
+        var log = services.InstallerLogPath("fixture");
+        Assert.Equal(0, await services.RunInstallerAsync("Fixture maintenance", child, [], log, null, TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
     public void ReleaseRulesRefuseAmbiguityAndReadDeclaredParameters()
     {
         var hash = new string('A', 64);

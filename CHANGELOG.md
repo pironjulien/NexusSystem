@@ -7,6 +7,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Fixed
+- Maintenance started from a PowerShell 7 window no longer breaks product installers: Windows PowerShell inherited
+  the PowerShell 7 module path, lost `Get-FileHash` and stopped the update (seen with NexusFree 1.3.0).
+
 ## [1.7.0] - 2026-11-07
 
 ### Changed
