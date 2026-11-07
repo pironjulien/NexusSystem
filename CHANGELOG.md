@@ -8,6 +8,18 @@ versions have no GitHub release since 1.0.5.0). The format follows [Keep a Chang
 
 ## [Unreleased]
 
+## [1.7.3] - 2026-11-07
+
+### Fixed
+- Maintenance engine: an AI app command line (`claude plugin marketplace update`, `codex plugin ...`) could run with
+  no limit, so one stuck command kept the hourly run going until Task Scheduler stopped it at 30 minutes
+  (`ExecutionTimeLimit`, result 0x41306) and the receipt stayed `checking` for the next hour. Each command now gets
+  5 minutes, then is stopped with its child processes and reported with its last output; its standard input is closed
+  instead of inherited. A failed command says why (`Claude plugin update failed (exit code N: <its last error
+  line>)`) instead of a bare "failed".
+- A cancelled run writes `failed` (retryable) instead of leaving `checking`, and a run that finds a `checking`
+  receipt (its predecessor was stopped outright) says it resumed it.
+
 ### Changed
 - `CHANGELOG.md` follows Keep a Changelog again: each Store app version since 1.0.13.0 has its own dated
   `[app a.b.c.d]` section instead of "(app ...)" subsections of catalog versions, every section has its link at the
@@ -1353,7 +1365,8 @@ Sent to the Store on 2026-10-27 (submission 4, x64+ARM64 bundle, Windows App Cer
   server instructions or tool list name anyone (neutral texts since nexus-android 0.6.2, nexus-windows 0.9.3 and
   nexus-browser 2.10.0). CI on Windows.
 
-[Unreleased]: https://github.com/pironjulien/NexusSystem/compare/v1.7.2...HEAD
+[Unreleased]: https://github.com/pironjulien/NexusSystem/compare/v1.7.3...HEAD
+[1.7.3]: https://github.com/pironjulien/NexusSystem/compare/v1.7.2...v1.7.3
 [1.7.2]: https://github.com/pironjulien/NexusSystem/compare/v1.7.1...v1.7.2
 [app 1.0.17.0]: https://github.com/pironjulien/NexusSystem/commit/69f628fe72350f4761843c1a7f4b70833d27bd42
 [1.7.1]: https://github.com/pironjulien/NexusSystem/compare/v1.7.0...v1.7.1

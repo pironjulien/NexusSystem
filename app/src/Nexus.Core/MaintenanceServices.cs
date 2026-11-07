@@ -374,8 +374,18 @@ public partial class MaintenanceServices(UserFolders folders)
     public virtual Task MaintainPluginsAsync(MaintenanceProduct product, IReadOnlyList<MaintenanceRoute> routes, CancellationToken cancel) =>
         Task.Run(() => PluginMaintenance.Refresh(product, routes, Folders, TestRelease?.Catalog), cancel);
 
-    /// <summary>A program run hidden to its end, its output captured (UTF-8).</summary>
-    public static (int Code, string Output, string Error) Run(string file, IEnumerable<string> arguments, string? input = null)
+    /// <summary>
+    /// How long one AI app command line may take. The task stops the whole run after 30 minutes
+    /// (ExecutionTimeLimit): one stuck command must fail alone, early enough for the receipt to be written.
+    /// </summary>
+    public static readonly TimeSpan CommandTimeout = TimeSpan.FromMinutes(5);
+
+    /// <summary>
+    /// A program run hidden to its end, its output captured (UTF-8). Its standard input is always closed after the
+    /// optional input (never inherited: a command line that waits on it would never end), and a command still
+    /// running after the timeout is stopped with its child processes and reported.
+    /// </summary>
+    public static (int Code, string Output, string Error) Run(string file, IEnumerable<string> arguments, string? input = null, TimeSpan? timeout = null)
     {
         var start = new ProcessStartInfo(file)
         {
@@ -383,7 +393,7 @@ public partial class MaintenanceServices(UserFolders folders)
             CreateNoWindow = true,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
-            RedirectStandardInput = input is not null,
+            RedirectStandardInput = true,
             StandardOutputEncoding = Encoding.UTF8,
             StandardErrorEncoding = Encoding.UTF8,
         };
@@ -391,12 +401,36 @@ public partial class MaintenanceServices(UserFolders folders)
         using var process = Process.Start(start) ?? throw new InvalidOperationException($"{Path.GetFileName(file)} did not start.");
         var error = process.StandardError.ReadToEndAsync();
         var output = process.StandardOutput.ReadToEndAsync();
-        if (input is not null)
+        try
         {
-            process.StandardInput.Write(input);
+            if (input is not null) process.StandardInput.Write(input);
             process.StandardInput.Close();
+        }
+        catch (IOException) { /* the program has already exited: its exit code tells */ }
+        var limit = timeout ?? CommandTimeout;
+        if (!process.WaitForExit(limit))
+        {
+            try { process.Kill(entireProcessTree: true); }
+            catch (Exception stop) when (stop is InvalidOperationException or System.ComponentModel.Win32Exception) { /* already gone */ }
+            process.WaitForExit();
+            var command = string.Join(' ', start.ArgumentList.Take(3));
+            // What it said before it was stopped tells where it waited.
+            var said = Cause(output.GetAwaiter().GetResult(), error.GetAwaiter().GetResult());
+            var last = said is null ? " It wrote nothing." : $" Its last output: {said}";
+            throw new TimeoutException($"{Path.GetFileName(file)} {command} did not finish within {limit.TotalSeconds:0} s and was stopped.{last}");
         }
         process.WaitForExit();
         return (process.ExitCode, output.GetAwaiter().GetResult(), error.GetAwaiter().GetResult());
+    }
+
+    /// <summary>The end of a failed command's own explanation (its last error line, else its last output line), bounded.</summary>
+    public static string Explain((int Code, string Output, string Error) run) =>
+        Cause(run.Output, run.Error) is { } cause ? $"exit code {run.Code}: {cause}" : $"exit code {run.Code}";
+
+    static string? Cause(string output, string error)
+    {
+        static string? Last(string text) => text.Split('\n').Select(l => l.Trim()).LastOrDefault(l => l.Length > 0);
+        var cause = Last(error) ?? Last(output);
+        return cause is { Length: > 300 } ? cause[..300] + "…" : cause;
     }
 }

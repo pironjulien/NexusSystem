@@ -48,10 +48,12 @@ public static partial class PluginMaintenance
             else if (route.Key == "claude-code")
             {
                 var cli = AiApps.FindClaudeCli(folders) ?? throw new InvalidOperationException("The trusted Claude Code CLI is unavailable; plugin activation remains pending.");
-                if (MaintenanceServices.Run(cli, ["plugin", "marketplace", "update", Declarations.Marketplace]).Code != 0)
-                    throw new InvalidOperationException("Claude catalogue refresh failed.");
-                if (MaintenanceServices.Run(cli, ["plugin", "update", id, "--scope", "user", "--json"]).Code != 0)
-                    throw new InvalidOperationException("Claude plugin update failed.");
+                var catalogue = MaintenanceServices.Run(cli, ["plugin", "marketplace", "update", Declarations.Marketplace]);
+                if (catalogue.Code != 0)
+                    throw new InvalidOperationException($"Claude catalogue refresh failed ({MaintenanceServices.Explain(catalogue)}).");
+                var update = MaintenanceServices.Run(cli, ["plugin", "update", id, "--scope", "user", "--json"]);
+                if (update.Code != 0)
+                    throw new InvalidOperationException($"Claude plugin update failed ({MaintenanceServices.Explain(update)}).");
                 var entry = Maintainer.ClaudePluginEntry(folders, id);
                 if (entry?.Text("installPath") is not { Length: > 0 } path || !File.Exists(Path.Combine(path, "skills", plugin, "SKILL.md")))
                     throw new InvalidOperationException("Claude did not return an installed guide; activation remains pending.");

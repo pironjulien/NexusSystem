@@ -35,8 +35,11 @@ sealed class FakeServices(UserFolders folders) : MaintenanceServices(folders)
     public override string? InstalledVersion(MaintenanceProduct product) => Installed.GetValueOrDefault(product.Key);
     public override string InstallationSource(MaintenanceProduct product) => Sources.GetValueOrDefault(product.Key, "unknown");
 
-    public override Task<string> LatestTagAsync(string repository, CancellationToken cancel) =>
-        NetworkFailure ? throw new HttpRequestException("network unavailable") : Task.FromResult(Tags[repository]);
+    public override Task<string> LatestTagAsync(string repository, CancellationToken cancel)
+    {
+        cancel.ThrowIfCancellationRequested();
+        return NetworkFailure ? throw new HttpRequestException("network unavailable") : Task.FromResult(Tags[repository]);
+    }
 
     public override Task<PublishedFile> PublishedInstallerAsync(string repository, string work, CancellationToken cancel)
     {
@@ -325,6 +328,58 @@ public class MaintainerTests
         Assert.Equal(0, await maintainer.RunAsync(true, false, TestContext.Current.CancellationToken));
         Assert.Empty(Status(profile).GetProperty("products").EnumerateArray());
         File.Delete(LocalSettings.FilePath(profile.Folders));
+    }
+
+    [Fact]
+    public async Task InterruptedRunIsNeverLeftCheckingAndIsResumed()
+    {
+        using var profile = CodexProfile("[plugins.\"nexus-windows@nexus-plugins\"]\nenabled=true");
+        var services = new FakeServices(profile.Folders) { Loaded = "3.9.5" };
+        var maintainer = new Maintainer(services);
+        // A run stopped mid-way by the task's time limit (07/11/2026): its receipt stayed "checking" for the hour.
+        using (var stopped = new CancellationTokenSource())
+        {
+            stopped.Cancel();
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => maintainer.RunAsync(true, false, stopped.Token));
+        }
+        var status = Status(profile);
+        Assert.Equal("failed", status.GetProperty("state").GetString());
+        Assert.True(status.GetProperty("retryable").GetBoolean());
+        Assert.Contains("stopped before its end", status.GetProperty("message").GetString());
+
+        // A process killed outright writes nothing more: the next run (it holds the lock) names and resumes it.
+        services.WriteStatus(new MaintenanceReceipt { CheckedAt = DateTimeOffset.Parse("2026-11-07T19:52:04Z", System.Globalization.CultureInfo.InvariantCulture) });
+        Assert.Equal(0, await maintainer.RunAsync(true, false, TestContext.Current.CancellationToken));
+        status = Status(profile);
+        Assert.Equal("success", status.GetProperty("state").GetString());
+        Assert.Contains("previous run (started 2026-11-07T19:52:04", status.GetProperty("message").GetString());
+        Assert.Contains("interrupted before its end; this run resumed it", status.GetProperty("message").GetString());
+        // Once finished, the next run has nothing to resume.
+        Assert.Equal(0, await maintainer.RunAsync(true, false, TestContext.Current.CancellationToken));
+        Assert.DoesNotContain("interrupted", Status(profile).GetProperty("message").GetString());
+    }
+
+    [Fact]
+    public void CommandLinesNeverWaitForeverAndSayWhyTheyFailed()
+    {
+        var system = Environment.SystemDirectory;
+        // Standard input is closed, never inherited: a program reading it ends at once.
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        var sorted = MaintenanceServices.Run(Path.Combine(system, "sort.exe"), [], timeout: TimeSpan.FromSeconds(30));
+        Assert.Equal(0, sorted.Code);
+        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(20));
+        // A command still running at its limit is stopped, with its children, and reported.
+        watch.Restart();
+        var stuck = Assert.Throws<TimeoutException>(() =>
+            MaintenanceServices.Run(Path.Combine(system, "cmd.exe"), ["/c", "echo Refreshing marketplace cache& ping -n 60 127.0.0.1 >nul"], timeout: TimeSpan.FromSeconds(2)));
+        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(30));
+        Assert.Contains("cmd.exe /c", stuck.Message);
+        Assert.Contains("was stopped. Its last output: Refreshing marketplace cache", stuck.Message);
+        // A failure carries the command's own last error line.
+        var failed = MaintenanceServices.Run(Path.Combine(system, "cmd.exe"), ["/c", "echo progress& echo Plugin not found in marketplace 1>&2& exit /b 3"]);
+        Assert.Equal("exit code 3: Plugin not found in marketplace", MaintenanceServices.Explain(failed));
+        Assert.Equal("exit code 1: last output", MaintenanceServices.Explain((1, "first\nlast output\n\n", "")));
+        Assert.Equal("exit code 1", MaintenanceServices.Explain((1, "", " ")));
     }
 
     [Fact]

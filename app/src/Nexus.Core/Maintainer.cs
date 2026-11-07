@@ -23,7 +23,7 @@ public sealed partial class Maintainer(MaintenanceServices services)
         catch (IOException) { return 2; }
         var work = Path.Combine(root, $"run-{Environment.ProcessId}");
         var state = new MaintenanceReceipt();
-        string? bootstrap = null;
+        string? bootstrap = null, resumed = null;
         int? result = null;
         var preserve = false;
         try
@@ -46,6 +46,11 @@ public sealed partial class Maintainer(MaintenanceServices services)
                     return result.Value;
                 }
                 Directory.CreateDirectory(work);
+                // This run holds the lock, so a receipt still "checking" is a run stopped before its end (the task's
+                // time limit, a sign-out, a shutdown): said as such until this run's own outcome replaces it.
+                if (previous?.Text("state") == "checking")
+                    resumed = $"The previous run (started {previous.Value.Text("checked_at") ?? "at an unknown time"}) was interrupted before its end; this run resumed it.";
+                if (resumed is not null) state.Message = $"{state.Message} {resumed}";
                 services.WriteStatus(state);
                 string tag, version;
                 if (services.TestRelease is { } test)
@@ -101,6 +106,13 @@ public sealed partial class Maintainer(MaintenanceServices services)
         {
             if (!preserve)
             {
+                if (state.State == "checking" && bootstrap is null)
+                {
+                    // Cancelled before an outcome (a bootstrap's published engine writes its own): never left looking like a run in progress.
+                    (state.State, state.Retryable) = ("failed", true);
+                    state.Message = "The run was stopped before its end; the next cycle resumes it.";
+                }
+                if (resumed is not null && !state.Message.Contains(resumed, StringComparison.Ordinal)) state.Message = $"{state.Message} {resumed}";
                 state.CheckedAt = DateTimeOffset.UtcNow;
                 if (state.State == "failed") state.NextCheckAt = state.CheckedAt.AddMinutes(15);
                 services.WriteStatus(state);
