@@ -11,6 +11,7 @@ and installer of the Nexus ecosystem: pick the products you want, à la carte.
 
 [![test](https://github.com/pironjulien/NexusSystem/actions/workflows/test.yml/badge.svg)](https://github.com/pironjulien/NexusSystem/actions/workflows/test.yml)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/pironjulien/NexusSystem/badge)](https://scorecard.dev/viewer/?uri=github.com/pironjulien/NexusSystem)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/16441/badge)](https://www.bestpractices.dev/projects/16441)
 [![release](https://img.shields.io/github/v/release/pironjulien/NexusSystem?style=flat-square&label=release)](https://github.com/pironjulien/NexusSystem/releases/latest)
 [![Windows 10 | 11](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4?style=flat-square)](#-quick-start)
 [![MCP](https://img.shields.io/badge/MCP-plugins-6E56CF?style=flat-square)](#-the-plugins)
