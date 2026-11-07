@@ -7,13 +7,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-11-07
+
 ### Changed
 - The hourly maintenance is now `NexusMaintenance.exe`, a native Windows engine (C#, ahead-of-time compiled for x64
   and ARM64, no .NET to install) that the **NexusSystem Update** task starts directly: no PowerShell, no execution
   policy override, no console host. Each catalog release publishes it beside `get-nexus.ps1`, in `SHA256SUMS.txt`
   and in its build provenance. It keeps the same rules: published releases only, installed products and existing
   active routes only, running AI sessions preserved, the same `~\.nexus\status\nexussystem-update.json`. It replaces
-  itself with the newest published engine (never an older one); product installers now run with `RemoteSigned`.
+  itself with the newest published engine (never an older one); product installers run with `RemoteSigned`.
 - `get-nexus.ps1` installs the engine of its own release, checked, and registers the task on it; `-Maintain` runs it
   then registers it, which also hands over from the PowerShell worker of releases up to 1.6.54. Its other modes are
   unchanged.
@@ -34,6 +36,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
   `.deps.json` and `.runtimeconfig.json` must be recorded together; a partial set is not an installation.
 
 ### Fixed
+- `get-nexus.ps1` ran each product's checked `get.ps1` with `-ExecutionPolicy Bypass` since 1.6.31, although 1.6.2
+  had narrowed it to `RemoteSigned`: it is `RemoteSigned` again, as in the maintenance engine (local files saved
+  without a mark of the web, so the same effect with the narrowest setting).
 - Dependabot never proposed a NuGet update: on its Linux runner `USERPROFILE` is unset, so the build folder became
   `/.nexus` and every restore was denied. The build folder now comes from .NET's own user profile path.
 - `app/tools/capture.ps1` stopped with "capture fr dark did not finish": its fixed 90 s no longer covered nine

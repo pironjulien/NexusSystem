@@ -56,7 +56,7 @@ $ProgressPreference = 'SilentlyContinue'  # Invoke-WebRequest is many times slow
 $Ok = [string][char]0x2713
 $No = [string][char]0x2717
 $Marketplace = 'nexus-plugins'
-$NexusMaintenanceVersion = '1.6.54'
+$NexusMaintenanceVersion = '1.7.0'
 
 # AI apps, in display order. Claude Desktop also carries Claude Code (its Code tab reads the same ~\.claude).
 $AiNames = [ordered]@{
@@ -404,9 +404,10 @@ function Save-VerifiedFile([string]$Url, [string]$File, [string]$Expected) {
 }
 
 function Invoke-ScriptFile([string]$What, [string]$File, [string[]]$Arguments = @()) {
-    # A child Windows PowerShell running the checked file, never code in memory; its output in this console.
+    # A child Windows PowerShell running the checked file, never code in memory; its output in this console. A local
+    # file saved by Invoke-WebRequest (no mark of the web): RemoteSigned, the narrowest setting, as the engine does.
     $shell = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
-    return Invoke-Native $What { Invoke-Console $shell (@('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $File) + $Arguments) }
+    return Invoke-Native $What { Invoke-Console $shell (@('-NoProfile', '-ExecutionPolicy', 'RemoteSigned', '-File', $File) + $Arguments) }
 }
 
 function Invoke-Installer([string]$What, [string]$Repo, [string]$Work) {
