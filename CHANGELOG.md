@@ -16,6 +16,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - The pack check no longer accepts every pending result: exit code 0, or 2 only when each pending product is
   NexusWindows with no AI app running or NexusBrowser with its daemon on the installed engine and no Chrome running.
 
+### Changed (app 1.0.17.0)
+- The app installs and maintains the Nexus products with catalog 1.7.1: the hourly maintenance is the native
+  `NexusMaintenance.exe` engine (no PowerShell, no console host), product installers keep working from a
+  PowerShell 7 window, and a signed-out GitHub CLI no longer stops an installation.
+- Windows App SDK 2.6.5 and current NuGet packages; the install script is embedded from the catalog at build time
+  (see the app changes of 1.7.0).
+
 ### Fixed
 - Maintenance no longer fails a product when Codex's Nexus catalogue comes from another source (a local folder, a
   fork): that route is kept, not refreshed, and the product's status names the source instead of "Codex catalogue
