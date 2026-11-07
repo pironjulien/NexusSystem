@@ -80,7 +80,7 @@
         "source": "git-subdir",
         "url": "https://github.com/pironjulien/NexusInDesign.git",
         "path": "plugin",
-        "ref": "v4.2.1"
+        "ref": "v4.2.2"
       },
       "policy": {
         "installation": "AVAILABLE",
