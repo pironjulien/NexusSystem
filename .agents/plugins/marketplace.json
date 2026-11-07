@@ -38,7 +38,7 @@
         "source": "git-subdir",
         "url": "https://github.com/pironjulien/NexusBrowser.git",
         "path": "plugin",
-        "ref": "v2.35.27"
+        "ref": "v2.35.28"
       },
       "policy": {
         "installation": "AVAILABLE",
