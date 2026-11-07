@@ -63,7 +63,7 @@ A NexusSystem release (`vX.Y.Z` here) is needed only when `get-nexus.ps1` or the
 the [`release`](.github/workflows/release.yml) workflow publishes it with its files. Before publishing anything it
 builds the engines, then runs the full installation on a clean Windows runner from the tagged commit with those very
 engines ([`pack`](.github/workflows/pack.yml): every product installed, every declared server reached, a second run
-green, the installed engine started from PowerShell 7 returning 0); a red `pack` publishes nothing. Fix on `main`,
+green, the installed engine started from PowerShell 7 (`--current --force`) returning 0); a red `pack` publishes nothing. Fix on `main`,
 then tag the next patch version (a tag never moves). The Store app is resubmitted only for its own interface or
 features.
 

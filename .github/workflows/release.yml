@@ -39,7 +39,7 @@ jobs:
     needs: engine
     permissions:
       contents: read
-    uses: ./.github/workflows/pack.yml
+    uses: $/.github/workflows/pack.yml
     with:
       engine-artifact: engine
 

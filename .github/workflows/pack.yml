@@ -3,9 +3,10 @@ name: pack
 # by which Claude Desktop and Antigravity are found. Codex must install real plugins; an empty .codex folder cannot
 # stand in for its engine. Each product's own installer runs (its latest release); then every server that each AI app
 # declares is reached as that app would reach it (InstallTests), and the installed maintenance engine runs once from
-# PowerShell 7, as the PC starts it. The engine is this commit's, given to get-nexus.ps1 with -MaintenanceFrom since its
-# release does not exist yet: the release workflow passes the very engines it is about to publish and publishes only
-# once this check is green; by hand (gh workflow run pack.yml) it builds this commit's engine.
+# PowerShell 7, qualified as the engine just installed (--current, as get-nexus.ps1 -Maintain runs it). The engine is
+# this commit's, given to get-nexus.ps1 with -MaintenanceFrom since its release does not exist yet: the release
+# workflow passes the very engines it is about to publish and publishes only once this check is green; by hand
+# (gh workflow run pack.yml) it builds this commit's engine.
 on:
   workflow_dispatch:
   workflow_call:
@@ -99,11 +100,11 @@ jobs:
           $env:PATH = "$env:USERPROFILE\.local\bin;$env:PATH"
           ./get-nexus.ps1 -Catalog $PWD -NoGuide -MaintenanceFrom (Join-Path $env:RUNNER_TEMP 'engine')
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
-      - name: The installed maintenance engine, started from PowerShell 7, checks the products and succeeds
+      - name: The installed maintenance engine, started from PowerShell 7 as just installed, checks the products and succeeds
         shell: pwsh
         run: |
           $task = Get-ScheduledTask -TaskName 'NexusSystem Update'
           $action = $task.Actions[0]
-          $run = Start-Process -FilePath $action.Execute -ArgumentList ("$($action.Arguments) --force".Trim()) -Wait -PassThru
+          $run = Start-Process -FilePath $action.Execute -ArgumentList '--current', '--force' -Wait -PassThru
           Get-Content -Raw (Join-Path $env:USERPROFILE '.nexus\status\nexussystem-update.json')
           if ($run.ExitCode) { throw "NexusMaintenance exit code $($run.ExitCode)" }
