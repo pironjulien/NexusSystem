@@ -8,6 +8,15 @@ using System; using System.Text; using System.Runtime.InteropServices; using Mic
 public static class NexusLocalNative {
     [DllImport("kernel32.dll", CharSet=CharSet.Unicode, SetLastError=true)] static extern uint GetFinalPathNameByHandle(SafeFileHandle h,StringBuilder b,uint n,uint f);
     [DllImport("kernel32.dll", CharSet=CharSet.Unicode)] static extern int GetCurrentPackageFullName(ref uint n,StringBuilder b);
+    [DllImport("kernel32.dll", SetLastError=true)] static extern IntPtr OpenProcess(uint a,bool i,int id);
+    [DllImport("kernel32.dll")] static extern bool CloseHandle(IntPtr h);
+    [DllImport("kernel32.dll")] static extern bool GetExitCodeProcess(IntPtr h,out uint c);
+    [DllImport("kernel32.dll", CharSet=CharSet.Unicode, SetLastError=true)] static extern bool QueryFullProcessImageNameW(IntPtr h,uint f,StringBuilder b,ref uint n);
+    // Image path of a process (PROCESS_QUERY_LIMITED_INFORMATION: elevated processes of this user too); "" once it has
+    // exited; null while it runs but cannot be read.
+    public static string Image(int id) { IntPtr h=OpenProcess(0x1000,false,id); if(h==IntPtr.Zero)return Marshal.GetLastWin32Error()==87?"":null;
+        try { var b=new StringBuilder(32768); uint n=(uint)b.Capacity; if(QueryFullProcessImageNameW(h,0,b,ref n))return b.ToString(0,(int)n);
+            uint c; return GetExitCodeProcess(h,out c)&&c!=259?"":null; } finally { CloseHandle(h); } }
     public static bool Packaged() { uint n=0; int r=GetCurrentPackageFullName(ref n,null); if(r==15700)return false; if(r==122)return true; throw new System.ComponentModel.Win32Exception(r); }
     public static string Physical(string p) { using(var f=System.IO.File.Open(p,System.IO.FileMode.Open,System.IO.FileAccess.Read,System.IO.FileShare.ReadWrite|System.IO.FileShare.Delete)) {
         var b=new StringBuilder(32768); uint n=GetFinalPathNameByHandle(f.SafeFileHandle,b,(uint)b.Capacity,0);
@@ -36,6 +45,17 @@ function Get-NexusLocalDestination([string]$LocalAppData, [string]$Version, [str
     if ($Version -notmatch '^\d+\.\d+\.\d+\.0$' -or $Hash -notmatch '^[A-Fa-f0-9]{64}$') { throw 'Invalid local version or payload hash.' }
     if (-not [IO.Path]::IsPathFullyQualified($LocalAppData)) { throw 'LocalAppData must be an absolute directory.' }
     Join-Path ([IO.Path]::GetFullPath($LocalAppData)) "NexusApps\local\$Version\$Hash"
+}
+
+# Image paths of the running processes called $Name, by QueryFullProcessImageNameW (WMI's ExecutablePath is empty for
+# an elevated process); Unknown when one runs but cannot be read: the caller then keeps every earlier copy.
+function Get-NexusLocalRunning([string]$Name = 'NexusSystem') {
+    $paths = [Collections.Generic.List[string]]::new(); $unknown = $false
+    foreach ($process in @(Get-Process -Name $Name -ErrorAction SilentlyContinue)) {
+        $path = [NexusLocalNative]::Image($process.Id)
+        if ($null -eq $path) { $unknown = $true } elseif ($path) { $paths.Add($path) }
+    }
+    [pscustomobject]@{ Paths = $paths.ToArray(); Unknown = $unknown }
 }
 
 # Earlier local copies go to the Recycle Bin once the new one is installed; a copy a running process still uses
@@ -172,7 +192,9 @@ try {
     $shortcut.Description = 'NexusSystem local - ' + $version; $shortcut.IconLocation = $executable + ',0'; $shortcut.Save()
     $physicalShortcut = [NexusLocalNative]::Physical($shortcutPath)
     if (-not $physicalShortcut.Equals($shortcutPath, [StringComparison]::OrdinalIgnoreCase)) { throw 'The local shortcut was virtualized.' }
-    Remove-NexusLocalStale $destination @(Get-CimInstance Win32_Process -Filter "Name='NexusSystem.exe'" | ForEach-Object ExecutablePath)
+    $running = Get-NexusLocalRunning
+    if ($running.Unknown) { Write-Host 'Earlier local NexusSystem copies kept: a running NexusSystem cannot be read.' }
+    else { Remove-NexusLocalStale $destination $running.Paths }
     $processId = $null
     if ($Start) {
         $process = Start-Process -FilePath $executable -WorkingDirectory $destination -ArgumentList '--lang fr' -PassThru -WindowStyle Normal

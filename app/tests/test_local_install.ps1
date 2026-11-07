@@ -29,6 +29,8 @@ try {
     Assert-LocalRefused { Get-NexusLocalDestination $fixture '..\other' $payload.Hash } 'Invalid local version'; $checks++
     Assert-LocalRefused { Get-NexusLocalDestination $fixture '1.0.9.0' '..\other' } 'Invalid local version'; $checks++
     Assert-LocalRefused { Get-NexusLocalDestination 'relative' '1.0.9.0' $payload.Hash } 'absolute directory'; $checks++
+    $own = Get-NexusLocalRunning 'pwsh'
+    if ($own.Unknown -or $own.Paths -notcontains [Environment]::ProcessPath) { throw 'A running process image was not read.' }; $checks++
     $physical = [NexusLocalNative]::Physical((Join-Path $source 'NexusSystem.exe'))
     if ($physical -ne (Join-Path $source 'NexusSystem.exe')) { throw 'A file handle did not resolve the physical fixture.' }; $checks++
     Set-Content -LiteralPath (Join-Path $source 'foreign.txt') -Value 'extra file'
