@@ -9,7 +9,7 @@ jour à chaque soumission. Captures : `dist/captures/` (1920 × 1080), choix plu
   - Identité du paquet : Name `julienpiron.fr.NexusSystem`, Publisher `CN=C3E3A6F0-11D2-4EE1-B3F2-34EED4CAE7FA`,
     PublisherDisplayName `julienpiron.fr`. PFN : `julienpiron.fr.NexusSystem_yq2nr3sn86fpg`.
   - Paquet : `tools/package.ps1 -Store -IdentityName julienpiron.fr.NexusSystem -Publisher CN=C3E3A6F0-…
-    -PublisherDisplayName julienpiron.fr -Version 1.0.0.0 -Out dist\store`. Le logo est celui du kit d'icônes Nexus : la puce cyan avec le π dans le médaillon du site.
+    -PublisherDisplayName julienpiron.fr -Version 1.0.0.0` (dossier par défaut `~\.nexus\build\NexusSystem\store<version>`). Le logo est celui du kit d'icônes Nexus : la puce cyan avec le π dans le médaillon du site.
 - **Catégorie** : Productivité (secondaire : Outils de développement).
 - **Classification d'âge (IARC)** : pas de contenu généré ni d'échange entre utilisateurs, pas d'achat : 3+ attendu.
 - **Prix** : gratuit. Pas d'achats dans l'appli, pas de publicité.

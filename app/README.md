@@ -18,7 +18,7 @@ given package in a fresh Windows Sandbox, with native activation, product names 
 a clean close and the real Windows App Certification Kit. Omit `-Certification` for the native smoke alone. Windows
 Sandbox and WACK must already be installed; the Store build also needs Visual Studio's C++ symbol tools. Inputs and
 WACK are mapped read-only, networking and clipboard sharing are disabled, and only a unique report directory under
-`%LOCALAPPDATA%\NexusApps` is writable. The guest shuts itself down; an existing Sandbox or host app is preserved.
+`~\.nexus\build\NexusSystem` is writable. The guest shuts itself down; an existing Sandbox or host app is preserved.
 A failed activation records its HRESULT and Windows event logs instead of treating a launcher process as proof.
 Signed MSIX files retain their signature and use normal package deployment. Unsigned Store submissions use a
 development layout and may be refused by Sandbox's Smart App Control before the app starts (`0x800711C7`); the test

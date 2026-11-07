@@ -7,7 +7,8 @@ param(
     [switch]$Certification,
     [switch]$CertificationOnly,
     [switch]$TestSignInGuest,
-    [string]$Report = (Join-Path $env:LOCALAPPDATA ('NexusApps\sandbox-' + [guid]::NewGuid().ToString('N'))),
+    # Default outside %LOCALAPPDATA%, which an MSIX app such as Claude redirects into its private cache (as package.ps1).
+    [string]$Report = (Join-Path $HOME ('.nexus\build\NexusSystem\sandbox-' + [guid]::NewGuid().ToString('N'))),
     [ValidateRange(1, 120)][int]$TimeoutMinutes = 30
 )
 $ErrorActionPreference = 'Stop'

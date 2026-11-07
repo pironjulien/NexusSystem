@@ -17,7 +17,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
   NexusWindows with no AI app running or NexusBrowser with its daemon on the installed engine and no Chrome running.
 - `app/tools/package.ps1` builds in `~\.nexus\build\NexusSystem\store<version>` (`-Store`) or `...\msix` by default,
   no longer under `%LOCALAPPDATA%`, which an MSIX app such as Claude redirects into its private cache (the cause of
-  the 0-byte package sent to Partner Center on 2026-11-05).
+  the 0-byte package sent to Partner Center on 2026-11-05). The reports of `app/tools/sandbox.ps1` and
+  `app/tools/wack.ps1` go there too by default (`sandbox-<id>`, `wack`).
 
 ### Changed (app 1.0.17.0)
 - The app installs and maintains the Nexus products with catalog 1.7.1: the hourly maintenance is the native
@@ -25,9 +26,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
   PowerShell 7 window, and a signed-out GitHub CLI no longer stops an installation.
 - Windows App SDK 2.6.5 and current NuGet packages; the install script is embedded from the catalog at build time
   (see the app changes of 1.7.0).
-- Its embedded maintenance engine also carries two changes listed above for the catalog: a Codex catalogue from
-  another source is kept without failing the product (see Fixed), and the engine's test options
-  (`--test-catalog`, `--test-engines`, used by the pack check only; a registered task without them is unchanged).
+- Its embedded maintenance engine also carries two catalog changes of this release: a Codex catalogue from another
+  source is kept without failing the product (see Fixed below), and the engine's test options (`--test-catalog`,
+  `--test-engines`, used by the pack check only, see Changed above; a registered task without them is unchanged).
 
 ### Fixed
 - Maintenance no longer fails a product when Codex's Nexus catalogue comes from another source (a local folder, a

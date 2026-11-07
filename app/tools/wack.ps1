@@ -3,7 +3,8 @@
 # Dot-source only to load the functions for isolated tests; running the script invokes certification.
 param(
     [Parameter(Mandatory)][string]$Msix,
-    [string]$Report = (Join-Path $env:LOCALAPPDATA 'NexusApps\wack'),
+    # Default outside %LOCALAPPDATA%, which an MSIX app such as Claude redirects into its private cache (as package.ps1).
+    [string]$Report = (Join-Path $HOME '.nexus\build\NexusSystem\wack'),
     [switch]$Registered
 )
 $ErrorActionPreference = 'Stop'
