@@ -297,7 +297,12 @@ public class CatalogTests
         // NexusRelay 1.11.0: a second Stop hook wakes the host when a peer answers. It runs in the background and
         // exits 2 to rewake, so it has no "|| true".
         var rewake = Assert.Single(events["Stop"]!.AsArray()[1]!["hooks"]!.AsArray())!;
-        Assert.Equal("\"$HOME/.nexus/nexus-relay/bin/NexusRelay.exe\" --await-replies claude", (string?)rewake["command"]);
+        // NexusRelay 1.13.11: this hook can wait for up to 55 min, so it runs the versioned copy named by engine.txt
+        // (never bin, which an update must be able to replace) and falls back to bin only without a pointer.
+        var rewakeCommand = (string?)rewake["command"] ?? "";
+        Assert.Contains("\"$HOME/.nexus/nexus-relay/engine.txt\"", rewakeCommand);
+        Assert.Contains("e=$HOME/.nexus/nexus-relay/bin/NexusRelay.exe", rewakeCommand);
+        Assert.EndsWith("exec \"$e\" --await-replies claude", rewakeCommand);
         Assert.True((bool?)rewake["asyncRewake"]);
     }
 
