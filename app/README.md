@@ -20,10 +20,13 @@ Sandbox and WACK must already be installed; the Store build also needs Visual St
 WACK are mapped read-only, networking and clipboard sharing are disabled, and only a unique report directory under
 `~\.nexus\build\NexusSystem` is writable. The guest shuts itself down; an existing Sandbox or host app is preserved.
 A failed activation records its HRESULT and Windows event logs instead of treating a launcher process as proof.
-Signed MSIX files retain their signature and use normal package deployment. Unsigned Store submissions use a
-development layout and may be refused by Sandbox's Smart App Control before the app starts (`0x800711C7`); the test
-keeps that failure visible and never disables the policy. Complete validation with that policy enabled needs the
-Store-signed artifact or a signing identity the policy trusts.
+Signed MSIX files retain their signature and use normal package deployment. The Sandbox guest enforces Smart App
+Control whatever the host's setting, and it refuses an unsigned Store package even test-signed in the guest
+(`0x800711C7`). With `-Certification` on an unsigned package (or `-DisableSmartAppControlInGuest`), the guest turns
+Smart App Control off for itself only, before installing (`tools/sandbox-policy.ps1`), and `result.json` records it
+(`SmartAppControlInGuest`: state before and after). The host's state is read before and after the run and must be
+unchanged; the host's policy is never written. A pass in this mode does not prove Smart App Control trust: the Store
+signs the package.
 Certification maps WACK, its sibling TAEF runtime and SDK `References` metadata read-only; missing dependencies are
 refused before launch. Its binary analyzer is registered inside the disposable guest, as the SDK installer would.
 `-CertificationOnly` runs WACK without repeating the native smoke on the same package.
@@ -32,7 +35,6 @@ Reports record the guest's application-control state; a development-signature pa
 `-TestSignInGuest` can create a one-day, non-exportable development certificate inside the disposable guest and
 test-sign a guest-only copy. Its original MSIX hash, derived signature hash and unchanged payload digest are recorded.
 This development certificate is never installed on the host and does not claim Microsoft Store or SAC trust.
-
 ## Local installation alongside the Store app
 
 Publish `src/Nexus.App` to a new directory outside OneDrive, then run

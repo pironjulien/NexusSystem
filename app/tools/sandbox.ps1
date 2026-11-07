@@ -7,6 +7,9 @@ param(
     [switch]$Certification,
     [switch]$CertificationOnly,
     [switch]$TestSignInGuest,
+    # Turns Smart App Control off inside the disposable guest only (never the host). Implied by -Certification on an
+    # unsigned package, which the guest's Smart App Control would otherwise refuse to start (sandbox-policy.ps1).
+    [switch]$DisableSmartAppControlInGuest,
     # Default outside %LOCALAPPDATA%, which an MSIX app such as Claude redirects into its private cache (as package.ps1).
     [string]$Report = (Join-Path $HOME ('.nexus\build\NexusSystem\sandbox-' + [guid]::NewGuid().ToString('N'))),
     [ValidateRange(1, 120)][int]$TimeoutMinutes = 30
@@ -19,6 +22,9 @@ if ((Get-FileHash -LiteralPath $package -Algorithm SHA256).Hash -ne $ExpectedSha
 $identity = Get-WackIdentity $package
 Assert-WackCertificationMode -Path $package -CertificationOnly:$CertificationOnly -TestSignInGuest:$TestSignInGuest
 if ($identity.Version -ne $Version) { throw 'The MSIX does not match Version.' }
+. (Join-Path $PSScriptRoot 'sandbox-policy.ps1')
+$DisableSmartAppControlInGuest = Test-NexusGuestSmartAppControlOff $DisableSmartAppControlInGuest $Certification (Test-NexusMsixSigned $package)
+$hostSmartAppControl = Get-NexusSmartAppControlState
 $sandboxCli = Get-Command wsb.exe -ErrorAction SilentlyContinue
 if ($sandboxCli) {
     $runningSandboxes = & $sandboxCli.Source list --raw
@@ -37,7 +43,7 @@ $outputDir = Join-Path $reportRoot 'output'
 New-Item -ItemType Directory -Path $inputDir, $outputDir | Out-Null
 Copy-Item -LiteralPath $package -Destination (Join-Path $inputDir 'package.msix')
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'sandbox-guest.ps1'), (Join-Path $PSScriptRoot 'wack.ps1') -Destination $inputDir
-[pscustomobject]@{ Version = $Version; Sha256 = $ExpectedSha256.ToUpperInvariant(); Certification = [bool]$Certification; CertificationOnly = [bool]$CertificationOnly; TestSignInGuest = [bool]$TestSignInGuest } |
+[pscustomobject]@{ Version = $Version; Sha256 = $ExpectedSha256.ToUpperInvariant(); Certification = [bool]$Certification; CertificationOnly = [bool]$CertificationOnly; TestSignInGuest = [bool]$TestSignInGuest; DisableSmartAppControlInGuest = [bool]$DisableSmartAppControlInGuest } |
     ConvertTo-Json | Set-Content -LiteralPath (Join-Path $inputDir 'run.json') -Encoding UTF8
 $inputXml = [Security.SecurityElement]::Escape($inputDir)
 $outputXml = [Security.SecurityElement]::Escape($outputDir)
@@ -98,9 +104,11 @@ try {
     $result = Get-Content -Raw -LiteralPath $resultPath | ConvertFrom-Json
     if (-not $result.Success) { throw "Sandbox validation failed: $($result.Error) Report: $reportRoot" }
     if ($result.Sha256 -ne $ExpectedSha256 -or $result.Identity.Version -ne $Version) { throw 'The guest result does not match the requested package.' }
+    if ($DisableSmartAppControlInGuest -and $result.SmartAppControlInGuest.After -ne 0) { throw 'The guest did not record Smart App Control turned off.' }
     Write-Host "Sandbox PASS: native smoke=$($result.NativeSmoke); certification=$($result.Certification). Report: $reportRoot"
     $result
 } finally {
     $hostAfter = @(Get-AppxPackage -Name $identity.Name | ForEach-Object { $_.PackageFullName })
     if ([string]$hostBefore -ne [string]$hostAfter) { throw 'The host package list changed during the test; no host cleanup was attempted.' }
+    if ([string]$hostSmartAppControl -ne [string](Get-NexusSmartAppControlState)) { throw 'The host Smart App Control state changed during the test.' }
 }

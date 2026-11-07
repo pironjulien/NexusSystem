@@ -16,6 +16,11 @@ versions have no GitHub release since 1.0.5.0). The format follows [Keep a Chang
   connection lost, never started: `app/tools/sandbox-watch.ps1`, checked every 5 s through `wsb list`, 15 s of grace)
   instead of waiting until its 30-minute timeout. On 07/11/2026 the Sandbox's connection was lost before the guest's
   user logon (its logon command never ran) and the script kept waiting.
+- `app/tools/sandbox.ps1` can start an unsigned Store package: the Sandbox guest enforces Smart App Control whatever
+  the host's setting and refused app 1.0.18.0, test-signed in the guest, with `0x800711C7`. With `-Certification` on
+  an unsigned package (or `-DisableSmartAppControlInGuest`) the guest turns it off for itself only before installing
+  and records it in `result.json`; the host's state must be the same after the run (`app/tools/sandbox-policy.ps1`,
+  `app/tests/test_sandbox_policy.ps1`).
 - Tests: no test can show a Windows error box. The test process sets the error mode (no critical-error, crash or
   missing-file box) when it loads, and every process it starts inherits it; a test checks it in a child process.
 

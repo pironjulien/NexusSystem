@@ -109,7 +109,8 @@ writes it to `~\.nexus\build\NexusSystem\store<version>`, never under `%LOCALAPP
 redirects writes there into its private cache, and Partner Center received a 0-byte package). Before submitting, run
 `app/tools/sandbox.ps1 -Msix <package.msix> -ExpectedSha256 <SHA256> -Version <version> -Certification -TestSignInGuest`
 (native start and Windows App Certification Kit in a fresh Windows Sandbox; the Store package is unsigned, so it is
-test-signed inside the guest only) when the script exists, and submit only on a pass (see `app/README.md`).
+test-signed inside the guest only, and the guest turns its own Smart App Control off for it, recorded in the report,
+the host's untouched) when the script exists, and submit only on a pass (see `app/README.md`).
 
 Prefer keyless access (GitHub OIDC with the store's identity federation) over stored secrets. Pages that Chrome
 protects from extensions (Chrome Web Store dashboard) are driven through Windows UI Automation (NexusWindows) when a

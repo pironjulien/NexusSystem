@@ -43,6 +43,19 @@ try {
     if ($identity.Version -ne $spec.Version) { throw 'Unexpected package version.' }
     if (@(Get-AppxPackage -Name $identity.Name).Count) { throw 'Guest is not a clean profile.' }
     if (@(Get-Process NexusSystem -ErrorAction SilentlyContinue).Count) { throw 'Unexpected existing process.' }
+    if ($spec.DisableSmartAppControlInGuest) {
+        # This guest only (the identity check above refuses the host): Smart App Control would refuse the unsigned
+        # Store package once test-signed here. Turned off before installing, refreshed without restart, then recorded.
+        Write-NexusPhase 'smart-app-control'
+        $policy = 'HKLM:\SYSTEM\CurrentControlSet\Control\CI\Policy'
+        $before = (Get-ItemProperty -LiteralPath $policy -Name VerifiedAndReputablePolicyState -ErrorAction SilentlyContinue).VerifiedAndReputablePolicyState
+        New-ItemProperty -Path $policy -Name VerifiedAndReputablePolicyState -Value 0 -PropertyType DWord -Force | Out-Null
+        & "$env:WINDIR\System32\CiTool.exe" --refresh | Out-Null
+        if ($LASTEXITCODE) { throw "Smart App Control refresh failed in the guest (CiTool exit $LASTEXITCODE)." }
+        $after = (Get-ItemProperty -LiteralPath $policy -Name VerifiedAndReputablePolicyState).VerifiedAndReputablePolicyState
+        $result.SmartAppControlInGuest = [ordered]@{ Before = $before; After = $after
+            Note = 'Smart App Control turned off in the disposable guest only, for an unsigned Store package; the host is unchanged.' }
+    }
     if ($spec.TestSignInGuest) {
         # This is development trust in the disposable guest only. The original input and its hash stay unchanged.
         # No PFX is exported, no host certificate store is mapped, and no application-control policy is changed.

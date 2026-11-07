@@ -56,6 +56,9 @@ public class ScriptTests
     public void SandboxGoneStopsTheWait() => Run(PowerShell7, "app/tests/test_sandbox_watch.ps1");
 
     [Fact]
+    public void SandboxSmartAppControlStaysInTheGuest() => Run(PowerShell7, "app/tests/test_sandbox_policy.ps1");
+
+    [Fact]
     public void CaptureOutputGuards() => Run(PowerShell7, "app/tests/test_capture.ps1");
 
     [Fact]
