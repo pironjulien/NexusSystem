@@ -16,7 +16,10 @@ change ─► test locally ─► push main ─► CI: tests + build ─► vX.Y
 - NexusSystem app: the user's PC runs the Microsoft Store app, the very build the public gets (since 2026-11-04:
   certification is fast). A change is checked before submission with `app/tools/capture.ps1` (every page, both
   languages and themes, on a made-up profile) and the test package; after certification, `winget install --id
-  9NSH2P3QLWT1 --source msstore --force` takes it on the PC without waiting for the Store's own update.
+  9NSH2P3QLWT1 --source msstore --force` takes it on the PC without waiting for the Store's own update. Its changes
+  get their own `## [app a.b.c.d] - YYYY-MM-DD` section in `CHANGELOG.md` (never a subsection of a catalog version),
+  with its link at the end of the file, and `<Version>` in `app/Directory.Build.props` names an existing section (a
+  test checks both). No GitHub release carries the app's version: the site reads the one the Store serves.
 - Plugin changes live in the product's `plugin/` folder, the single source for the three AI apps:
   `.claude-plugin/` and `.mcp.json` (Claude Code), `.codex-plugin/` and `.codex-mcp.json` (Codex), Antigravity's
   manifest and guide (shipped with the engine and installed by its installer).

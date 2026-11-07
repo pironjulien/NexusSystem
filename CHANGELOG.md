@@ -1,11 +1,24 @@
 # Changelog
 
-All notable changes to NexusSystem are documented here: the plugin catalogs and one-line install (versions `x.y.z`,
-tags `vx.y.z`) and the Windows app on the Microsoft Store (versions `app a.b.c.d`, tags `nexussystem-va.b.c.d`).
-The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
+All notable changes to NexusSystem are documented here: the plugin catalogs and one-line install (sections `[x.y.z]`,
+tags `vx.y.z`) and the Windows app on the Microsoft Store (sections `[app a.b.c.d]`, one per Store version, dated by
+its last change and linked to the commit that set the version; the site reads the version the Store serves, so app
+versions have no GitHub release since 1.0.5.0). The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the catalogs use
 [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
+
+### Changed
+- `CHANGELOG.md` follows Keep a Changelog again: each Store app version since 1.0.13.0 has its own dated
+  `[app a.b.c.d]` section instead of "(app ...)" subsections of catalog versions, every section has its link at the
+  end of the file, and the header no longer promises `nexussystem-v*` tags (the site reads the app's version from the
+  Microsoft Store since 2026-11-04). `ChangelogTests` checks the format, the links and that the app's `<Version>` has
+  its section; `RELEASING.md` says so.
+
+### Security
+- CodeQL runs from a workflow file (`codeql.yml`: `actions` and `csharp`, build mode none, actions pinned by SHA)
+  instead of GitHub's default setup, now turned off: OpenSSF Scorecard credits SAST only through a workflow when
+  commits land without pull requests (it scored 0), as for the products since 2026-11-07.
 
 ## [1.7.2] - 2026-11-07
 
@@ -38,20 +51,29 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
   the 0-byte package sent to Partner Center on 2026-11-05). The reports of `app/tools/sandbox.ps1` and
   `app/tools/wack.ps1` go there too by default (`sandbox-<id>`, `wack`).
 
-### Changed (app 1.0.17.0)
-- The app installs and maintains the Nexus products with catalog 1.7.2: the hourly maintenance is the native
-  `NexusMaintenance.exe` engine (no PowerShell, no console host), product installers keep working from a
-  PowerShell 7 window, and a signed-out GitHub CLI no longer stops an installation.
-- Windows App SDK 2.6.5 and current NuGet packages; the install script is embedded from the catalog at build time
-  (see the app changes of 1.7.0).
-- Its embedded maintenance engine also carries two catalog changes of this release: a Codex catalogue from another
-  source is kept without failing the product (see Fixed below), and the engine's test options (`--test-catalog`,
-  `--test-engines`, used by the pack check only, see Changed above; a registered task without them is unchanged).
-
 ### Fixed
 - Maintenance no longer fails a product when Codex's Nexus catalogue comes from another source (a local folder, a
   fork): that route is kept, not refreshed, and the product's status names the source instead of "Codex catalogue
   refresh failed".
+
+## [app 1.0.17.0] - 2026-11-07
+
+### Changed
+- The app installs and maintains the Nexus products with catalog 1.7.2: the hourly maintenance is the native
+  `NexusMaintenance.exe` engine (no PowerShell, no console host), product installers keep working from a
+  PowerShell 7 window, and a signed-out GitHub CLI no longer stops an installation.
+- Its embedded maintenance engine also carries two changes of catalog 1.7.2: a Codex catalogue from another source is
+  kept without failing the product, and the engine's test options (`--test-catalog`, `--test-engines`, used by the
+  pack check only; a registered task without them is unchanged).
+- Windows App SDK 2.6.5 (was 2.5.1) and Windows SDK Build Tools 10.0.28000.2957; current NuGet packages;
+  System.Management is no longer used.
+- The app embeds the repository root's `get-nexus.ps1` itself: the `app/pack` copy and its `sync.ps1` are gone, and a
+  missing script now fails the build instead of the running app.
+- Every project builds with the same rigor from `Directory.Build.props`: warnings as errors, the recommended .NET
+  analyzers and code style at build (the app, its tests and the probe were missing some of them).
+- NexusWindows checks accept a single-file Native AOT engine (`NexusWindows.exe` alone, attested by its own hash in
+  the installation and in the runtime receipt) as well as the framework-dependent one, whose `NexusWindows.dll`,
+  `.deps.json` and `.runtimeconfig.json` must be recorded together; a partial set is not an installation.
 
 ## [1.7.1] - 2026-11-07
 
@@ -85,16 +107,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
   understand) are read by the same C# code. The process list is read natively instead of through WMI.
 - On the author's workstation, `developmentCoordinator` now names an engine built from the repository
   (`app/tools/maintenance-dev.ps1`).
-
-### Changed (app)
-- Windows App SDK 2.6.5 (was 2.5.1) and Windows SDK Build Tools 10.0.28000.2957; System.Management is no longer used.
-- The app embeds the repository root's `get-nexus.ps1` itself: the `app/pack` copy and its `sync.ps1` are gone, and a
-  missing script now fails the build instead of the running app.
-- Every project builds with the same rigor from `Directory.Build.props`: warnings as errors, the recommended .NET
-  analyzers and code style at build (the app, its tests and the probe were missing some of them).
-- NexusWindows checks accept a single-file Native AOT engine (`NexusWindows.exe` alone, attested by its own hash in
-  the installation and in the runtime receipt) as well as the framework-dependent one, whose `NexusWindows.dll`,
-  `.deps.json` and `.runtimeconfig.json` must be recorded together; a partial set is not an installation.
+- The app's changes of this release are in [app 1.0.17.0].
 
 ### Fixed
 - `get-nexus.ps1` ran each product's checked `get.ps1` with `-ExecutionPolicy Bypass` since 1.6.31, although 1.6.2
@@ -107,6 +120,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [1.6.54] - 2026-11-06
 
+### Changed
+- Pin NexusKeypad 1.8.30 in both AI plugin catalogs: each Marketplace edition's release now carries a ready profile
+  (`.lp5`) to import in Logi Options+.
+- Pin NexusBrowser 2.35.14 in both AI plugin catalogs: Chrome's toolbar icon is the site medallion without its
+  lettering.
+- Pin NexusBrowser 2.35.13 (task rename steps written to install.log), NexusKeypad 1.8.29 (relay conversations
+  recognized under both names) and NexusRelay 1.13.3 in both AI plugin catalogs.
+- Pin NexusRelay 1.13.4 in both AI plugin catalogs: the commit guard defaults to the repositories under C:\Nexus.
+- Pin NexusBrowser 2.35.12 and NexusWindows 3.16.17 in both AI plugin catalogs: product names without a space
+  everywhere; NexusBrowser's scheduled tasks are renamed "NexusBrowser Bridge/MCP/Update" on update.
+
 ### Fixed
 - A product update that failed during the hourly maintenance only said "The product update failed.": the published
   installer's output and errors are now kept in `~\.nexus\nexussystem\maintenance\logs` (UTF-8, the 20 newest),
@@ -116,13 +140,20 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - NexusFree showed "Installed · version 1.2.5" instead of "Up to date": the app never read its latest release, as
   neither `products.json` nor the app's list of GitHub repositories named NexusFree. Both do now, and a test requires a
   release repository for every ready product. The catalog fix reaches the Store app already installed.
+- NexusKeypad 1.8.30 pinned to its `connecteurs` folder again in both AI plugin catalogs (it pointed at the
+  Logitech plugin folder). The catalog tests reuse or rebuild a cached checkout instead of failing on Git's
+  read-only files.
 
-### Fixed (app 1.0.16.0)
+## [app 1.0.16.0] - 2026-11-05
+
+### Fixed
 - On the Updates page the state column starts at the same place on every row: the button column has one width, so a
   Microsoft Store product's "Open in the Store" no longer pushes its state left, and the busy ring of an update takes
   the dot's slot.
 
-### Changed (app 1.0.15.0)
+## [app 1.0.15.0] - 2026-11-04
+
+### Changed
 - Home laid out like the Microsoft Store's: the banner shows each product's poster across the whole slide, with its
   icon, name and button over it, and two product tiles beside it; each group is one panel of compact rows (icon,
   name, sentence, state, button).
@@ -131,28 +162,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
   30 minutes.
 - Every installed product's page has "Check for an update" under its state, the same check as the Updates page.
 - NexusKeypad and NexusAGYmail pages show what the AI apps did with them (24 h), like the other AI products.
+- The app and its package logos (Start, taskbar, Store, tiles) show the julienpiron.fr medallion on a transparent
+  background at every size, like the site: no dark square around it, and the knot badge at the bottom of the ring is
+  kept whole (it was dimmed with the inner circuits). NexusFree, NexusInDesign and NexusWpp cards now come from the
+  same kit as the other products (`tools/icon-from-site.ps1`).
+- At 32 px and less (`Square44x44Logo` target sizes: taskbar, Start, Alt+Tab, Explorer; small `nexus.ico` entries)
+  the icon is the same julienpiron.fr medallion as the large one, with only its "JULIENPIRON.FR" lettering, unreadable
+  at that size, erased.
 
 ### Fixed
-- NexusKeypad 1.8.30 pinned to its `connecteurs` folder again in both AI plugin catalogs (it pointed at the
-  Logitech plugin folder). The catalog tests reuse or rebuild a cached checkout instead of failing on Git's
-  read-only files.
-
-### Fixed (app 1.0.15.0)
 - Long ✓ / ✗ lines and the "On this PC" summary wrap instead of being cut (NexusWpp's "Installed from the
   Microsoft Store" line).
-
-### Changed
-- Pin NexusKeypad 1.8.30 in both AI plugin catalogs: each Marketplace edition's release now carries a ready profile
-  (`.lp5`) to import in Logi Options+.
-- Pin NexusBrowser 2.35.14 in both AI plugin catalogs: Chrome's toolbar icon is the site medallion without its
-  lettering.
-- App icons at 32 px and less (`Square44x44Logo` target sizes, `nexus.ico`): the same julienpiron.fr medallion
-  as the large icon, with only its unreadable lettering erased, instead of the plain silver ring.
-- Pin NexusBrowser 2.35.13 (task rename steps written to install.log), NexusKeypad 1.8.29 (relay conversations
-  recognized under both names) and NexusRelay 1.13.3 in both AI plugin catalogs.
-- Pin NexusRelay 1.13.4 in both AI plugin catalogs: the commit guard defaults to the repositories under C:\Nexus.
-- Pin NexusBrowser 2.35.12 and NexusWindows 3.16.17 in both AI plugin catalogs: product names without a space
-  everywhere; NexusBrowser's scheduled tasks are renamed "NexusBrowser Bridge/MCP/Update" on update.
 
 ## [1.6.53] - 2026-11-04
 
@@ -177,23 +197,6 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Pin NexusAndroid 0.23.6 in both AI plugin catalogs: a readable phone checkup with an accurate store-origin check.
 - Pin NexusWindows 3.16.9 in both AI plugin catalogs: its diagnostic logs keep the engine's fixed failure reasons.
 - Pin NexusRelay 1.12.4 in both AI plugin catalogs so the installed skills describe equal peers under `host: all`.
-
-### Changed (app 1.0.14.0, icons)
-- The app and its package logos (Start, taskbar, Store, tiles) show the julienpiron.fr medallion on a transparent
-  background at every size, like the site: no dark square around it, and the knot badge at the bottom of the ring is
-  kept whole (it was dimmed with the inner circuits). NexusFree, NexusInDesign and NexusWpp cards now come from the
-  same kit as the other products (`tools/icon-from-site.ps1`).
-- At 32 px and less (taskbar, Start, Alt+Tab, Explorer, small `nexus.ico` entries) a small icon replaces the
-  medallion: the silver ring drawn plain, without the "JULIENPIRON.FR" lettering unreadable at that size, and the
-  pictogram enlarged. Ships with the app version after 1.0.14.0 (already in certification).
-
-### Fixed (app 1.0.14.0)
-- A Microsoft Store product (NexusWpp) shows its installed version and the version the Store serves, with "New version
-  X" and an "Update" button like the AI products. It said only "Installed · Microsoft Store" while a PC stayed on
-  1.0.45.0 with 1.0.51.0 published. The served version comes from the Store's display catalog (its MSIX package), not
-  from GitHub (its release lags behind the submission) nor winget's msstore source (it reports "Unknown", so
-  `winget upgrade` saw nothing). "Update" and "Get updates" take the Store's package with
-  `winget install --source msstore --force`.
 
 ## [1.6.52] - 2026-11-03
 
@@ -249,29 +252,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
   products' releases: anyone can check the file offline with Sigstore, and OpenSSF Scorecard counts the release as
   signed.
 
-## [1.6.48] - 2026-10-31
-
-### Fixed
-- The pack writes Claude Code's `settings.json` atomically (a temporary file beside it, then swapped in whole): a pack
-  interrupted mid-write no longer leaves a truncated settings file. A test kills the write again and again and reads
-  whole JSON every time.
+## [app 1.0.14.0] - 2026-11-02
 
 ### Changed
-- Releases are immutable on every product repository: a published release's files and tag can no longer change, and
-  `gh release verify` checks it. A catalog release is now published by the `release` workflow from its pushed tag, with
-  `get-nexus.ps1` and `SHA256SUMS.txt` attached at creation (`release-assets` added them afterwards).
-
-## [1.6.47] - 2026-10-31
-
-### Changed
-- Codex no longer asks to approve a Nexus plugin's hooks after every update: once the pack installs or refreshes a
-  plugin, Codex's own app server lists that plugin's hooks and records their current hashes (Codex's hashing, nothing
-  recomputed). Other plugins and hooks turned off are left alone; if that step fails, Codex simply asks once.
-
-### Fixed
-- Pin NexusInDesign v4.0.2 in the Claude Code and Codex catalogs, fixing engine startup with current signed Codex installations.
-
-### Changed (app 1.0.14.0)
 - "Install with AI" > "With Antigravity" opens Antigravity on a new conversation with the request already written in
   its chat box, like Claude Code and Codex: the user only presses Enter. Antigravity has no link that fills its chat,
   so the app writes it through the local debugging port Antigravity opens for itself; it never sends, and never
@@ -298,6 +281,36 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - A product of the online catalog is the same product as the built-in one (equality by key): its own checks (Windows
   engine, Chrome bridge...) apply to it again.
 - `--capture` also takes each product's "On this PC" tab.
+
+### Fixed
+- A Microsoft Store product (NexusWpp) shows its installed version and the version the Store serves, with "New version
+  X" and an "Update" button like the AI products. It said only "Installed · Microsoft Store" while a PC stayed on
+  1.0.45.0 with 1.0.51.0 published. The served version comes from the Store's display catalog (its MSIX package), not
+  from GitHub (its release lags behind the submission) nor winget's msstore source (it reports "Unknown", so
+  `winget upgrade` saw nothing). "Update" and "Get updates" take the Store's package with
+  `winget install --source msstore --force`.
+
+## [1.6.48] - 2026-10-31
+
+### Fixed
+- The pack writes Claude Code's `settings.json` atomically (a temporary file beside it, then swapped in whole): a pack
+  interrupted mid-write no longer leaves a truncated settings file. A test kills the write again and again and reads
+  whole JSON every time.
+
+### Changed
+- Releases are immutable on every product repository: a published release's files and tag can no longer change, and
+  `gh release verify` checks it. A catalog release is now published by the `release` workflow from its pushed tag, with
+  `get-nexus.ps1` and `SHA256SUMS.txt` attached at creation (`release-assets` added them afterwards).
+
+## [1.6.47] - 2026-10-31
+
+### Changed
+- Codex no longer asks to approve a Nexus plugin's hooks after every update: once the pack installs or refreshes a
+  plugin, Codex's own app server lists that plugin's hooks and records their current hashes (Codex's hashing, nothing
+  recomputed). Other plugins and hooks turned off are left alone; if that step fails, Codex simply asks once.
+
+### Fixed
+- Pin NexusInDesign v4.0.2 in the Claude Code and Codex catalogs, fixing engine startup with current signed Codex installations.
 
 ### Security
 - CodeQL (GitHub default setup) and the OpenSSF Scorecard workflow run again on every push to main.
@@ -347,11 +360,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
   `NEXUS_RELEASE_TAG` in `get-nexus.ps1`, the channel of the app's version check, and `app/tools/dev-catalog.ps1`.
   A new version is released as stable right after its build, so every PC installs and shows the latest release.
 
-### Changed (catalogs)
+### Changed
 - The Keypad plugin follows NexusKeypad 1.8.14: a copy updated by Claude or Codex is re-attested by the keypad without
   asking again.
 
-### Changed (app 1.0.13.0)
+## [app 1.0.13.0] - 2026-10-31
+
+### Changed
 - The app looks and works like a store library. The menu and the home page group the products: AI products,
   Adobe products (NexusInDesign, coming soon) and Windows products (NexusWpp, on the Microsoft Store). Each card says
   plainly whether the product is installed and up to date (installed version against the newest release of its
@@ -437,6 +452,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
   to that folder at the product's release tag (`git-subdir`) instead of keeping copies here, so a product release no
   longer needs a NexusSystem release and the guide cannot drift between AI apps. `app/tools/pin-plugin.ps1` pins a
   release in both catalogs. The catalog tests fetch each pinned folder and check what the AI apps really install.
+- Next Store app (1.0.13.0): request the installed public maintenance task and display dated published, installed,
+  observed and pending versions. First launch establishes the same maintenance task for existing product installs,
+  without reinstalling them. Publishing the catalog does not deploy this separate Store package.
 
 ### Added
 - `app/tools/dev-catalog.ps1`: the development channel of the catalog. Plugins whose product repository is checked
@@ -447,17 +465,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Normal launches share one window per user/session across local build paths; launching again activates the existing
   window instead of opening another copy. Isolated captures and quiet tests keep their separate lifetime.
 - The desktop executable embeds the existing product icon so shortcuts and taskbar entries display the Nexus logo.
-
-### Fixed
 - Maintenance preserves installed repository engines and refreshes their public catalogue plugins separately.
   A newer public release, a deferred activation or missing provenance never silently changes a development engine
   into a public installation. The author's workstation uses the existing local app installer and repository
   coordinator for development; no extra watcher, service or automatic Git pull is introduced.
-
-### Changed
-- Next Store app (1.0.13.0): request the installed public maintenance task and display dated published, installed,
-  observed and pending versions. First launch establishes the same maintenance task for existing product installs,
-  without reinstalling them. Publishing the catalog does not deploy this separate Store package.
 
 ## [1.6.37] - 2026-10-30
 
@@ -565,6 +576,7 @@ on a local branch to be applied product by product.
   for Claude Desktop, whose release does not carry an installer yet, uses its v3.8.0 `claude/setup.ps1` pinned by
   commit and SHA-256. uv comes from Astral's release binaries, SHA-256 checked (no installer script).
 - CI installs Claude Code from its installer saved to a file; the Defender probe tries only the release file.
+
 ### Changed
 - NexusAndroid is native (0.22.0): the `nexus-android` plugins (Claude Code 0.22.0, Codex) reach its daemon
   (`127.0.0.1:16180/mcp`, token read from the user variable `NEXUS_MCP_TOKEN`), installed by its `get.ps1`, which the
@@ -573,7 +585,8 @@ on a local branch to be applied product by product.
 - NexusRelay is native (1.10.0): the `nexus-relay` plugins (1.10.0) keep its daemon; the Codex edit guard calls the
   engine NexusRelay's installer keeps at `%USERPROFILE%\.nexus\nexus-relay\bin\NexusRelay.exe` through `cmd.exe`
   (before, after the edit and at the end of the turn), and Claude Code's plugin now carries the edit guard and the
-  unread-message notice from the same engine. uv is no longer needed for the relay.- App: the Claude Desktop extension of NexusWindows comes from the single NexusWindows repository
+  unread-message notice from the same engine. uv is no longer needed for the relay.
+- App: the Claude Desktop extension of NexusWindows comes from the single NexusWindows repository
   (`nexus-windows-claude.mcpb` of its latest release), no longer from the archived NexusWindows-Claude.
 - NexusAGYmail is installed by its native `get.ps1` (v0.14.0: Windows engine, SHA-256 checked, Antigravity plugin);
   its Google sign-in is `get.ps1 -Auth`, in the pack's last steps and in the app. uv is a prerequisite only when a
@@ -594,6 +607,7 @@ on a local branch to be applied product by product.
 ### Removed
 - `tests/check_catalog.py`, `tests/check_install.py`, `tests/smoke_mcp.py` (ported to xUnit), `app/tools/demo_profile.py`
   and `icon_from_site.py` (now PowerShell: `capture.ps1`, `icon-from-site.ps1`).
+
 ## [1.6.30] - 2026-10-30
 
 ### Changed
@@ -685,6 +699,7 @@ extension, simple states).
 
 ### Changed
 - Suppression du doublon Claude dans NexusSystem : alignement sur le trio souverain d'IA de code (Claude Code, Codex, Antigravity). L'entree distincte Claude Desktop est retiree de l'enumeration AiApp et de l'affichage du hub. La detection de Claude Code couvre la presence de Claude Desktop, son onglet Code (~/.claude), ses extensions .mcpb et ses configurations.
+
 ### Fixed
 - Sandbox certification supplies WACK's required TAEF runtime and SDK reference metadata as read-only inputs and starts the kit in its own
   directory. Missing TAEF is refused before launch instead of crashing appcert in ExecuteTAEFTaskInstance. WACK's
@@ -1050,16 +1065,6 @@ Sent to the Store on 2026-10-27 (submission 4, x64+ARM64 bundle, Windows App Cer
   pipe, command `update`, the only one ever sent). The others update themselves at their AI app's next start. From
   the Store package, a product already installed is not installed again (it updates itself), and the home button
   never turns into "Update". 33 tests.
-
-### Changed
-- The hub is named NexusSystem (one word, like the products): window title, menu, home, manifest DisplayName,
-  executable `NexusSystem.exe`, log in `%LOCALAPPDATA%\NexusSystem`, test identity `NexusSystemTest`, Store listing
-  and privacy text (julienpiron.fr/nexussystem/confidentialite/). "The Nexus products" stays the family's name. The
-  logo stays Julien Piron's π.
-- NexusKeypad counts as installed from the state its plugin writes (`~\.nexus\status\keypad.json`), else from any of
-  its editions in Logi's plugin folder (NexusKeypad, TrinitePad, AiAgentsPc, PcDashboard), not only the complete one.
-
-### Added
 - Store package: `tools/package.ps1` builds the MSIX (test identity, unsigned, for developer mode) or, with `-Store`,
   the `.msixupload` with the identity Partner Center gives. Manifest with `runFullTrust` only, no
   `unvirtualizedResources` (measured useless by the probe). Draft listing in French and English
@@ -1098,6 +1103,14 @@ Sent to the Store on 2026-10-27 (submission 4, x64+ARM64 bundle, Windows App Cer
   starts it on a throwaway profile and refuses the real user profile without `-AllowRealProfile`.
 - `probe/`: MSIX container probe and its CI job (writes from the packaged process, a normal child, a child started
   with the desktop app breakaway policy; read back from outside the package).
+
+### Changed
+- The hub is named NexusSystem (one word, like the products): window title, menu, home, manifest DisplayName,
+  executable `NexusSystem.exe`, log in `%LOCALAPPDATA%\NexusSystem`, test identity `NexusSystemTest`, Store listing
+  and privacy text (julienpiron.fr/nexussystem/confidentialite/). "The Nexus products" stays the family's name. The
+  logo stays Julien Piron's π.
+- NexusKeypad counts as installed from the state its plugin writes (`~\.nexus\status\keypad.json`), else from any of
+  its editions in Logi's plugin folder (NexusKeypad, TrinitePad, AiAgentsPc, PcDashboard), not only the complete one.
 
 ## [1.6.2] - 2026-10-25
 
@@ -1339,3 +1352,100 @@ Sent to the Store on 2026-10-27 (submission 4, x64+ARM64 bundle, Windows App Cer
 - `test.ps1`: offline catalog checks; `-Full` starts every server from PyPI, lists its tools and fails if the
   server instructions or tool list name anyone (neutral texts since nexus-android 0.6.2, nexus-windows 0.9.3 and
   nexus-browser 2.10.0). CI on Windows.
+
+[Unreleased]: https://github.com/pironjulien/NexusSystem/compare/v1.7.2...HEAD
+[1.7.2]: https://github.com/pironjulien/NexusSystem/compare/v1.7.1...v1.7.2
+[app 1.0.17.0]: https://github.com/pironjulien/NexusSystem/commit/69f628fe72350f4761843c1a7f4b70833d27bd42
+[1.7.1]: https://github.com/pironjulien/NexusSystem/compare/v1.7.0...v1.7.1
+[1.7.0]: https://github.com/pironjulien/NexusSystem/compare/v1.6.54...v1.7.0
+[1.6.54]: https://github.com/pironjulien/NexusSystem/compare/v1.6.53...v1.6.54
+[app 1.0.16.0]: https://github.com/pironjulien/NexusSystem/commit/d41fba150a09e4af3b324afe48298b2f9f0085a0
+[app 1.0.15.0]: https://github.com/pironjulien/NexusSystem/commit/d3b9342436da4e267370ec522728efa2cef56bb6
+[1.6.53]: https://github.com/pironjulien/NexusSystem/compare/v1.6.52...v1.6.53
+[1.6.52]: https://github.com/pironjulien/NexusSystem/compare/v1.6.51...v1.6.52
+[1.6.51]: https://github.com/pironjulien/NexusSystem/compare/v1.6.50...v1.6.51
+[1.6.50]: https://github.com/pironjulien/NexusSystem/compare/v1.6.49...v1.6.50
+[1.6.49]: https://github.com/pironjulien/NexusSystem/compare/v1.6.48...v1.6.49
+[app 1.0.14.0]: https://github.com/pironjulien/NexusSystem/commit/c6de10411e58077bd9e3d2528f656fb51c08d250
+[1.6.48]: https://github.com/pironjulien/NexusSystem/compare/v1.6.47...v1.6.48
+[1.6.47]: https://github.com/pironjulien/NexusSystem/compare/v1.6.46...v1.6.47
+[1.6.46]: https://github.com/pironjulien/NexusSystem/compare/v1.6.45...v1.6.46
+[1.6.45]: https://github.com/pironjulien/NexusSystem/compare/v1.6.44...v1.6.45
+[1.6.44]: https://github.com/pironjulien/NexusSystem/compare/v1.6.43...v1.6.44
+[1.6.43]: https://github.com/pironjulien/NexusSystem/compare/v1.6.42...v1.6.43
+[1.6.42]: https://github.com/pironjulien/NexusSystem/compare/v1.6.41...v1.6.42
+[app 1.0.13.0]: https://github.com/pironjulien/NexusSystem/commit/cbb19e54fe6218574e48f44fdb65de64df3c0dd7
+[1.6.41]: https://github.com/pironjulien/NexusSystem/compare/v1.6.40...v1.6.41
+[1.6.40]: https://github.com/pironjulien/NexusSystem/compare/v1.6.39...v1.6.40
+[1.6.39]: https://github.com/pironjulien/NexusSystem/compare/v1.6.38...v1.6.39
+[1.6.38]: https://github.com/pironjulien/NexusSystem/compare/v1.6.37...v1.6.38
+[1.6.37]: https://github.com/pironjulien/NexusSystem/compare/v1.6.36...v1.6.37
+[1.6.36]: https://github.com/pironjulien/NexusSystem/compare/v1.6.35...v1.6.36
+[1.6.35]: https://github.com/pironjulien/NexusSystem/compare/v1.6.33...v1.6.35
+[1.6.34]: https://github.com/pironjulien/NexusSystem/commit/8ae499dd987093c4acb51f69514db1e3c35e4b1d
+[1.6.33]: https://github.com/pironjulien/NexusSystem/compare/v1.6.32...v1.6.33
+[1.6.32]: https://github.com/pironjulien/NexusSystem/compare/v1.6.31...v1.6.32
+[1.6.31]: https://github.com/pironjulien/NexusSystem/compare/v1.6.30...v1.6.31
+[1.6.30]: https://github.com/pironjulien/NexusSystem/compare/v1.6.29...v1.6.30
+[app 1.0.12.0]: https://github.com/pironjulien/NexusSystem/commit/f78f985d43b407c9eb5651d86f9a7659e5043e3c
+[app 1.0.11.0]: https://github.com/pironjulien/NexusSystem/commit/5ba66cc16aff2e8cdfda9b5f9baf429b9922563c
+[app 1.0.10.0]: https://github.com/pironjulien/NexusSystem/commit/5eb0fbf5cc4c4506c0091a6c60682486a5ac63ca
+[app 1.0.9.0]: https://github.com/pironjulien/NexusSystem/commit/5eb0fbf5cc4c4506c0091a6c60682486a5ac63ca
+[app 1.0.8.0]: https://github.com/pironjulien/NexusSystem/commit/5eb0fbf5cc4c4506c0091a6c60682486a5ac63ca
+[1.6.29]: https://github.com/pironjulien/NexusSystem/compare/v1.6.28...v1.6.29
+[1.6.28]: https://github.com/pironjulien/NexusSystem/compare/v1.6.27...v1.6.28
+[1.6.27]: https://github.com/pironjulien/NexusSystem/compare/v1.6.26...v1.6.27
+[1.6.26]: https://github.com/pironjulien/NexusSystem/compare/v1.6.25...v1.6.26
+[1.6.25]: https://github.com/pironjulien/NexusSystem/compare/v1.6.24...v1.6.25
+[1.6.24]: https://github.com/pironjulien/NexusSystem/compare/v1.6.23...v1.6.24
+[1.6.23]: https://github.com/pironjulien/NexusSystem/compare/v1.6.22...v1.6.23
+[app 1.0.7.0]: https://github.com/pironjulien/NexusSystem/commit/5eb0fbf5cc4c4506c0091a6c60682486a5ac63ca
+[app 1.0.6.0]: https://github.com/pironjulien/NexusSystem/commit/5eb0fbf5cc4c4506c0091a6c60682486a5ac63ca
+[1.6.22]: https://github.com/pironjulien/NexusSystem/compare/v1.6.21...v1.6.22
+[1.6.21]: https://github.com/pironjulien/NexusSystem/compare/v1.6.20...v1.6.21
+[1.6.20]: https://github.com/pironjulien/NexusSystem/compare/v1.6.19...v1.6.20
+[app 1.0.5.0]: https://github.com/pironjulien/NexusSystem/releases/tag/nexussystem-v1.0.5.0
+[app 1.0.4.0]: https://github.com/pironjulien/NexusSystem/releases/tag/nexussystem-v1.0.4.0
+[1.6.19]: https://github.com/pironjulien/NexusSystem/compare/v1.6.18...v1.6.19
+[1.6.18]: https://github.com/pironjulien/NexusSystem/compare/v1.6.17...v1.6.18
+[1.6.17]: https://github.com/pironjulien/NexusSystem/compare/v1.6.16...v1.6.17
+[1.6.16]: https://github.com/pironjulien/NexusSystem/compare/v1.6.15...v1.6.16
+[1.6.15]: https://github.com/pironjulien/NexusSystem/compare/v1.6.14...v1.6.15
+[1.6.14]: https://github.com/pironjulien/NexusSystem/compare/v1.6.13...v1.6.14
+[1.6.13]: https://github.com/pironjulien/NexusSystem/compare/v1.6.12...v1.6.13
+[1.6.12]: https://github.com/pironjulien/NexusSystem/compare/v1.6.11...v1.6.12
+[1.6.11]: https://github.com/pironjulien/NexusSystem/compare/v1.6.10...v1.6.11
+[1.6.10]: https://github.com/pironjulien/NexusSystem/compare/v1.6.9...v1.6.10
+[1.6.9]: https://github.com/pironjulien/NexusSystem/compare/v1.6.8...v1.6.9
+[1.6.8]: https://github.com/pironjulien/NexusSystem/compare/v1.6.7...v1.6.8
+[1.6.7]: https://github.com/pironjulien/NexusSystem/compare/v1.6.6...v1.6.7
+[1.6.6]: https://github.com/pironjulien/NexusSystem/compare/v1.6.5...v1.6.6
+[1.6.5]: https://github.com/pironjulien/NexusSystem/compare/v1.6.4...v1.6.5
+[1.6.4]: https://github.com/pironjulien/NexusSystem/compare/v1.6.3...v1.6.4
+[1.6.3]: https://github.com/pironjulien/NexusSystem/compare/v1.6.2...v1.6.3
+[app 1.0.3.0]: https://github.com/pironjulien/NexusSystem/releases/tag/nexussystem-v1.0.3.0
+[app 1.0.2.0]: https://github.com/pironjulien/NexusSystem/releases/tag/nexussystem-v1.0.2.0
+[1.6.2]: https://github.com/pironjulien/NexusSystem/compare/v1.6.1...v1.6.2
+[1.6.1]: https://github.com/pironjulien/NexusSystem/compare/v1.6.0...v1.6.1
+[1.6.0]: https://github.com/pironjulien/NexusSystem/compare/v1.5.0...v1.6.0
+[1.5.0]: https://github.com/pironjulien/NexusSystem/compare/v1.4.4...v1.5.0
+[1.4.4]: https://github.com/pironjulien/NexusSystem/compare/v1.4.3...v1.4.4
+[1.4.3]: https://github.com/pironjulien/NexusSystem/compare/v1.4.2...v1.4.3
+[1.4.2]: https://github.com/pironjulien/NexusSystem/compare/v1.4.1...v1.4.2
+[1.4.1]: https://github.com/pironjulien/NexusSystem/compare/v1.4.0...v1.4.1
+[1.4.0]: https://github.com/pironjulien/NexusSystem/compare/v1.3.3...v1.4.0
+[1.3.3]: https://github.com/pironjulien/NexusSystem/compare/v1.3.1...v1.3.3
+[1.3.2]: https://github.com/pironjulien/NexusSystem/commit/5cef92b2fa2e50c9d6e5e08d3e9d5021ae8dd571
+[1.3.1]: https://github.com/pironjulien/NexusSystem/compare/v1.3.0...v1.3.1
+[1.3.0]: https://github.com/pironjulien/NexusSystem/compare/v1.2.5...v1.3.0
+[1.2.5]: https://github.com/pironjulien/NexusSystem/compare/v1.2.4...v1.2.5
+[1.2.4]: https://github.com/pironjulien/NexusSystem/compare/v1.2.3...v1.2.4
+[1.2.3]: https://github.com/pironjulien/NexusSystem/compare/v1.2.2...v1.2.3
+[1.2.2]: https://github.com/pironjulien/NexusSystem/compare/v1.2.1...v1.2.2
+[1.2.1]: https://github.com/pironjulien/NexusSystem/compare/v1.2.0...v1.2.1
+[1.2.0]: https://github.com/pironjulien/NexusSystem/compare/v1.1.3...v1.2.0
+[1.1.3]: https://github.com/pironjulien/NexusSystem/compare/v1.1.2...v1.1.3
+[1.1.2]: https://github.com/pironjulien/NexusSystem/compare/v1.1.1...v1.1.2
+[1.1.1]: https://github.com/pironjulien/NexusSystem/compare/v1.1.0...v1.1.1
+[1.1.0]: https://github.com/pironjulien/NexusSystem/compare/v1.0.0...v1.1.0
+[1.0.0]: https://github.com/pironjulien/NexusSystem/releases/tag/v1.0.0
