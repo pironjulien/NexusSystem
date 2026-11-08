@@ -25,6 +25,16 @@ public class ProductGroupsTests
     }
 
     [Fact]
+    public void EveryAiToolHasItsCommonJournal()
+    {
+        // The product page shows the activity of the AIs from the common journal (NexusShared/journal/FORMAT.md): every
+        // product an AI drives (an MCP server, or the keypad's AI keys) writes one; NexusWpp, not an AI tool, has none.
+        Assert.All(Products.All.Where(p => p.Server is not null || p == Products.Keypad), p => Assert.False(string.IsNullOrEmpty(p.JournalFolder), p.Name));
+        Assert.Equal("indesign", Products.InDesign.JournalFolder);
+        Assert.Null(Products.Wpp.JournalFolder);
+    }
+
+    [Fact]
     public void SitePageFollowsTheLanguage()
     {
         Assert.Equal("https://julienpiron.fr/nexuswpp/", Products.Wpp.PageFor(french: true));
