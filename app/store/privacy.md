@@ -38,6 +38,10 @@ Ces lectures servent uniquement à afficher l'état des produits et ce que vos I
 **Ce que l'appli écrit**
 - Le journal technique de l'appli (%LOCALAPPDATA%\NexusSystem\app.log) : des erreurs techniques, qui peuvent contenir des
   chemins de fichiers. Il reste sur votre ordinateur.
+- Le cache de l'affichage des pages produits (%LOCALAPPDATA%\NexusSystem\WebView2) : ce que WebView2 garde des pages
+  de julienpiron.fr (cache, cookies techniques du site). Il reste sur votre ordinateur.
+- La maintenance de NexusSystem : son moteur (~/.nexus) et sa tâche planifiée « NexusSystem Update », qui vérifie
+  chaque heure les versions publiées des produits installés et les met à jour.
 - L'arrêt d'urgence (~/.nexus/stop) : l'heure de fin de l'arrêt, que les produits lisent.
 - Les extensions de Claude Desktop que vous demandez (~/.nexus/claude-desktop), à glisser vous-même dans Claude
   Desktop.
@@ -103,6 +107,10 @@ These reads only serve to show the products' status and what your AI apps did:
 **What the app writes**
 - The app's technical log (%LOCALAPPDATA%\NexusSystem\app.log): technical errors, which may contain file paths. It stays on
   your computer.
+- The product pages' display cache (%LOCALAPPDATA%\NexusSystem\WebView2): what WebView2 keeps of julienpiron.fr's pages
+  (cache, the site's technical cookies). It stays on your computer.
+- NexusSystem's maintenance: its engine (~/.nexus) and its "NexusSystem Update" scheduled task, which checks every hour
+  the published releases of the installed products and updates them.
 - The emergency stop (~/.nexus/stop): the time the stop ends, read by the products.
 - The Claude Desktop extensions you ask for (~/.nexus/claude-desktop), which you drop on Claude Desktop yourself.
 - Chrome pairing: a single-use code (5 minutes), asked from the local bridge and handed to the NexusBrowser extension

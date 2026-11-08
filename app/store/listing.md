@@ -148,7 +148,10 @@ Each product's page shows the product's own page of julienpiron.fr (WebView2); o
 How it stays inside the MSIX model, stated plainly:
 - No restricted capability other than runFullTrust; no unvirtualizedResources; nothing written to HKLM; no service or
   driver. The app installs no product itself: the user's AI app runs each product's official installer.
-- The app runs no script. Once, when an older installation lacks it, it installs NexusSystem's own maintenance engine
+- The app ships no script. It starts only these programs, each on a click of the user: NexusBrowser's own
+  Chrome-extension guide (guide-extension.ps1, installed by NexusBrowser, run with Windows PowerShell), winget to
+  update a Store product to the Store's current package or to install Git when the plugin catalog needs it, and
+  NexusSystem's maintenance task. Once, when an older installation lacks it, it installs NexusSystem's own maintenance engine
   (NexusMaintenance.exe of the app's catalog release, checked against that release's SHA-256 list) under
   %USERPROFILE%\.nexus and registers its per-user task through the Task Scheduler API; updates are then requested from
   that existing task (schtasks /Run) or from a product's own local interface (127.0.0.1). The app shows the state the products report.
@@ -158,5 +161,5 @@ Testing: no account or sign-in is needed. Without an AI app on the PC, the insta
 every page can still be opened. To try an install, install Claude Code, Codex or Antigravity first and open it once.
 runFullTrust: required by a packaged desktop app that reads the user's AI app configurations and starts NexusSystem's
 maintenance task.
-Network: GitHub (release feeds and the product list), julienpiron.fr (product pages), and 127.0.0.1 (the products'
-local bridges). No telemetry, no ads, no account.
+Network: GitHub (release feeds and the product list), julienpiron.fr (product pages), the Microsoft Store catalog
+and winget (Store products' current version, Git), and 127.0.0.1 (the products' local bridges). No telemetry, no ads, no account.
