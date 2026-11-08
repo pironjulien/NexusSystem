@@ -128,6 +128,10 @@ step has no API; asking the user is the last resort.
 
 ## 5. Checks before saying "done"
 
+- Wait for CI with `gh run watch <run-id> --exit-status` (it blocks and fails on a red run), and read runs with gh's
+  own `--json … --jq`: `jq` is not installed on the workstations. `gh run list --commit` takes the full SHA; a short
+  SHA matches nothing. A waiting loop stops at its first command error instead of spinning on empty output (a CI wait
+  ran blind on 08/11/2026 for both reasons).
 - The product's CI and the release run are green (the promotion itself refuses a commit with a red, cancelled or
   missing check); the stable release lists the same `SHA256SUMS.txt` as the promoted development build.
 - `gh workflow run pack.yml -R pironjulien/NexusSystem` installs every product on a clean Windows runner with this
