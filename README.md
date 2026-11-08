@@ -114,7 +114,7 @@ example `{"skip":["claude-desktop"]}`, are added to `-Skip` and respected by the
 | NexusWindows | plugin `nexus-windows` (this catalog) | [NexusWindows](https://github.com/pironjulien/NexusWindows) `get.ps1` | plugin `nexus-windows` (this catalog) | NexusWindows `get.ps1` (a plugin) |
 | NexusAndroid | plugin `nexus-android` + daemon ([NexusAndroid](https://github.com/pironjulien/NexusAndroid) `get.ps1`) | NexusAndroid `get.ps1` | plugin `nexus-android` | NexusAndroid `get.ps1` (a plugin) |
 | NexusBrowser | plugin `nexus-browser` + daemon ([NexusBrowser](https://github.com/pironjulien/NexusBrowser) `get.ps1`) | NexusBrowser `get.ps1` | plugin `nexus-browser` | NexusBrowser `get.ps1` (a plugin) |
-| NexusRelay (experimental) | plugin `nexus-relay` + daemon ([NexusRelay](https://github.com/pironjulien/NexusRelay) `get.ps1`) | not a relay client | plugin `nexus-relay` | NexusRelay `get.ps1` (a plugin) |
+| NexusRelay | plugin `nexus-relay` + daemon ([NexusRelay](https://github.com/pironjulien/NexusRelay) `get.ps1`) | not a relay client | plugin `nexus-relay` | NexusRelay `get.ps1` (a plugin) |
 | NexusAGYmail | official Gmail connector instead | official Gmail connector instead | official Gmail connector instead | [NexusAGYmail](https://github.com/pironjulien/NexusAGYmail) `get.ps1` (a plugin) |
 
 NexusKeypad, for Logitech's MX Creative Keypad, is installed by [its own `get.ps1`](https://github.com/pironjulien/NexusKeypad)
