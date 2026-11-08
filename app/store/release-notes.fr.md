@@ -6,6 +6,12 @@ section anglaise. `tools/release-notes.ps1` (appelé par `tools/package.ps1 -Sto
 `release-notes.fr.txt` et refuse le paquet si la section de la version manque, n'a pas autant d'entrées que l'anglais
 ou dépasse 1 500 caractères.
 
+## [app 1.0.20.0] - 2026-11-08
+
+### Modifié
+- La page d'un produit tient dans la fenêtre : « Sur ce PC », puis l'aide et les guides, puis ce qu'ont fait vos IA,
+  chaque carte défilant en elle-même quand la fenêtre est basse, et une marge sous la page du produit sur le site.
+
 ## [app 1.0.19.0] - 2026-11-08
 
 ### Modifié

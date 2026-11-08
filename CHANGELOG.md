@@ -17,6 +17,12 @@ versions have no GitHub release since 1.0.5.0). The format follows [Keep a Chang
   1.0.19.0 went to the Store with the notes of 1.0.18.0, typed by hand in Partner Center; the hand-written "What's
   new" of `app/store/listing.md` is gone.
 
+## [app 1.0.20.0] - 2026-11-08
+
+### Changed
+- A product's page fits the window: "On this PC", then the help and guides, then what your AI apps did, each card
+  scrolling inside itself when the window is short, and a margin under the product's page of the site.
+
 ## [app 1.0.19.0] - 2026-11-08
 
 ### Changed

@@ -22,16 +22,10 @@ public sealed partial class ProductPage : UserControl
     readonly TextBlock summaryTitle = new() { Style = (Style)Application.Current.Resources["SubtitleTextBlockStyle"], TextWrapping = TextWrapping.WrapWholeWords };
     bool refreshingStatus;
     DispatcherTimer? timer;
-    ScrollViewer? scroller;
     FrameworkElement? here;
 
-    /// <summary>--capture: scrolls to "On this PC".</summary>
-    public bool ShowHere()
-    {
-        if (scroller is null || here is null) return false;
-        here.StartBringIntoView(new BringIntoViewOptions { VerticalAlignmentRatio = 0, AnimationDesired = false });
-        return true;
-    }
+    /// <summary>--capture: "On this PC" is always in view now that the column fits the window.</summary>
+    public bool ShowHere() => here is not null;
 
     public ProductPage(Product product)
     {
@@ -112,7 +106,7 @@ public sealed partial class ProductPage : UserControl
             : Section(Text.Get("Section.About"), Ui.Column(12, Ui.Body(Catalog.About(product)), Ui.Body(Text.Get("Here.Soon"), secondary: true)));
         left.VerticalAlignment = left is Border ? VerticalAlignment.Top : VerticalAlignment.Stretch;
 
-        // Right: "On this PC", then the journal, then the guides, in their own scroll.
+        // Right: "On this PC", then the guides, then the journal.
         // A grid, not a horizontal panel: the sentence wraps in the card's width instead of being cut.
         var summary = new Grid { ColumnSpacing = 12 };
         summary.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
@@ -127,19 +121,46 @@ public sealed partial class ProductPage : UserControl
         var thisPc = Ui.Column(14, summary, status);
         var help = Ui.Column(12);
         foreach (var (step, isHelp) in Steps.For(product, folders, ais)) (isHelp ? help : thisPc).Children.Add(step);
-        var panel = Ui.Column(16, here = Section(Text.Get("Tab.ThisPc"), thisPc));
-        if (Activity(product) is { } activity) panel.Children.Add(Section(Text.Get("Activity"), activity));
-        if (help.Children.Count > 0) panel.Children.Add(Section(Text.Get("Help"), help));
-        var sideScroll = new ScrollViewer { Content = new Border { Child = panel, Padding = new Thickness(0, 0, 12, 24) } };
+        // The whole column fits in the window: "On this PC" at its size, the guides under it, the journal takes what is
+        // left; a card too long for its share scrolls inside itself, never the page.
+        var panel = new Grid { RowSpacing = 16 };
+        void Add(FrameworkElement card, GridLength height)
+        {
+            panel.RowDefinitions.Add(new RowDefinition { Height = height });
+            Grid.SetRow(card, panel.RowDefinitions.Count - 1);
+            panel.Children.Add(card);
+        }
+        Add(here = Section(Text.Get("Tab.ThisPc"), thisPc, scrolls: true), GridLength.Auto);
+        var activity = Activity(product);
+        if (help.Children.Count > 0)
+        {
+            var guides = Section(Text.Get("Help"), help, scrolls: true);
+            // With the journal below, the guides keep at most half of what "On this PC" leaves; alone, they take it all.
+            if (activity is not null)
+            {
+                void Share()
+                {
+                    // A short window: "On this PC" keeps 40 %, the guides and the journal share the rest, each scrolling inside.
+                    here!.MaxHeight = Math.Max(160, panel.ActualHeight * 0.4);
+                    guides.MaxHeight = Math.Max(140, (panel.ActualHeight - here.ActualHeight - 2 * panel.RowSpacing) / 2);
+                }
+                panel.SizeChanged += (_, _) => Share();
+                here!.SizeChanged += (_, _) => Share();
+            }
+            else guides.VerticalAlignment = VerticalAlignment.Top;
+            Add(guides, activity is null ? new GridLength(1, GridUnitType.Star) : GridLength.Auto);
+        }
+        if (activity is not null) Add(Section(Text.Get("Activity"), activity, scrolls: true), new GridLength(1, GridUnitType.Star));
+        here.MaxHeight = 360;
 
         var body = new Grid { ColumnSpacing = 20 };
         body.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         body.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(440) });
         body.Children.Add(left);
-        Grid.SetColumn(sideScroll, 1);
-        body.Children.Add(sideScroll);
+        Grid.SetColumn(panel, 1);
+        body.Children.Add(panel);
 
-        var layout = new Grid { Padding = new Thickness(24, 16, 12, 0), RowSpacing = 16 };
+        var layout = new Grid { Padding = new Thickness(24, 16, 24, 24), RowSpacing = 16 };
         layout.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         layout.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         layout.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
@@ -149,7 +170,6 @@ public sealed partial class ProductPage : UserControl
         Grid.SetRow(body, 2);
         layout.Children.Add(body);
         Content = layout;
-        scroller = sideScroll;
 
         _ = RefreshStatusAsync(product, status);
         timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
@@ -162,9 +182,23 @@ public sealed partial class ProductPage : UserControl
     }
 
     /// <summary>A titled card of the page, like the sections of a store page.</summary>
-    static Border Section(string title, UIElement content)
+    static Border Section(string title, UIElement content, bool scrolls = false)
     {
-        var card = Ui.Card(Ui.Column(12, Ui.Subtitle(title), content), padding: 20);
+        if (!scrolls)
+        {
+            var plain = Ui.Card(Ui.Column(12, Ui.Subtitle(title), content), padding: 20);
+            plain.VerticalAlignment = VerticalAlignment.Stretch;
+            return plain;
+        }
+        // The title stays; the content scrolls inside the card when the card is given less height than it needs.
+        var inner = new Grid { RowSpacing = 12 };
+        inner.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        inner.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+        inner.Children.Add(Ui.Subtitle(title));
+        var scroll = new ScrollViewer { Content = new Border { Child = content, Padding = new Thickness(0, 0, 12, 0) }, Margin = new Thickness(0, 0, -12, 0) };
+        Grid.SetRow(scroll, 1);
+        inner.Children.Add(scroll);
+        var card = Ui.Card(inner, padding: 20);
         card.VerticalAlignment = VerticalAlignment.Stretch;
         return card;
     }
@@ -256,7 +290,7 @@ public sealed partial class ProductPage : UserControl
             new HyperlinkButton { Content = page, NavigateUri = new Uri(page), Padding = new Thickness(0) }), padding: 16);
         failed.VerticalAlignment = VerticalAlignment.Top;
         failed.Visibility = Visibility.Collapsed;
-        var holder = new Grid { CornerRadius = new CornerRadius(8, 8, 0, 0), Children = { web, failed } };
+        var holder = new Grid { CornerRadius = new CornerRadius(8), Children = { web, failed } };
         web.Loaded += async (_, _) =>
         {
             if (web.CoreWebView2 is not null) return;
