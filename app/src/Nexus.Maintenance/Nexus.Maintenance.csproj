@@ -14,10 +14,19 @@
     <OptimizationPreference>Size</OptimizationPreference>
     <InvariantGlobalization>true</InvariantGlobalization>
     <UseSystemResourceKeys>true</UseSystemResourceKeys>
+    <!-- The two packages below are pinned on purpose (see there): their "delete explicit reference" notice is answered. -->
+    <SuppressGenerateILCompilerExplicitPackageReferenceWarning>true</SuppressGenerateILCompilerExplicitPackageReferenceWarning>
+    <SuppressILLinkExplicitPackageReferenceWarning>true</SuppressILLinkExplicitPackageReferenceWarning>
     <!-- Its version is the catalog release it ships with: get-nexus.ps1's $NexusMaintenanceVersion, the only source. -->
     <NexusCatalogScript>$(MSBuildThisFileDirectory)..\..\..\get-nexus.ps1</NexusCatalogScript>
     <Version>$([System.Text.RegularExpressions.Regex]::Match($([System.IO.File]::ReadAllText('$(NexusCatalogScript)')), `(?&lt;=\$NexusMaintenanceVersion = ')\d+\.\d+\.\d+(?=')`))</Version>
   </PropertyGroup>
+  <ItemGroup>
+    <!-- The AOT compiler and the trimmer, pinned like any package (packages.lock.json, Dependabot): left implicit, their
+         version would follow the .NET SDK of the machine and break the locked restore whenever the CI's SDK moves. -->
+    <PackageReference Include="Microsoft.DotNet.ILCompiler" Version="10.0.14" />
+    <PackageReference Include="Microsoft.NET.ILLink.Tasks" Version="10.0.14" />
+  </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Nexus.Core\Nexus.Core.csproj" />
   </ItemGroup>

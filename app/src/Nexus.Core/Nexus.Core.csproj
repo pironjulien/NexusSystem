@@ -9,7 +9,18 @@
     <IsAotCompatible>true</IsAotCompatible>
     <!-- LibraryImport (source-generated Windows calls) emits its marshalling stubs as unsafe code. -->
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- The engine's two architectures in the restore graph: a publish with -r restores this reference for that runtime,
+         which packages.lock.json must already cover (locked restore in CI). -->
+    <RuntimeIdentifiers>win-x64;win-arm64</RuntimeIdentifiers>
+    <!-- Microsoft.NET.ILLink.Tasks is pinned on purpose (see there): its "delete explicit reference" notice is answered. -->
+    <SuppressILLinkExplicitPackageReferenceWarning>true</SuppressILLinkExplicitPackageReferenceWarning>
   </PropertyGroup>
+  <ItemGroup>
+    <!-- The trimmer's tasks (their analyzers serve IsAotCompatible), pinned like any package (packages.lock.json,
+         Dependabot): left implicit, their version would follow the .NET SDK of the machine and break the locked restore
+         whenever the CI's SDK moves. -->
+    <PackageReference Include="Microsoft.NET.ILLink.Tasks" Version="10.0.14" />
+  </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="Nexus.Core.Tests" />
   </ItemGroup>
