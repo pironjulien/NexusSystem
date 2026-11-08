@@ -15,7 +15,7 @@ public enum Availability
 
 /// <summary>
 /// A Nexus product as the apps show it: name, color and icon of the julienpiron.fr site, its MCP server, the AI apps
-/// it serves (none for a device), and what it needs on the PC. Same facts as the product table of get-nexus.ps1.
+/// it serves (none for a device), and what it needs on the PC. Same facts as the pack's products (PackProduct.All).
 /// </summary>
 public sealed record Product(
     string Key,

@@ -11,8 +11,8 @@ public enum AiApp
 }
 
 /// <summary>
-/// Which AI apps are on this PC: the app's pages and the hourly maintenance use this one detection (get-nexus.ps1's
-/// Find-AiApp is its PowerShell twin for the one-line install).
+/// Which AI apps are on this PC: the app's pages, the hourly maintenance and the pack (NexusMaintenance.exe --install,
+/// started by get-nexus.ps1) use this one detection.
 /// </summary>
 public static partial class AiApps
 {
@@ -43,14 +43,16 @@ public static partial class AiApps
     }
 
     /// <summary>The AI apps found, by get-nexus.ps1 name (claude-desktop included), in <see cref="Keys"/> order.</summary>
-    public static IReadOnlyList<string> FindKeys(UserFolders folders)
+    /// <param name="onPath">How a command is found on PATH (tests: a PATH of their own); <see cref="OnPath"/> by default.</param>
+    public static IReadOnlyList<string> FindKeys(UserFolders folders, Func<string, string?>? onPath = null)
     {
+        onPath ??= OnPath;
         var found = new HashSet<string>();
         var desktop = DesktopConfigFolders(folders).Count > 0;
         if (desktop) found.Add("claude-desktop");
-        if (desktop || Directory.Exists(Path.Combine(folders.Home, ".claude")) || FindClaudeCli(folders) is not null)
+        if (desktop || Directory.Exists(Path.Combine(folders.Home, ".claude")) || FindClaudeCli(folders, onPath) is not null)
             found.Add("claude-code");  // Claude Desktop's Code tab is Claude Code
-        if (Directory.Exists(Path.Combine(folders.Home, ".codex")) || OnPath("codex") is not null)
+        if (Directory.Exists(Path.Combine(folders.Home, ".codex")) || onPath("codex") is not null)
             found.Add("codex");
         var gemini = Path.Combine(folders.Home, ".gemini");
         if (Directory.Exists(Path.Combine(gemini, "antigravity")) || Directory.Exists(Path.Combine(gemini, "config")) ||
@@ -90,9 +92,9 @@ public static partial class AiApps
     /// Desktop installed (its known data layouts only, never a recursive search), signed by Anthropic and naming itself
     /// Claude Code in its version resource. Discovery executes nothing.
     /// </summary>
-    public static string? FindClaudeCli(UserFolders folders)
+    public static string? FindClaudeCli(UserFolders folders, Func<string, string?>? onPath = null)
     {
-        if (OnPath("claude") is { } command) return command;
+        if ((onPath ?? OnPath)("claude") is { } command) return command;
         var local = Path.Combine(folders.Home, ".local", "bin", "claude.exe");
         if (File.Exists(local)) return local;
         var roots = new List<string> { Path.Combine(folders.RoamingAppData, "Claude") };

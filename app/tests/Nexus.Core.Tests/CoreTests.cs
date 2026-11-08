@@ -163,44 +163,16 @@ public class ServersTests
 public class PackTests
 {
     [Fact]
-    public void ParsesEventsOnly()
+    public void TheCatalogVersionIsTheReleasedScriptsOwn()
     {
-        Assert.Null(PackRunner.ParseEvent("== NexusAndroid"));
-        var e = PackRunner.ParseEvent("""NEXUS_PACK_EVENT {"ok":true,"type":"cell","product":"android","ai":"codex"}""");
-        Assert.NotNull(e);
-        Assert.Equal(("cell", "android", "codex", true), (e.Type, e.Text("product"), e.Text("ai"), e.Flag("ok")));
-        var inRow = PackRunner.ParseEvent("""  NexusWindows  NEXUS_PACK_EVENT {"ai":"claude-code","ok":false,"type":"cell","product":"windows"}""");
-        Assert.Equal(("cell", false), (inRow!.Type, inRow.Flag("ok")));
-    }
-
-    [Fact]
-    public void TheEmbeddedScriptIsTheCatalogsOwn()
-    {
-        var script = PackRunner.ExtractScript();
-        try
-        {
-            // From this source file, not the build folder: the build output lives outside the repository.
-            var catalog = Path.Combine(SourceDirectory(), @"..\..\..\get-nexus.ps1");
-            Assert.True(File.Exists(catalog), "the one-line install is at the repository root");
-            Assert.Equal(File.ReadAllBytes(catalog), File.ReadAllBytes(script));
-        }
-        finally
-        {
-            File.Delete(script);
-        }
+        // From this source file, not the build folder: the build output lives outside the repository.
+        var catalog = Path.Combine(SourceDirectory(), @"..\..\..\get-nexus.ps1");
+        Assert.True(File.Exists(catalog), "the one-line install is at the repository root");
+        Assert.Contains($"$NexusMaintenanceVersion = '{MaintenanceSetup.CatalogVersion}'", File.ReadAllText(catalog), StringComparison.Ordinal);
     }
 
     private static string SourceDirectory([System.Runtime.CompilerServices.CallerFilePath] string file = "") =>
         Path.GetDirectoryName(file)!;
-
-    [Fact]
-    public async Task DryRunGivesThePlanAsEvents()
-    {
-        var events = new List<PackEvent>();
-        var code = await PackRunner.RunAsync(["windows"], dryRun: true, _ => { }, events.Add, TestContext.Current.CancellationToken);
-        Assert.Contains(events, e => e.Type == "done");
-        Assert.True(code is 0 or 1);  // 1 when the PC has no AI app
-    }
 }
 
 public class ProductsTests

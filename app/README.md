@@ -2,7 +2,8 @@
 
 The Windows app of NexusSystem, on the Microsoft Store as 9NSH2P3QLWT1: the hub that installs the Nexus products.
 One code base: `src/Nexus.Core` (shared logic, no UI) and `src/Nexus.App` (WinUI 3 hub). Commands below run from
-this `app/` folder; the app embeds the repository root's `get-nexus.ps1` itself at build time.
+this `app/` folder; the app reads the catalog version from the repository root's `get-nexus.ps1` at build time and
+installs the maintenance engine of that release (`MaintenanceSetup`), without PowerShell.
 
 ```powershell
 dotnet test --project tests/Nexus.Core.Tests                       # core
@@ -55,8 +56,8 @@ Code CLI; a Desktop process never makes the Code connection active. Unknown Clau
 The previous `NexusWindows.Antigravity.exe` MCP client is still recognized while its older session is loaded.
 
 ## How the hub works from the Store package
-- **Install**: the pack's own script (the catalog's `get-nexus.ps1`, embedded at build time) runs each product's official
-  installer as a child process, so MSIX virtualization applies. From the package it skips Claude Desktop (an edit of
+- **Install**: the pack (`NexusMaintenance.exe --install`, started by the catalog's `get-nexus.ps1`) runs each product's
+  official installer as a child process; the app hands the request to the user's AI app, which runs it. From the package it skips Claude Desktop (an edit of
   its existing configuration would stay in the package): Claude Desktop gets each product as a `.mcpb` extension the
   user drops on it. Chrome is paired with the NexusBrowser extension (single-use code), no native host key needed.
 - **Selection**: the pack passes the AI apps to configure in `NEXUS_PACK_TARGETS`; NexusAndroid, NexusRelay and

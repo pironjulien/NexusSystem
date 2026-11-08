@@ -364,13 +364,17 @@ public class CatalogTests
     {
         // 2026-11-03: NexusFree reached products.json and both catalogs but not get-nexus.ps1, so the app offered a
         // product its installer and its maintenance did not know. Every product the app installs through the AI apps,
-        // and every plugin of the catalogs, must be one of the pack's products.
-        var pack = Repository.Text("get-nexus.ps1");
-        var keys = Regex.Matches(pack, @"@\{ Key = '([a-z0-9]+)'").Select(m => m.Groups[1].Value).ToHashSet();
+        // and every plugin of the catalogs, must be one of the pack's products (the engine's MaintenanceProduct.All,
+        // which the pack's PackProduct.All follows since 1.8.0; its plugin is the product's server, AGYmail aside).
+        var model = Repository.Text("app/src/Nexus.Core/MaintenanceModel.cs");
+        var list = Regex.Match(model, @"new\[\] \{ (""[a-z0-9]+""(?:, ""[a-z0-9]+"")*) \}\.Select\(key =>").Groups[1].Value;
+        var keys = Regex.Matches(list, @"""([a-z0-9]+)""").Select(m => m.Groups[1].Value).ToHashSet();
+        Assert.Contains("free", keys);
         var ready = Repository.Json("products.json")["products"]!.AsArray()
             .Where(p => (string?)p!["state"] == "ready").Select(p => (string)p!["key"]!);
         Assert.Subset(keys, ready.ToHashSet());
-        var plugins = Regex.Matches(pack, @"Plugin = '(nexus-[a-z0-9-]+)'").Select(m => m.Groups[1].Value).Append("nexus-keypad").ToHashSet();
+        var plugins = Regex.Matches(Repository.Text("app/src/Nexus.Core/Products.cs"), @"Server: ""(nexus-[a-z0-9-]+)""").Select(m => m.Groups[1].Value)
+            .Where(server => server != "nexus-agymail" && keys.Contains(server["nexus-".Length..])).Append("nexus-keypad").ToHashSet();
         Assert.Subset(plugins, Plugins.ToHashSet());
     }
 }

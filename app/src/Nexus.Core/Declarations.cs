@@ -15,7 +15,7 @@ public enum DeclarationState
 
 /// <summary>
 /// Whether an AI app declares a product's MCP server in its own configuration, and in what state. The app's pages and
-/// the hourly maintenance read these same checks (get-nexus.ps1 keeps its own copy for the one-line install).
+/// the hourly maintenance and the pack (NexusMaintenance.exe --install) read these same checks.
 /// </summary>
 public static class Declarations
 {

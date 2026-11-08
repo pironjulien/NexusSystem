@@ -13,9 +13,16 @@
   <ItemGroup>
     <InternalsVisibleTo Include="Nexus.Core.Tests" />
   </ItemGroup>
+  <PropertyGroup>
+    <!-- The catalog release this build belongs to: get-nexus.ps1's $NexusMaintenanceVersion, the only source. The app
+         installs the maintenance engine of that release (MaintenanceSetup.CatalogVersion). -->
+    <NexusCatalogScript>$(MSBuildThisFileDirectory)..\..\..\get-nexus.ps1</NexusCatalogScript>
+    <NexusCatalogVersion>$([System.Text.RegularExpressions.Regex]::Match($([System.IO.File]::ReadAllText('$(NexusCatalogScript)')), `(?&lt;=\$NexusMaintenanceVersion = ')\d+\.\d+\.\d+(?=')`))</NexusCatalogVersion>
+  </PropertyGroup>
   <ItemGroup>
-    <!-- The one-line install's own script: the repository root's get-nexus.ps1 itself, no copy to keep in step.
-         A missing file fails the build instead of a running app. -->
-    <EmbeddedResource Include="$(MSBuildThisFileDirectory)..\..\..\get-nexus.ps1" LogicalName="get-nexus.ps1" />
+    <AssemblyMetadata Include="NexusCatalogVersion" Value="$(NexusCatalogVersion)" />
   </ItemGroup>
+  <Target Name="NexusCatalogVersion" BeforeTargets="Build;Publish">
+    <Error Condition="'$(NexusCatalogVersion)' == ''" Text="get-nexus.ps1 carries no `$NexusMaintenanceVersion = 'x.y.z'`." />
+  </Target>
 </Project>

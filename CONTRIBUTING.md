@@ -11,7 +11,7 @@
 1. Open an issue or a pull request against `main`. A change is accepted only when `test.ps1` passes: the CI
    (`.github/workflows/test.yml`) runs that same script on every push and pull request.
 2. **Every new feature and every bug fix comes with its test**: the catalogs, `get-nexus.ps1` and the repository in
-   `tests/NexusSystem.Tests`, the app in `app/tests/Nexus.Core.Tests` (xUnit v3). A fix
+   `tests/NexusSystem.Tests`, the pack, the maintenance engine and the app in `app/tests/Nexus.Core.Tests` (xUnit v3). A fix
    starts with a test that fails without it.
 3. PowerShell scripts pass PSScriptAnalyzer with `PSScriptAnalyzerSettings.psd1`; the app builds with warnings as
    errors.

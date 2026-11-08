@@ -1,5 +1,5 @@
 # The native maintenance engine (Native AOT, one executable, no assembly or DLL beside it) keeps working when its
-# file is replaced while it runs, the way MaintenanceServices.InstallPublishedEngineAsync, get-nexus.ps1 and
+# file is replaced while it runs, the way MaintenanceServices.InstallPublishedEngineAsync, MaintenanceSetup.InstallEngineFile and
 # maintenance-dev.ps1 replace it: the running file is renamed aside and the new one is moved to its path.
 # Unlike a .NET single-file bundle (NexusFree 1.3.2, whose open sessions re-read their own path and failed after an
 # update), the whole image is mapped when the process is created, so nothing is read from the path afterwards.

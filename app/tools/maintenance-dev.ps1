@@ -1,7 +1,7 @@
 # The author's workstation: build the maintenance engine from this repository and make it the one the hourly task
 # runs (developmentCoordinator in ~\.nexus\nexussystem.json). The engine is published natively (AOT) for this PC's
 # architecture to ~\.nexus\nexussystem\development\NexusMaintenance.exe, outside the repository and outside the
-# public engine's folder; get-nexus.ps1 -Maintain (or -InstallMaintenance) then points the task at it with --current.
+# public engine's folder; get-nexus.ps1 -Maintain (or the engine's --install-maintenance) then points the task at it with --current.
 # Nothing is started here: the task's next run (or -Maintain) uses the new build.
 #   pwsh -File app/tools/maintenance-dev.ps1
 [CmdletBinding(SupportsShouldProcess = $true)]

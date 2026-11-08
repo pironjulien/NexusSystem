@@ -71,8 +71,9 @@ public partial class App : Application
         }
         else if (argv.Contains("--quiet")) window.ShowQuietly();  // tests: never takes the user's foreground
         else window.Activate();
-        // An existing Store installation may predate the maintenance task. The embedded pack bootstraps only
-        // that worker; normal use stays responsive and capture fixtures never schedule real maintenance.
+        // An existing Store installation may predate the maintenance task: the native engine of this build's catalog
+        // release (checked) and its task are installed in the background, without PowerShell; normal use stays
+        // responsive and capture fixtures never schedule real maintenance.
         if (Option("--capture") is null && !argv.Contains("--quiet")) _ = BootstrapMaintenanceAsync();
     }
 
@@ -80,13 +81,7 @@ public partial class App : Application
     {
         try
         {
-            await Task.Run(async () =>
-            {
-                if (!PackRunner.NeedsMaintenanceBootstrap(UserFolders.FromEnvironment())) return;
-                var code = await PackRunner.RunAsync([], dryRun: false,
-                    line => AppLog.Info("maintenance bootstrap: " + line), _ => { }, maintenanceOnly: true);
-                if (code != 0) AppLog.Error("maintenance bootstrap", new InvalidOperationException($"Maintenance worker installation returned {code}."));
-            });
+            await Task.Run(() => new MaintenanceSetup(UserFolders.FromEnvironment()).BootstrapAsync());
         }
         catch (Exception error) { AppLog.Error("maintenance bootstrap", error); }
     }

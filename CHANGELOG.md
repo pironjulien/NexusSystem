@@ -8,6 +8,34 @@ versions have no GitHub release since 1.0.5.0). The format follows [Keep a Chang
 
 ## [Unreleased]
 
+## [app 1.0.19.0] - 2026-11-08
+
+### Changed
+- The app no longer extracts and runs `get-nexus.ps1` in `%TEMP%`: when an older installation lacks the maintenance
+  task, it installs the native engine of its catalog release (`NexusMaintenance.exe` 1.8.0, checked against the
+  release's `SHA256SUMS.txt` and, when `gh` is signed in, its build provenance) under `%USERPROFILE%\.nexus` and
+  registers its task through the Task Scheduler API, in the app's own process.
+
+## [1.8.0] - 2026-11-08
+
+### Changed
+- The pack's installation moved from PowerShell to the native engine: `get-nexus.ps1` (about 1,500 lines before) is
+  now a minimal bootstrap that downloads `NexusMaintenance.exe` of its own release, checks its SHA-256 (and its build
+  provenance when `gh` is signed in) and runs it in the same console. `NexusMaintenance.exe --install` does
+  everything else, with the same options, plan, messages, checks and summary as before: AI app detection, the plugins
+  of Claude Code and Codex, each product's official installer (its release's `get.ps1`, checked, now with its build
+  provenance too when `gh` is there), the exact removal of Codex's old direct declarations, and the hourly task.
+  `--install-maintenance`, `--maintain` and `--status` replace the script's maintenance part; the hand-over
+  contract of the 1.6 PowerShell worker (`-Maintain -MaintenanceCurrent`) is kept.
+- The "NexusSystem Update" task is registered through the Task Scheduler API (source-generated COM interop, also in the
+  native engine) instead of PowerShell's cmdlets, with the same settings; a task its owner disabled stays disabled.
+- Installing the engine never stops one that runs: it is renamed aside (under a unique name while an older one still
+  runs), put back if the new file cannot take its place, and engines set aside are removed once nothing runs them.
+- Tests: the PowerShell tests of the pack (`test_pack.ps1`, `test_codex_pack.ps1`, `test_maintenance.ps1`) became
+  xUnit tests of the engine (`PackInstallerTests`, `MaintenanceSetupTests`: fresh installation, update while an
+  engine runs, failed replacement restored, a real Task Scheduler round trip), and `ScriptTests` runs the bootstrap
+  with this commit's engine on a throwaway profile.
+
 ### Fixed
 - `get-nexus.ps1` removes the PowerShell worker of releases up to 1.6.54 (`~\.nexus\nexussystem\maintenance\get-nexus.ps1`)
   when a development engine is selected as well: on the author's workstation it stayed, and the workstation sync kept
@@ -1388,7 +1416,9 @@ Sent to the Store on 2026-10-27 (submission 4, x64+ARM64 bundle, Windows App Cer
   server instructions or tool list name anyone (neutral texts since nexus-android 0.6.2, nexus-windows 0.9.3 and
   nexus-browser 2.10.0). CI on Windows.
 
-[Unreleased]: https://github.com/pironjulien/NexusSystem/compare/v1.7.3...HEAD
+[Unreleased]: https://github.com/pironjulien/NexusSystem/compare/v1.8.0...HEAD
+[app 1.0.19.0]: https://github.com/pironjulien/NexusSystem/tree/v1.8.0
+[1.8.0]: https://github.com/pironjulien/NexusSystem/compare/v1.7.3...v1.8.0
 [app 1.0.18.0]: https://github.com/pironjulien/NexusSystem/commit/0c79fddd9cca20dd2c854611ef4b7d0439b93cd7
 [1.7.3]: https://github.com/pironjulien/NexusSystem/compare/v1.7.2...v1.7.3
 [1.7.2]: https://github.com/pironjulien/NexusSystem/compare/v1.7.1...v1.7.2

@@ -154,9 +154,10 @@ Each product's page shows the product's own page of julienpiron.fr (WebView2); o
 How it stays inside the MSIX model, stated plainly:
 - No restricted capability other than runFullTrust; no unvirtualizedResources; nothing written to HKLM; no service or
   driver. The app installs no product itself: the user's AI app runs each product's official installer.
-- The only script the app runs is NexusSystem's own maintenance worker, from its embedded and checked pack, once when
-  an older installation lacks it; updates are then requested from that existing task (schtasks /Run) or from a
-  product's own local interface (127.0.0.1). The app shows the state the products report.
+- The app runs no script. Once, when an older installation lacks it, it installs NexusSystem's own maintenance engine
+  (NexusMaintenance.exe of the app's catalog release, checked against that release's SHA-256 list) under
+  %USERPROFILE%\.nexus and registers its per-user task through the Task Scheduler API; updates are then requested from
+  that existing task (schtasks /Run) or from a product's own local interface (127.0.0.1). The app shows the state the products report.
 - Uninstalling the app removes the app and its data; the products stay, and each one is removed as its page explains.
 
 Testing: no account or sign-in is needed. Without an AI app on the PC, the install buttons only copy the request and

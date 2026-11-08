@@ -85,8 +85,8 @@ AI app runs, so NexusWindows has no running connection to attest it; no Chrome r
 cannot answer while its daemon runs the installed engine. Any other pending row, a failed product or a catalogue
 route kept instead of maintained fails it; a red `pack` publishes nothing. Fix on `main`,
 then tag the next patch version (a tag never moves). The Store app is resubmitted for its own interface or features,
-and also when what it embeds changes: `get-nexus.ps1` (embedded at build time) or the maintenance engine
-(`app/src/Nexus.Maintenance`, `Nexus.Core`).
+and also when what it carries changes: the catalog version it installs the maintenance engine of (read from
+`get-nexus.ps1` at build time) or the code it shares with that engine (`Nexus.Core`).
 
 Releases are immutable in every product repository (Settings > General > Releases): a published release gets no file
 added, replaced or removed, and its tag never moves. Every file is attached at creation, as the workflows above do;

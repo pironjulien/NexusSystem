@@ -368,4 +368,39 @@ public static partial class CodexToml
         }
         return false;
     }
+
+    /// <summary>
+    /// Removes only the direct declaration an official installer wrote for a server now served by this catalog's
+    /// enabled plugin: its tables are cut out of the text, every other byte kept. A declaration that changed or belongs
+    /// to the user throws and is kept. A backup goes to ~\.nexus\pack\backups first; the file is replaced in one step
+    /// only if nobody changed it meanwhile. Returns false when there was nothing to remove.
+    /// </summary>
+    public static bool RemoveOwnedServer(UserFolders folders, string name)
+    {
+        var path = folders.CodexConfig;
+        if (!File.Exists(path)) return false;
+        var text = File.ReadAllText(path);
+        var tables = ServerTables(text, name);
+        if (tables.Count == 0) return false;
+        if (PluginState(text, name) != "enabled" || !IsOwnedServer(text, name, folders))
+            throw new InvalidOperationException($"{name}: direct Codex declaration changed or belongs to you; it was kept.");
+        var updated = text;
+        foreach (var table in tables.OrderByDescending(t => t.Index)) updated = updated.Remove(table.Index, table.Length);
+        var backups = Path.Combine(folders.Nexus, "pack", "backups");
+        Directory.CreateDirectory(backups);
+        File.Copy(path, Path.Combine(backups, $"codex-config-{Guid.NewGuid():N}.toml"));
+        var temporary = $"{path}.nexus-{Guid.NewGuid():N}.tmp";
+        try
+        {
+            File.WriteAllText(temporary, updated, new UTF8Encoding(false));
+            if (!string.Equals(File.ReadAllText(path), text, StringComparison.Ordinal))
+                throw new IOException("Codex configuration changed meanwhile; run the pack again.");
+            File.Move(temporary, path, overwrite: true);
+        }
+        finally
+        {
+            if (File.Exists(temporary)) File.Delete(temporary);
+        }
+        return true;
+    }
 }

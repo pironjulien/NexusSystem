@@ -144,6 +144,13 @@ public static partial class PluginMaintenance
         }
     }
 
+    /// <summary>One of the plugin's cached versions holds its guide and server, and the plugin is enabled.</summary>
+    public static bool CodexPluginInstalled(string name, UserFolders folders)
+    {
+        var cache = Path.Combine(Path.GetDirectoryName(folders.CodexConfig)!, "plugins", "cache", Declarations.Marketplace, name);
+        return Directory.Exists(cache) && Directory.EnumerateDirectories(cache).Any(version => CodexPluginInstalled(name, version, folders));
+    }
+
     /// <summary>The plugin is enabled in config.toml and its cached files hold the guide and server its manifest names.</summary>
     public static bool CodexPluginInstalled(string name, string installedPath, UserFolders folders)
     {
@@ -163,7 +170,7 @@ public static partial class PluginMaintenance
     /// those of every installed plugin of this catalog) and records their current hashes through its app server; other
     /// catalogs' plugins and disabled hooks are left alone.
     /// </summary>
-    static int ApproveHooks(string cli, string? pluginId, UserFolders folders)
+    public static int ApproveHooks(string cli, string? pluginId, UserFolders folders)
     {
         var start = new ProcessStartInfo(cli, "app-server")
         {
