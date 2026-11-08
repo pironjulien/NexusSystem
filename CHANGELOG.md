@@ -37,6 +37,10 @@ versions have no GitHub release since 1.0.5.0). The format follows [Keep a Chang
   with this commit's engine on a throwaway profile.
 
 ### Fixed
+- A product release's build provenance was refused when the official `gh` tool was installed but not signed in
+  (exit code 4: it cannot read attestations), so the hourly maintenance failed every product update on such a PC and
+  the new pack check failed on GitHub's runners. That case now checks nothing, as without `gh`; the SHA-256 is
+  verified anyway, and a real attestation failure stays fatal.
 - `get-nexus.ps1` removes the PowerShell worker of releases up to 1.6.54 (`~\.nexus\nexussystem\maintenance\get-nexus.ps1`)
   when a development engine is selected as well: on the author's workstation it stayed, and the workstation sync kept
   installing products with that 1.6 script (07/11/2026). The public installation already removed it.

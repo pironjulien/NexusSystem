@@ -188,7 +188,8 @@ public partial class MaintenanceServices(UserFolders folders)
     /// <summary>
     /// When the official gh tool is there, the build provenance is authenticated too: signed by NexusSystem's shared
     /// release workflow from main, or by the product's own workflow from its tag or from main. A failed attestation is
-    /// fatal; it never degrades to checksums. Nothing installs or signs in gh.
+    /// fatal; it never degrades to checksums. Nothing installs or signs in gh: a gh that is not signed in (exit code 4,
+    /// it cannot read attestations) checks nothing, as without gh; the SHA-256 is already verified.
     /// </summary>
     static void VerifyProvenance(string repository, string tag, string file)
     {
@@ -199,7 +200,13 @@ public partial class MaintenanceServices(UserFolders folders)
             ["attestation", "verify", file, "--repo", $"{Owner}/{repository}", "--source-ref", $"refs/tags/{tag}"],
             ["attestation", "verify", file, "--repo", $"{Owner}/{repository}", "--source-ref", "refs/heads/main"],
         ];
-        if (attempts.All(arguments => Run(gh, arguments).Code != 0)) throw new InvalidDataException($"Build provenance failed for {repository} {tag}.");
+        var codes = new List<int>();
+        foreach (var arguments in attempts)
+        {
+            codes.Add(Run(gh, arguments).Code);
+            if (codes[^1] is 0 or 4) break;
+        }
+        if (!ReleaseRules.ProvenanceAccepted(codes)) throw new InvalidDataException($"Build provenance failed for {repository} {tag}.");
     }
 
     /// <summary>Starts the durable engine for this cycle once the lock is released, and waits for its verdict.</summary>

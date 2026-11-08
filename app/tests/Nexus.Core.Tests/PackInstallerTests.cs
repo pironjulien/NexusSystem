@@ -530,3 +530,14 @@ public class EngineCommandTests
         Assert.Null(EngineCommand.Parse(["--maintain", "--start"]));
     }
 }
+
+public class ProvenanceTests
+{
+    [Theory]
+    [InlineData(new[] { 0 }, true)]
+    [InlineData(new[] { 1, 1, 0 }, true)]
+    [InlineData(new[] { 4 }, true)]          // gh installed but not signed in: not checked, as without gh
+    [InlineData(new[] { 1, 1, 1 }, false)]
+    [InlineData(new int[0], false)]
+    public void OnlyASuccessOrAnUnsignedGhIsAccepted(int[] codes, bool accepted) => Assert.Equal(accepted, ReleaseRules.ProvenanceAccepted(codes));
+}

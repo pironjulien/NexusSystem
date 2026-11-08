@@ -206,6 +206,12 @@ public static partial class ReleaseRules
         return expected ?? throw new InvalidDataException($"{name} is absent from the checksum file.");
     }
 
+    /// <summary>
+    /// gh attestation verify's exit codes, one per accepted signer: one success proves the provenance; exit code 4 (gh
+    /// not signed in, attestations unreadable) means it could not be checked, as without gh; anything else is a failure.
+    /// </summary>
+    public static bool ProvenanceAccepted(IReadOnlyList<int> codes) => codes.Contains(0) || codes.Count > 0 && codes[^1] == 4;
+
     /// <summary>A version of x.y.z numbers, for comparisons.</summary>
     public static Version Number(string version) => Version.Parse(version);
 
