@@ -3,7 +3,8 @@
 # gives once the name "NexusSystem" is reserved (Product identity page: Package/Identity/Name and Publisher), for x64 and
 # ARM64 in one .msixbundle, with public-symbol packages for crash analytics; the Store signs it. Nothing is uploaded
 # here: the submission is a manual step in Partner
-# Center, after review.
+# Center, after review. -Store also writes the Store release notes (release-notes.en.txt, release-notes.fr.txt: see
+# release-notes.ps1) next to the package, and fails when the version has none.
 # The version has one source: <Version> in Directory.Build.props. It goes to the assemblies, the executable's file
 # version and the package manifest; -Version overrides it for one build.
 param(
@@ -32,6 +33,9 @@ if (-not $Out) {
 $outDir = [IO.Path]::GetFullPath($Out) + '\'
 $symbolArguments = @()
 if ($Store) {
+    # The release notes first: a version without its notes (English in CHANGELOG.md, French in store/release-notes.fr.md)
+    # stops before the long build, and the submission pastes these files instead of typing notes in Partner Center.
+    & (Join-Path $PSScriptRoot 'release-notes.ps1') -Version $Version -Out $outDir | Out-Null
     # dotnet does not set VsInstallRoot, even when the C++ tools are installed. Find the public-symbol tool through
     # Visual Studio's own installation inventory so the upload includes crash analytics instead of silently omitting it.
     $symbolTool = Get-Command mspdbcmf.exe -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty Source
@@ -106,3 +110,4 @@ if ($Store) {
 }
 Get-ChildItem $Out -Recurse -Include *.msix, *.msixbundle, *.msixupload, *.appxsym | Sort-Object LastWriteTime -Descending |
     ForEach-Object { '{0}  {1:N1} MB  SHA256 {2}' -f $_.FullName, ($_.Length / 1MB), (Get-FileHash $_.FullName).Hash }
+if ($Store) { Get-ChildItem $outDir -Filter 'release-notes.*.txt' | ForEach-Object { '{0}  {1} characters' -f $_.FullName, [IO.File]::ReadAllText($_.FullName).Length } }

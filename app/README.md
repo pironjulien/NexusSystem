@@ -12,7 +12,15 @@ pwsh -File tools/capture.ps1                                       # pictures, d
 pwsh -File tools/package.ps1                                       # test MSIX (identity NexusSystemTest)
 pwsh -File tools/package.ps1 -Store -IdentityName julienpiron.fr.NexusSystem -Publisher CN=C3E3A6F0-11D2-4EE1-B3F2-34EED4CAE7FA -PublisherDisplayName julienpiron.fr   # x64 + ARM64 bundle and public symbols, version from Directory.Build.props, output in ~\.nexus\build\NexusSystem\store<version>
 pwsh -File tools/wack.ps1 -Msix <the .msix>                        # Windows App Certification Kit (elevated)
+pwsh -File tools/release-notes.ps1 -Version <version> -Out <folder> # Store release notes alone (package.ps1 -Store runs it)
 ```
+
+Store release notes: `package.ps1 -Store` writes `release-notes.en.txt` (the `[app <version>]` section of
+`../CHANGELOG.md`) and `release-notes.fr.txt` (the same section of `store/release-notes.fr.md`, its versioned
+translation) next to the package, as plain text, and stops before building when a section is missing or empty, has
+not the same entries in both languages, or exceeds Partner Center's 1,500 characters (`tests/test_release_notes.ps1`).
+The agent that submits pastes each file, whole, into "What's new in this version" of the matching listing language,
+saves, and checks on the saved page that the field holds exactly that file's text.
 
 `tools/sandbox.ps1 -Msix <package.msix> -ExpectedSha256 <64-digit SHA256> -Version 1.0.7.0 -Certification` runs the
 given package in a fresh Windows Sandbox, with native activation, product names read from UI Automation, a screenshot,

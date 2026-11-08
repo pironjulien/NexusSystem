@@ -19,7 +19,9 @@ change ─► test locally ─► push main ─► CI: tests + build ─► vX.Y
   9NSH2P3QLWT1 --source msstore --force` takes it on the PC without waiting for the Store's own update. Its changes
   get their own `## [app a.b.c.d] - YYYY-MM-DD` section in `CHANGELOG.md` (never a subsection of a catalog version),
   with its link at the end of the file, and `<Version>` in `app/Directory.Build.props` names an existing section (a
-  test checks both). No GitHub release carries the app's version: the site reads the one the Store serves.
+  test checks both). That section is also the Store's release notes, so it is written for the app's users; its French
+  translation, with the same entries, goes in the same commit to `app/store/release-notes.fr.md` (a test checks that
+  the current version has both, within Partner Center's 1,500 characters). No GitHub release carries the app's version: the site reads the one the Store serves.
 - Plugin changes live in the product's `plugin/` folder, the single source for the three AI apps:
   `.claude-plugin/` and `.mcp.json` (Claude Code), `.codex-plugin/` and `.codex-mcp.json` (Codex), Antigravity's
   manifest and guide (shipped with the engine and installed by its installer).
@@ -111,6 +113,14 @@ redirects writes there into its private cache, and Partner Center received a 0-b
 (native start and Windows App Certification Kit in a fresh Windows Sandbox; the Store package is unsigned, so it is
 test-signed inside the guest only, and the guest turns its own Smart App Control off for it, recorded in the report,
 the host's untouched) when the script exists, and submit only on a pass (see `app/README.md`).
+
+Release notes: `package.ps1 -Store` writes `release-notes.en.txt` and `release-notes.fr.txt` next to the package
+(`app/tools/release-notes.ps1`: the version's `[app a.b.c.d]` section of `CHANGELOG.md` and of
+`app/store/release-notes.fr.md`, as plain text) and fails, before building, when either is missing, empty, over
+1,500 characters or without the same entries. Never type or reuse notes in Partner Center: in each listing language
+(en-US, fr-FR), replace the whole "What's new in this version" field with the matching file's content, save, then
+read the field back from the saved page and check it is exactly that file's text (the previous version's notes stay
+in place otherwise, as for 1.0.19.0 on 2026-11-08).
 
 Prefer keyless access (GitHub OIDC with the store's identity federation) over stored secrets. Pages that Chrome
 protects from extensions (Chrome Web Store dashboard) are driven through Windows UI Automation (NexusWindows) when a

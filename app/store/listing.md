@@ -54,11 +54,8 @@ Produits Windows :
 
 Pas de compte, pas de publicité, pas de télémétrie.
 
-**Nouveautés de cette version**
-
-Vos produits Nexus s'installent et restent à jour grâce à un moteur de maintenance Windows natif : ni fenêtre
-PowerShell, ni console. Les mises à jour des produits fonctionnent aussi lancées depuis PowerShell 7, et une CLI
-GitHub déconnectée n'empêche plus une installation. Basée sur Windows App SDK 2.6.5.
+**Nouveautés de cette version** : le contenu de `release-notes.fr.txt`, écrit à côté du paquet par
+`tools/package.ps1 -Store` depuis `store/release-notes.fr.md` ; jamais saisi à la main.
 
 **Fonctionnalités** (20 au plus, 200 caractères chacune)
 1. Une carte par produit : installé ou non, à jour ou non.
@@ -110,11 +107,8 @@ Windows products:
 
 No account, no ads, no telemetry.
 
-**What's new in this version**
-
-Your Nexus products are installed and kept up to date by a native Windows maintenance engine: no PowerShell window,
-no console. Product updates also work when started from PowerShell 7, and a signed-out GitHub CLI no longer stops an
-installation. Built on Windows App SDK 2.6.5.
+**What's new in this version**: the content of `release-notes.en.txt`, written next to the package by
+`tools/package.ps1 -Store` from the `[app <version>]` section of `CHANGELOG.md`; never typed by hand.
 
 **Product features**
 1. One card per product: installed or not, up to date or not.

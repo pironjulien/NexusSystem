@@ -51,6 +51,9 @@ public class ScriptTests
     public void SandboxSmartAppControlStaysInTheGuest() => Run(PowerShell7, "app/tests/test_sandbox_policy.ps1");
 
     [Fact]
+    public void StoreReleaseNotesComeFromTheChangelog() => Run(PowerShell7, "app/tests/test_release_notes.ps1");
+
+    [Fact]
     public void CaptureOutputGuards() => Run(PowerShell7, "app/tests/test_capture.ps1");
 
     [Fact]

@@ -8,6 +8,15 @@ versions have no GitHub release since 1.0.5.0). The format follows [Keep a Chang
 
 ## [Unreleased]
 
+### Added
+- The Store's release notes are generated: `app/tools/package.ps1 -Store` writes `release-notes.en.txt` (the
+  version's `[app a.b.c.d]` section of this file) and `release-notes.fr.txt` (the same section of
+  `app/store/release-notes.fr.md`, its versioned French translation) next to the package, as plain text, and fails
+  before building when a section is missing or empty, the two languages have different entries, or a text exceeds
+  Partner Center's 1,500 characters (`app/tools/release-notes.ps1`, `app/tests/test_release_notes.ps1`). App
+  1.0.19.0 went to the Store with the notes of 1.0.18.0, typed by hand in Partner Center; the hand-written "What's
+  new" of `app/store/listing.md` is gone.
+
 ## [app 1.0.19.0] - 2026-11-08
 
 ### Changed
