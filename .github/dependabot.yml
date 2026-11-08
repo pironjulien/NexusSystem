@@ -15,6 +15,7 @@ updates:
     directories:
       - /app/src/Nexus.App
       - /app/src/Nexus.Core
+      - /app/src/Nexus.Maintenance
       - /app/tests/Nexus.Core.Tests
       - /app/probe
       - /tests/NexusSystem.Tests

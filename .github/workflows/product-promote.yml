@@ -332,5 +332,22 @@ jobs:
             "https://github.com/modelcontextprotocol/registry/releases/download/${PUBLISHER_VERSION}/mcp-publisher_linux_amd64.tar.gz"
           echo "${PUBLISHER_SHA256}  mcp-publisher.tar.gz" | sha256sum --strict -c
           tar xzf mcp-publisher.tar.gz mcp-publisher
-      - run: ./mcp-publisher login github-oidc
-      - run: ./mcp-publisher publish server.release.json
+      # The registry refuses a version it already holds: a rerun (or a release already published) succeeds without
+      # republishing. 200 = published, 404 = not yet; anything else stops the job.
+      - name: Already in the registry?
+        id: registry
+        run: |
+          set -euo pipefail
+          name=$(jq -r '.name | @uri' server.release.json)
+          version=$(jq -r '.version | @uri' server.release.json)
+          code=$(curl -s -o /dev/null -w '%{http_code}' --retry 5 \
+            "https://registry.modelcontextprotocol.io/v0.1/servers/${name}/versions/${version}")
+          case "$code" in
+            200) echo "Version already published: nothing to do"; echo "published=true" >> "$GITHUB_OUTPUT" ;;
+            404) echo "published=false" >> "$GITHUB_OUTPUT" ;;
+            *) echo "Registry answered HTTP $code"; exit 1 ;;
+          esac
+      - if: steps.registry.outputs.published != 'true'
+        run: ./mcp-publisher login github-oidc
+      - if: steps.registry.outputs.published != 'true'
+        run: ./mcp-publisher publish server.release.json
