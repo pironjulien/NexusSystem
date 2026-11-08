@@ -1,6 +1,7 @@
 # Security policy
 
-This repository only holds plugin manifests, launchers and skills. The code that acts on your phone, desktop or
+This repository holds the plugin catalogs, the pack (`get-nexus.ps1` and its maintenance engine) and the
+NexusSystem app. The code that acts on your phone, desktop or
 browser lives in each server's repository, which has its own policy:
 [NexusAndroid](https://github.com/pironjulien/NexusAndroid/security),
 [NexusWindows](https://github.com/pironjulien/NexusWindows/security),

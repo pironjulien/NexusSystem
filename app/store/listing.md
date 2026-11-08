@@ -20,7 +20,7 @@ jour à chaque soumission. Captures : `dist/captures/` (1920 × 1080), choix plu
 - **Site web** : https://julienpiron.fr/
 - **Support** : https://github.com/pironjulien/NexusSystem/issues
 - **Copyright** : © 2026 Julien Piron
-- **Configuration requise** : Windows 10 version 2004 (19041) ou plus récent, x64. Au moins une IA parmi Claude
+- **Configuration requise** : Windows 10 version 2004 (19041) ou plus récent, x64 ou ARM64. Au moins une IA parmi Claude
   Code, Codex ou Antigravity.
 
 ## Français (fr-FR)

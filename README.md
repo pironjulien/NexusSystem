@@ -37,7 +37,7 @@ and installer of the Nexus ecosystem: pick the products you want, à la carte.
 <td width="33%">🛑 <b>Emergency stop</b><br>One button pauses a tool's actions for two minutes.</td>
 </tr>
 <tr>
-<td>🔒 <b>No account, no telemetry</b><br>The app only talks to GitHub, winget and 127.0.0.1.</td>
+<td>🔒 <b>No account, no telemetry</b><br>The app only talks to GitHub, julienpiron.fr, the Microsoft Store, winget and 127.0.0.1.</td>
 <td>💸 <b>Free</b><br>No in-app purchase, no ads, MIT-licensed.</td>
 <td>⚡ <b>Native and light</b><br>Every product is a native Windows engine (x64 and ARM64): no Python, no uv, no administrator rights.</td>
 </tr>
@@ -134,8 +134,8 @@ the same line again to update or repair: every installer only does what is missi
 
 ## 🧩 The plugins
 
-**Computer use in the background for Claude Code and Codex.** Five plugins for Claude Code (Android, Windows, Chrome,
-the Relay between AI apps, the Logitech keypad) and four for Codex. Each includes its guide and reaches its product's
+**Computer use in the background for Claude Code and Codex.** Seven plugins for Claude Code and Codex alike (Android, Windows,
+Chrome, the Relay between AI apps, the Logitech keypad, Adobe InDesign, administrator commands). Each includes its guide and reaches its product's
 native engine, installed by NexusSystem (the app or the line above) or by the product's own `get.ps1`:
 
 | Plugin | What the AI gets | Reaches |
@@ -234,8 +234,8 @@ This repository was called `nexus-plugins` until 28/10/2026; GitHub redirects th
 
 ## 🔐 Privacy & security
 
-- This repository contains no code that runs on your PC besides the declarations of each plugin and the keypad's
-  modules: the engines and daemons are each product's own native release, installed by its `get.ps1`.
+- The only code of this repository that runs on your PC is the pack (`get-nexus.ps1` and its maintenance engine)
+  and the NexusSystem app: the engines and daemons are each product's own native release, installed by its `get.ps1`.
 - The plugins send nothing anywhere. The servers run locally and return what they read (screen, messages, pages) to
   your AI app only; what each server reads, stores (logs, screenshots) and how to remove it is in its README's Privacy
   section: [NexusAndroid](https://github.com/pironjulien/NexusAndroid#privacy),

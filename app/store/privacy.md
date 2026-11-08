@@ -29,7 +29,7 @@ Ces lectures servent uniquement à afficher l'état des produits et ce que vos I
   (~/.gemini/config/plugins). L'appli lit seulement les entrées des produits Nexus.
 - Les programmes en cours (nom, ligne de commande, programme parent), pour montrer quel serveur Nexus tourne et
   quelle IA l'a lancé.
-- Le journal commun des produits (%LOCALAPPDATA%\NexusJournal) : heure, IA, application visée, action, résultat et
+- Le journal commun des produits (~/.nexus/journal) : heure, IA, application visée, action, résultat et
   message d'erreur de chaque action de vos IA. L'appli montre les 24 dernières heures.
 - L'état du pont local de NexusBrowser (127.0.0.1), avec son jeton (~/.nexus/nexus-browser/bridge-token), pour savoir
   si Chrome y est relié.
@@ -49,6 +49,8 @@ Ces lectures servent uniquement à afficher l'état des produits et ce que vos I
 **Réseau**
 L'appli ne contacte que :
 - GitHub, pour les installeurs et les fichiers des versions publiées des produits ;
+- julienpiron.fr, pour la page de chaque produit affichée dans l'appli ;
+- le catalogue du Microsoft Store, pour la version servie des produits vendus sur le Store ;
 - winget (Microsoft), pour Git si le catalogue de plugins le nécessite ;
 - 127.0.0.1, pour le pont local de NexusBrowser.
 Ces services reçoivent les informations de toute connexion (adresse IP, version demandée) selon leurs propres
@@ -92,7 +94,7 @@ These reads only serve to show the products' status and what your AI apps did:
   Claude Desktop's configuration and extensions, ~/.codex/config.toml, Antigravity's plugins
   (~/.gemini/config/plugins). The app reads only the Nexus products' entries.
 - Running programs (name, command line, parent program), to show which Nexus server runs and which AI app started it.
-- The products' common journal (%LOCALAPPDATA%\NexusJournal): time, AI app, target application, action, outcome and
+- The products' common journal (~/.nexus/journal): time, AI app, target application, action, outcome and
   error message of each action of your AI apps. The app shows the last 24 hours.
 - The state of NexusBrowser's local bridge (127.0.0.1), with its token (~/.nexus/nexus-browser/bridge-token), to know
   whether Chrome is connected to it.
@@ -111,6 +113,8 @@ These reads only serve to show the products' status and what your AI apps did:
 **Network**
 The app only contacts:
 - GitHub, for the installers and the files of the products' published releases;
+- julienpiron.fr, for each product's page shown in the app;
+- the Microsoft Store catalog, for the version served of the products sold on the Store;
 - winget (Microsoft), for Git when the plugin catalog needs it;
 - 127.0.0.1, for NexusBrowser's local bridge.
 These services receive what any connection carries (IP address, requested version) under their own policies. No data
