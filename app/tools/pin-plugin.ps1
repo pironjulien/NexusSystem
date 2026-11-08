@@ -5,7 +5,10 @@ param(
     [Parameter(Mandatory)][string]$Name,      # plugin name, e.g. nexus-android
     [Parameter(Mandatory)][string]$Product,   # repository, e.g. NexusAndroid
     [Parameter(Mandatory)][ValidatePattern('^v\d+\.\d+\.\d+$')][string]$Tag,
-    [ValidatePattern('^[a-z]+$')][string]$Path = 'plugin'   # the plugin folder in the product's repository
+    # The plugin folder in the product's repository. Left out: the folder each catalog entry already names (NexusKeypad's
+    # is "connecteurs", its "plugin" folder being the Logi plugin), "plugin" for an entry that names none. A default of
+    # "plugin" once repointed nexus-keypad at the Logi plugin (2026-11-08).
+    [ValidatePattern('^[a-z]+$')][string]$Path
 )
 $ErrorActionPreference = 'Stop'
 $repository = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
@@ -21,15 +24,19 @@ function Edit-Catalog([string]$Relative, [scriptblock]$Change) {
 }
 
 # Built here: inside Edit-Catalog, $path names the catalog file (PowerShell variables are case-insensitive).
-$source = [ordered]@{ source = 'git-subdir'; url = "https://github.com/pironjulien/$Product.git"; path = $Path; ref = $Tag }
+$dossierDemande = $Path
+function Get-Source($entry) {
+    $dossier = if ($dossierDemande) { $dossierDemande } elseif ($entry.source -is [System.Collections.IDictionary] -and $entry.source.path) { $entry.source.path } else { 'plugin' }
+    [ordered]@{ source = 'git-subdir'; url = "https://github.com/pironjulien/$Product.git"; path = $dossier; ref = $Tag }
+}
 $claude = Edit-Catalog '.claude-plugin\marketplace.json' {
     param($entry)
-    $entry.source = $source
+    $entry.source = Get-Source $entry
     $entry.version = $Tag.Substring(1)
 }
 if (-not $claude) { throw "$Name is not in the Claude Code catalog" }
 $codex = Edit-Catalog '.agents\plugins\marketplace.json' {
     param($entry)
-    $entry.source = $source
+    $entry.source = Get-Source $entry
 }
 "$Name -> $Product $Tag (Claude Code$(if ($codex) { ', Codex' }))"

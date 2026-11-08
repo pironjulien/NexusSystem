@@ -107,6 +107,9 @@ sealed class FakePack(UserFolders folders, CapturedOutput output) : PackServices
     }
 }
 
+// Same collection as the tests that set CODEX_HOME (CoreTests, MaintainerTests): run in parallel with them, its check
+// that the variable is unset failed at random.
+[Collection("bridge")]
 public class PackInstallerTests
 {
     static (int Code, string Output, FakePack Pack) Run(FakeProfile profile, string[]? only = null, string[]? skip = null, bool dryRun = true,
