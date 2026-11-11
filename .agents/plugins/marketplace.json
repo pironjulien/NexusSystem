@@ -10,7 +10,7 @@
         "source": "git-subdir",
         "url": "https://github.com/pironjulien/NexusAndroid.git",
         "path": "plugin",
-        "ref": "v0.25.4"
+        "ref": "v0.25.5"
       },
       "policy": {
         "installation": "AVAILABLE",
@@ -24,7 +24,7 @@
         "source": "git-subdir",
         "url": "https://github.com/pironjulien/NexusWindows.git",
         "path": "plugin",
-        "ref": "v3.17.11"
+        "ref": "v3.17.12"
       },
       "policy": {
         "installation": "AVAILABLE",
@@ -80,7 +80,7 @@
         "source": "git-subdir",
         "url": "https://github.com/pironjulien/NexusInDesign.git",
         "path": "plugin",
-        "ref": "v4.3.0"
+        "ref": "v4.3.1"
       },
       "policy": {
         "installation": "AVAILABLE",
