@@ -15,16 +15,6 @@ public class SetupChecksTests
     }
 
     [Fact]
-    public void GmailIsConnectedOnlyWithItsScopes()
-    {
-        var ok = SetupChecks.ParseGmail("""{"present": true, "account": "a@b.c", "scopes": {"reauth_required": false}}""", "x.exe");
-        Assert.Equal((true, "a@b.c"), (ok.Connected, ok.Account));
-        Assert.False(SetupChecks.ParseGmail("""{"present": true, "scopes": {"reauth_required": true}}""", "x.exe").Connected);
-        Assert.False(SetupChecks.ParseGmail("""{"present": false}""", "x.exe").Connected);
-        Assert.False(SetupChecks.ParseGmail("not json", null).Connected);
-    }
-
-    [Fact]
     public void KeypadKeysAreReadFromTheGeneralProfile()
     {
         using var profile = new FakeProfile();

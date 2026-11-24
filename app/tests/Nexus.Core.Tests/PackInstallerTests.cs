@@ -144,8 +144,8 @@ public class PackInstallerTests
         Has(output, "AI apps found: Claude Code, Claude Desktop, Codex, Antigravity",
             "NexusWindows  for Claude Code, Claude Desktop, Codex, Antigravity", "NexusAndroid  for Claude Code, Claude Desktop, Codex, Antigravity",
             "NexusBrowser  for Claude Code, Claude Desktop, Codex, Antigravity", "NexusRelay    for Claude Code, Codex, Antigravity",
-            "NexusAGYmail  for Antigravity", "NexusKeypad   needs Logi Options+", "Prerequisites, once: none", "Dry run: nothing installed.");
-        HasNot(output, "NexusFree", "Node.js", " uv");
+            "NexusKeypad   needs Logi Options+", "Prerequisites, once: none", "Dry run: nothing installed.");
+        HasNot(output, "NexusFree", "NexusAGYmail", "Node.js", " uv");
     }
 
     [Fact]
@@ -179,9 +179,9 @@ public class PackInstallerTests
         // stays Claude on a new PC.
         Has(Run(profile, only: ["relay"], skip: ["antigravity"]).Output, "NexusRelay    for Claude Code, Codex", "\"products\":[\"relay\"]",
             "\"relay\":[\"claude-code\",\"codex\"]");
-        Has(Run(profile, only: ["windows,android,browser,agymail"]).Output,
+        Has(Run(profile, only: ["windows,android,browser"]).Output,
             "\"windows\":[\"claude-code\",\"claude-desktop\",\"codex\",\"antigravity\"]", "\"android\":[\"claude-code\",\"claude-desktop\",\"codex\",\"antigravity\"]",
-            "\"browser\":[\"claude-code\",\"claude-desktop\",\"codex\",\"antigravity\"]", "\"agymail\":[\"antigravity\"]");
+            "\"browser\":[\"claude-code\",\"claude-desktop\",\"codex\",\"antigravity\"]");
     }
 
     [Fact]
@@ -233,12 +233,31 @@ public class PackInstallerTests
     }
 
     [Fact]
-    public void RelayNeedsTwoAiAppsAgymailAntigravity()
+    public void RelayNeedsTwoAiApps()
     {
         using var codex = new FakeProfile(".codex");
-        Has(Run(codex).Output, "NexusWindows  for Codex", "NexusRelay    needs two of Claude Code, Codex, Antigravity", "NexusAGYmail  for Antigravity only");
+        Has(Run(codex).Output, "NexusWindows  for Codex", "NexusRelay    needs two of Claude Code, Codex, Antigravity");
         using var codexAgy = new FakeProfile(".codex", @".gemini\antigravity");
         Has(Run(codexAgy, only: ["relay"]).Output, "NexusRelay    for Codex, Antigravity");
+    }
+
+    [Fact]
+    public void RetiredAgymailIsIgnored()
+    {
+        // NexusAGYmail is retired: naming it never fails, never installs it, and -Only with it alone selects nothing.
+        using var profile = new FakeProfile(".claude", ".codex", @".gemini\antigravity", @"AppData\Roaming\Claude", ".nexus");
+        var alone = Run(profile, only: ["agymail"]);
+        Assert.Equal(0, alone.Code);
+        Has(alone.Output, "NexusAGYmail is retired", "Nothing to install with these options.");
+        HasNot(alone.Output, "NexusWindows  for");
+        var skipped = Run(profile, only: ["windows,agymail"], skip: ["agymail"]);
+        Assert.Equal(0, skipped.Code);
+        Has(skipped.Output, "NexusAGYmail is retired", "NexusWindows  for Claude Code, Claude Desktop, Codex, Antigravity");
+        HasNot(skipped.Output, "NexusAGYmail  for", "Unknown name");
+        profile.Write(@".nexus\nexussystem.json", """{"skip": ["agymail"]}""");
+        var local = Run(profile, only: ["windows"]).Output;
+        Has(local, "NexusWindows  for Claude Code, Claude Desktop, Codex, Antigravity");
+        HasNot(local, "unknown name", "NexusAGYmail");
     }
 
     [Fact]

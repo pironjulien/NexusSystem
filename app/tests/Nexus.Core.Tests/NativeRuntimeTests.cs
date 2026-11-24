@@ -17,7 +17,8 @@ public class NativeRuntimeTests
             [11] = (0, "NexusRelay.exe", @"C:\Local\NexusRelay\native\NexusRelay.exe --http 16181"),
             [12] = (0, "NexusBrowser.exe", @"C:\Local\NexusBrowser\native\NexusBrowser.exe --bridge"),
             [13] = (1, "NexusBrowser.exe", @"C:\Local\NexusBrowser\native\NexusBrowser.exe --mcp"),
-            [14] = (2, "NexusAGYmail.exe", @"C:\Local\NexusAGYmail\native\NexusAGYmail.exe --mcp"),
+            // A leftover server of the retired NexusAGYmail is no Nexus product any more.
+            [14] = (2, "NexusAGYmail.exe", @"C:\Users\u\.nexus\nexus-agymail\app\0.13.0\NexusAGYmail.exe --mcp"),
             [15] = (2, "NexusCodex.UIA.exe", @"C:\Local\NexusCodex\ComputerUse\native\NexusCodex.UIA.exe --mcp --agent antigravity"),
             [20] = (0, "NexusBrowser.exe", "NexusBrowser.exe chrome-extension://abcdefghijklmnopabcdefghijklmnop/ --parent-window=0"),
             [21] = (0, "NexusBrowser.exe", "NexusBrowser.exe --selftest"),
@@ -25,12 +26,12 @@ public class NativeRuntimeTests
             [23] = (0, "NexusAndroid.exe", "NexusAndroid.exe --version"),
         };
         var found = Servers.Match(table).ToDictionary(s => s.ProcessId);
-        Assert.Equal(6, found.Count);
+        Assert.Equal(5, found.Count);
         Assert.Equal(Products.Android, found[10].Product);
         Assert.Equal(Products.Relay, found[11].Product);
         Assert.Null(found[12].StartedBy);
         Assert.Equal(AiApp.Codex, found[13].StartedBy);
-        Assert.Equal(Products.AgyMail, found[14].Product);
+        Assert.False(found.ContainsKey(14));
         Assert.Equal(AiApp.Antigravity, found[15].StartedBy);
     }
 

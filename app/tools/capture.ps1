@@ -36,7 +36,7 @@ function Resolve-NexusCaptureOutput([string]$Path, [string]$ProjectRoot) {
         }
         foreach ($entry in Get-ChildItem -LiteralPath $target -Force) {
             if ($entry.Name -eq '.nexus-captures.json' -and -not $entry.PSIsContainer -and -not $entry.LinkType) { continue }
-            if ($entry.PSIsContainer -or $entry.LinkType -or $entry.Name -notmatch '^(?:home|updates|(?:windows|android|browser|free|keypad|relay|agymail|indesign|wpp)(?:-here)?)-(?:fr|en)-(?:dark|light)\.png$') {
+            if ($entry.PSIsContainer -or $entry.LinkType -or $entry.Name -notmatch '^(?:home|updates|(?:windows|android|browser|free|keypad|relay|indesign|wpp)(?:-here)?)-(?:fr|en)-(?:dark|light)\.png$') {
                 throw 'Capture output contains foreign content; nothing was removed.'
             }
             $pictures += $entry.FullName
@@ -73,7 +73,7 @@ function Initialize-NexusDemoProfile([string]$Root) {
     }
     Write-DemoFile '.codex\config.toml' ((@('nexus-windows', 'nexus-android', 'nexus-browser', 'nexus-relay') |
         ForEach-Object { "[plugins.`"$_@nexus-plugins`"]`nenabled = true`n" }) -join "`n")
-    foreach ($plugin in 'nexus-windows', 'nexus-android', 'nexus-browser', 'nexus-relay', 'nexus-agymail') {
+    foreach ($plugin in 'nexus-windows', 'nexus-android', 'nexus-browser', 'nexus-relay') {
         Write-DemoFile ".gemini\config\plugins\$plugin\plugin.json" '{}'
     }
     New-Item -ItemType Directory -Force (Join-Path $Root '.gemini\antigravity'), (Join-Path $Root 'AppData\Local\Logi\LogiPluginService\Plugins\NexusKeypad') | Out-Null
@@ -82,7 +82,7 @@ function Initialize-NexusDemoProfile([string]$Root) {
         'windows-claude' = @('3.8.0', '3.8.0', 'NexusWindows 3.8.0 is up to date'); 'windows-codex' = @('3.8.0', '3.8.0', 'NexusWindows 3.8.0 is up to date')
         'windows-antigravity' = @('3.8.0', '3.8.0', 'NexusWindows 3.8.0 is up to date')
         'android' = @('0.21.0', '0.22.0', 'Version 0.22.0 is ready: it is used at the next start of your AI app.')
-        'browser' = @('2.32.0', '2.32.0', $null); 'relay' = @('1.9.0', '1.9.0', 'NexusRelay 1.9.0 is up to date'); 'agymail' = @('0.13.0', '0.13.0', $null)
+        'browser' = @('2.32.0', '2.32.0', $null); 'relay' = @('1.9.0', '1.9.0', 'NexusRelay 1.9.0 is up to date')
     }
     foreach ($name in $states.Keys) {
         $state = $states[$name]

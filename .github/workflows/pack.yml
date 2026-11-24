@@ -92,9 +92,6 @@ jobs:
           $env:NEXUS_PACK_CHECK_PRODUCTS = 'windows,android,browser,relay'
           dotnet test --project tests/NexusSystem.Tests --filter-class NexusSystem.Tests.InstallTests
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          $env:NEXUS_PACK_CHECK_AIS = 'antigravity'; $env:NEXUS_PACK_CHECK_PRODUCTS = 'agymail'
-          dotnet test --project tests/NexusSystem.Tests --filter-class NexusSystem.Tests.InstallTests
-          if ($LASTEXITCODE) { exit $LASTEXITCODE }
           claude mcp list
       - name: Second run changes nothing and stays green
         shell: powershell

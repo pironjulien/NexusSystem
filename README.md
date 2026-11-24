@@ -50,7 +50,7 @@ and installer of the Nexus ecosystem: pick the products you want, à la carte.
 ## 🚀 Quick start
 
 Windows 10 or 11, no administrator rights, nothing to install first. Pick only the products you want (`windows`,
-`browser`, `android`, `relay`, `keypad`, `agymail`, `indesign`) or install everything that fits your PC (Claude Code,
+`browser`, `android`, `relay`, `keypad`, `indesign`) or install everything that fits your PC (Claude Code,
 Claude Desktop, Codex, Antigravity).
 
 > [!TIP]
@@ -93,7 +93,7 @@ add this catalog (Windows asks once), gives Claude Code and Codex the plugins of
 own official native installer (`get.ps1` of its repository). No Python, no uv: every product is a native Windows
 engine (win-x64 and win-arm64), downloaded from its GitHub release and checked against its `SHA256SUMS.txt`.
 
-**Options.** `-Only` and `-Skip` take product names (`windows`, `android`, `browser`, `relay`, `agymail`, `indesign`,
+**Options.** `-Only` and `-Skip` take product names (`windows`, `android`, `browser`, `relay`, `indesign`,
 `keypad`; `free` only when named) or AI app names (`claude-code`, `claude-desktop`, `codex`, `antigravity`); `-DryRun`
 shows the plan and installs nothing. Each product has one installer for every AI app: it is told the AI apps chosen
 here and adds no second server beside a plugin. For example:
@@ -115,16 +115,15 @@ example `{"skip":["claude-desktop"]}`, are added to `-Skip` and respected by the
 | NexusAndroid | plugin `nexus-android` + daemon ([NexusAndroid](https://github.com/pironjulien/NexusAndroid) `get.ps1`) | NexusAndroid `get.ps1` | plugin `nexus-android` | NexusAndroid `get.ps1` (a plugin) |
 | NexusBrowser | plugin `nexus-browser` + daemon ([NexusBrowser](https://github.com/pironjulien/NexusBrowser) `get.ps1`) | NexusBrowser `get.ps1` | plugin `nexus-browser` | NexusBrowser `get.ps1` (a plugin) |
 | NexusRelay | plugin `nexus-relay` + daemon ([NexusRelay](https://github.com/pironjulien/NexusRelay) `get.ps1`) | not a relay client | plugin `nexus-relay` | NexusRelay `get.ps1` (a plugin) |
-| NexusAGYmail | official Gmail connector instead | official Gmail connector instead | official Gmail connector instead | [NexusAGYmail](https://github.com/pironjulien/NexusAGYmail) `get.ps1` (a plugin) |
 
 NexusKeypad, for Logitech's MX Creative Keypad, is installed by [its own `get.ps1`](https://github.com/pironjulien/NexusKeypad)
 when Logi Options+ is there (also on the Logitech Marketplace, in review).
 
 It ends with a ✓ / ✗ summary per product and per AI app, then the steps only you can do: load the NexusBrowser
 extension in Chrome (the installer opens the page and tells you what to click), turn on USB debugging on your phone,
-add the relay's project in Codex once, connect your own Google account to NexusAGYmail, place the keypad's keys, and
-restart your AI apps. A product that does not fit this PC (no Antigravity, no Logi Options+…) is shown, with why. Run
-the same line again to update or repair: every installer only does what is missing.
+add the relay's project in Codex once, place the keypad's keys, and restart your AI apps. A product that does not fit
+this PC (no Antigravity, no Logi Options+…) is shown, with why. Run the same line again to update or repair: every
+installer only does what is missing.
 
 > [!NOTE]
 > After installation, NexusSystem checks published updates in the background and retries deferred Windows and
@@ -272,7 +271,6 @@ Your AIs (Claude, Codex, Antigravity) at work on your Windows apps, real Chrome 
 </tr>
 <tr>
 <td align="center" width="96"><a href="https://github.com/pironjulien/NexusKeypad"><img src="https://julienpiron.fr/nexuskeypad/assets/nexuskeypad-mark.svg" width="44" alt=""><br><sub><b>Keypad</b></sub></a></td>
-<td align="center" width="96"><a href="https://github.com/pironjulien/NexusAGYmail"><img src="https://julienpiron.fr/nexusagymail/assets/nexusagymail-mark.svg" width="44" alt=""><br><sub><b>AGYmail</b></sub></a></td>
 <td align="center" width="96"><a href="https://github.com/pironjulien/NexusFree"><img src="https://julienpiron.fr/nexusfree/assets/nexusfree-mark.svg" width="44" alt=""><br><sub><b>Free</b></sub></a></td>
 <td align="center" width="96"><a href="https://github.com/pironjulien/NexusInDesign"><img src="https://julienpiron.fr/nexusindesign/assets/nexusindesign-mark.svg" width="44" alt=""><br><sub><b>InDesign</b></sub></a></td>
 <td align="center" width="96"><a href="https://github.com/pironjulien/NexusWpp"><img src="https://julienpiron.fr/nexuswpp/assets/nexuswpp-mark.svg" width="44" alt=""><br><sub><b>Wpp</b></sub></a></td>

@@ -47,7 +47,7 @@ public sealed record PackProduct(Product Product, string Repository, IReadOnlyLi
     /// NexusFree is opt-in: it gives the account SYSTEM rights, so only an explicit selection installs it.
     /// </summary>
     public static readonly IReadOnlyList<PackProduct> All = MaintenanceProduct.All.Select(m => new PackProduct(m.Product, m.Repository, m.Targets,
-        Engine: m.Product.Device is null, Plugin: m.Key is "agymail" or "keypad" ? null : Declarations.PluginName(m.Product),
+        Engine: m.Product.Device is null, Plugin: m.Key is "keypad" ? null : Declarations.PluginName(m.Product),
         Antigravity: Declarations.AntigravityNames(m.Product), OptIn: m.Key == "free")).ToList();
 
     public static PackProduct ByKey(string key) => All.First(p => p.Key == key);
@@ -73,7 +73,16 @@ public sealed class PackInstaller(PackServices services)
     };
 
     /// <summary>The products whose installer configures every AI app found in one run, told the selection in NEXUS_PACK_TARGETS.</summary>
-    static readonly string[] OneRunForAll = ["windows", "android", "browser", "relay", "agymail", "indesign", "free"];
+    static readonly string[] OneRunForAll = ["windows", "android", "browser", "relay", "indesign", "free"];
+
+    /// <summary>
+    /// Retired products: NexusAGYmail (Antigravity's official Gmail connector replaces it). A -Only, -Skip or
+    /// nexussystem.json that still names one is told so and goes on without it; an installation is left as it is.
+    /// </summary>
+    static readonly Dictionary<string, string> Retired = new()
+    {
+        ["agymail"] = "NexusAGYmail is retired (Antigravity's official Gmail connector replaces it): ignored.",
+    };
 
     /// <summary>The AI apps that add this catalog with Git.</summary>
     static readonly string[] CatalogClients = ["claude-code", "codex"];
@@ -84,7 +93,6 @@ public sealed class PackInstaller(PackServices services)
         ("android", "Look at my phone and tell me what is on the screen."),
         ("browser", "Open https://example.com in a background tab and give me the page as Markdown."),
         ("relay", "Use NexusRelay to ask Codex for a second opinion on this file."),
-        ("agymail", "Find my unread emails from today and sum them up."),
         ("indesign", "Create an A4 InDesign document with a title on its first page and show me the preview."),
     ];
 
@@ -159,8 +167,14 @@ public sealed class PackInstaller(PackServices services)
         var skip = Split(options.Skip);
         var productKeys = PackProduct.All.Select(p => p.Key).ToList();
         var aiKeys = AiNames.Keys.ToList();
+        foreach (var name in only.Concat(skip).Where(Retired.ContainsKey).Distinct().ToList()) Say(Retired[name], PackColor.Yellow);
+        // -Only naming retired products alone selects nothing (never every product).
+        var onlyRetired = only.Any(Retired.ContainsKey) && !only.Any(productKeys.Contains);
+        only.RemoveAll(Retired.ContainsKey);
+        skip.RemoveAll(Retired.ContainsKey);
         foreach (var name in LocalSkip())
         {
+            if (Retired.ContainsKey(name)) continue;
             if (!productKeys.Contains(name) && !aiKeys.Contains(name))
             {
                 Say($"nexussystem.json: unknown name '{name}' ignored.", PackColor.Yellow);
@@ -180,7 +194,7 @@ public sealed class PackInstaller(PackServices services)
         Say("Nexus pack: computer use in the background for your AI apps (https://julienpiron.fr)", PackColor.Cyan);
         var found = services.FindAiApps().ToList();
         var ais = found.Where(ai => Wanted(ai, aiKeys, only, skip)).ToList();
-        var wanted = PackProduct.All.Where(p => Wanted(p.Key, productKeys, only, skip)).ToList();
+        var wanted = onlyRetired ? [] : PackProduct.All.Where(p => Wanted(p.Key, productKeys, only, skip)).ToList();
         var selected = wanted.Where(p => Unfit(p, ais) is null).ToList();
         if (found.Count == 0)
         {
@@ -310,7 +324,7 @@ public sealed class PackInstaller(PackServices services)
             }
             // 2. Each product's own native installer, in this order: NexusWindows (engine at its stable path),
             //    NexusAndroid (daemon and adb), NexusBrowser (daemon and Chrome's native host), NexusRelay (daemon),
-            //    NexusAGYmail (its Antigravity plugin), NexusInDesign, NexusFree. Each is told the AI apps chosen here;
+            //    NexusInDesign, NexusFree. Each is told the AI apps chosen here;
             //    a failed installer fails every cell it serves, plugin cells included.
             foreach (var key in OneRunForAll)
             {
@@ -424,11 +438,6 @@ public sealed class PackInstaller(PackServices services)
         {
             Say($"  {++step}. Codex, once: Add a project, name \"NexusRelay\", folder {Path.Combine(Folders.Home, ".nexus", "relay", "codex-projet")}");
             Say("     (https://github.com/pironjulien/NexusRelay#quick-start)");
-        }
-        if (wants.Contains("agymail"))
-        {
-            Say($"  {++step}. Gmail: create your own Google OAuth client (Desktop app), then sign in with it as shown by");
-            Say("     https://github.com/pironjulien/NexusAGYmail#quick-start");
         }
         if (wants.Contains("keypad"))
         {

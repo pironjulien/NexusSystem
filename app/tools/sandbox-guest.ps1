@@ -151,7 +151,7 @@ public static class NexusActivate {
     $elements = $window.FindAll([Windows.Automation.TreeScope]::Descendants, [Windows.Automation.Condition]::TrueCondition)
     $names = @($elements | ForEach-Object { $_.Current.Name } | Where-Object { $_ } | Select-Object -Unique)
     $result.UiNames = $names
-    foreach ($product in 'NexusWindows','NexusAndroid','NexusBrowser','NexusKeypad','NexusRelay','NexusAGYmail') {
+    foreach ($product in 'NexusWindows','NexusAndroid','NexusBrowser','NexusKeypad','NexusRelay') {
         if ($product -notin $names) { throw "Product missing from real UI: $product" }
     }
     Add-Type -AssemblyName System.Drawing

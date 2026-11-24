@@ -13,7 +13,6 @@ Never assume the user wants every product if they only need one or two. The avai
 | `android` | **NexusAndroid** | The user's Android phone over ADB (screen, gestures, SMS, notifications, files, settings) | Android phone with USB debugging |
 | `relay` | **NexusRelay** | Shared local room where Claude Code, Codex and Antigravity collaborate on the same PC | At least two of Claude Code, Codex, Antigravity |
 | `keypad` | **NexusKeypad** | Live pixel-art agent states, quotas, dictation and quick actions on the Logitech MX Creative Keypad | Logi Options+ |
-| `agymail` | **NexusAGYmail** | Gmail with safeguards (for Antigravity; Claude and Codex use their official Gmail connector) | Antigravity |
 | `indesign` | **NexusInDesign** | Adobe InDesign through its COM automation: scripts, previews, preflight, verified exports, backups (needs InDesign 2024 to 2026) | Claude Code, Codex |
 | `free` | **NexusFree** | Administrator and `SYSTEM` commands without a UAC prompt each time, for the Windows account that installed it (see its SECURITY.md) | An administrator account; one elevation at install |
 

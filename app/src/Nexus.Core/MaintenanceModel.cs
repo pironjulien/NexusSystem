@@ -11,11 +11,11 @@ public sealed record MaintenanceProduct(Product Product, string Repository, IRea
     public string Key => Product.Key;
     public string Name => Product.Name;
     /// <summary>Products whose installer runs alone when a newer release exists (their engine and own connections).</summary>
-    public bool InstallerOnly => Product.Device is not null || Key is "android" or "relay" or "agymail" or "indesign" or "free";
+    public bool InstallerOnly => Product.Device is not null || Key is "android" or "relay" or "indesign" or "free";
 
     /// <summary>The maintained products, in get-nexus.ps1's order.</summary>
     public static readonly IReadOnlyList<MaintenanceProduct> All =
-        new[] { "windows", "android", "browser", "relay", "agymail", "indesign", "keypad", "free" }.Select(key =>
+        new[] { "windows", "android", "browser", "relay", "indesign", "keypad", "free" }.Select(key =>
         {
             var product = Products.ByKey(key);
             var targets = product.Targets.Select(AiApps.Key).ToList();

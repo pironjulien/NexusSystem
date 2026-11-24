@@ -185,8 +185,8 @@ public class ProductsTests
         Assert.Equal(Unfit.NeedsTwo, Products.Why(Products.Relay, [AiApp.Codex], f));
         Assert.Null(Products.Why(Products.Relay, [AiApp.ClaudeCode, AiApp.Codex], f));
         Assert.Null(Products.Why(Products.Relay, [AiApp.Codex, AiApp.Antigravity], f));  // Codex hosts (NexusRelay 1.4.0)
-        Assert.Equal(Unfit.NoTarget, Products.Why(Products.AgyMail, [AiApp.ClaudeCode, AiApp.Codex], f));
-        Assert.Null(Products.Why(Products.AgyMail, [AiApp.Antigravity], f));
+        Assert.Equal(Unfit.NoTarget, Products.Why(Products.InDesign, [AiApp.Antigravity], f));
+        Assert.Null(Products.Why(Products.InDesign, [AiApp.Codex], f));
         Assert.Equal(Unfit.NeedsDevice, Products.Why(Products.Keypad, AiApps.All, f));
         Directory.CreateDirectory(Path.Combine(f.LocalAppData, "Logi", "LogiPluginService"));
         Assert.Null(Products.Why(Products.Keypad, [], f));
@@ -253,7 +253,7 @@ public class DesktopExtensionTests
         Assert.False(windows.Versioned);
         Assert.Null(DesktopExtension.For(Products.Relay));
         Assert.Null(DesktopExtension.For(Products.Keypad));
-        Assert.Null(DesktopExtension.For(Products.AgyMail));
+        Assert.Null(DesktopExtension.For(Products.InDesign));
     }
 }
 
@@ -489,7 +489,7 @@ public class DeclarationStateTests
             Assert.Equal(DeclarationState.Declared, Declarations.State(Products.Android, AiApp.Codex, profile.Folders));
             Assert.Equal(DeclarationState.Declared, Declarations.State(Products.Relay, AiApp.Codex, profile.Folders));
             Assert.Equal(DeclarationState.Disabled, Declarations.State(Products.Browser, AiApp.Codex, profile.Folders));
-            Assert.Equal(DeclarationState.Missing, Declarations.State(Products.AgyMail, AiApp.Codex, profile.Folders));
+            Assert.Equal(DeclarationState.Missing, Declarations.State(Products.InDesign, AiApp.Codex, profile.Folders));
         }
         finally { Environment.SetEnvironmentVariable("CODEX_HOME", saved); }
     }

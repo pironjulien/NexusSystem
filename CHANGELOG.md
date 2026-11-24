@@ -8,6 +8,22 @@ versions have no GitHub release since 1.0.5.0). The format follows [Keep a Chang
 
 ## [Unreleased]
 
+## [app 1.0.21.0] - 2026-11-24
+
+### Removed
+- NexusAGYmail is no longer offered: Antigravity's official Gmail connector replaces it. Its page, its Gmail sign-in
+  and its updates are gone; an installation already on your PC is left as it is.
+
+## [1.9.0] - 2026-11-24
+
+### Removed
+- NexusAGYmail is retired: Antigravity now has an official Gmail connector. The catalog (`products.json`), the pack
+  (`get-nexus.ps1 -Only/-Skip`, `NexusMaintenance.exe --install`), the hourly maintenance, the app (its page, its
+  Gmail sign-in, its running-server detection) and the clean-Windows pack check no longer list, install, update or
+  check it. A `-Only`, `-Skip` or `nexussystem.json` that still names `agymail` is told it is retired and goes on
+  without it (`-Only agymail` alone selects nothing); an existing installation (`~\.nexus\nexus-agymail`, the
+  `nexus-agymail` Antigravity plugin, a running `NexusAGYmail.exe`) is left untouched and ignored.
+
 ### Added
 - The Store's release notes are generated: `app/tools/package.ps1 -Store` writes `release-notes.en.txt` (the
   version's `[app a.b.c.d]` section of this file) and `release-notes.fr.txt` (the same section of
@@ -1435,7 +1451,9 @@ Sent to the Store on 2026-10-27 (submission 4, x64+ARM64 bundle, Windows App Cer
   server instructions or tool list name anyone (neutral texts since nexus-android 0.6.2, nexus-windows 0.9.3 and
   nexus-browser 2.10.0). CI on Windows.
 
-[Unreleased]: https://github.com/pironjulien/NexusSystem/compare/v1.8.0...HEAD
+[Unreleased]: https://github.com/pironjulien/NexusSystem/compare/v1.9.0...HEAD
+[app 1.0.21.0]: https://github.com/pironjulien/NexusSystem/tree/v1.9.0
+[1.9.0]: https://github.com/pironjulien/NexusSystem/compare/v1.8.0...v1.9.0
 [app 1.0.20.0]: https://github.com/pironjulien/NexusSystem/commit/8937e00a5e2b9ee681a0d5b1b084686f3edb8467
 [app 1.0.19.0]: https://github.com/pironjulien/NexusSystem/tree/v1.8.0
 [1.8.0]: https://github.com/pironjulien/NexusSystem/compare/v1.7.3...v1.8.0

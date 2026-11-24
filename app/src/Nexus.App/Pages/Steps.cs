@@ -42,7 +42,6 @@ static class Steps
                 yield return (Card(product, Text.Get("Relay.Step"), Text.Format("Relay.StepText", RelayProject(folders)),
                     Action(Text.Get("CopyPath"), () => Copy(RelayProject(folders)))), false);
                 break;
-            // NexusAGYmail: no guide, "Gmail connected" or the "Connect Gmail" button of "On this PC" (its own sign-in).
             // The keys only while they are not on the pad yet (an install placed them, or the user did).
             case "keypad" when Declarations.DeviceInstalled(product, folders) && !Declarations.KeypadKeysPlaced(folders):
                 yield return (Card(product, Text.Get("Keypad.Step"), Text.Get("Keypad.StepText")), false);

@@ -89,10 +89,6 @@ public static class Products
         "https://julienpiron.fr/nexusrelay/", [AiApp.ClaudeCode, AiApp.Codex, AiApp.Antigravity], Server: "nexus-relay",
         AntigravityPlugin: "nexus-relay", JournalFolder: "relay", MinAis: 2);
 
-    // Claude and Codex have their own official Gmail connector.
-    public static readonly Product AgyMail = new("agymail", "NexusAGYmail", "#ffb5a2", Availability.Ready,
-        "https://julienpiron.fr/nexusagymail/", [AiApp.Antigravity], Server: "nexus-agymail", AntigravityPlugin: "nexus-agymail", JournalFolder: "agymail");
-
     // Adobe InDesign through its COM automation (NexusInDesign 4.0.0): the engine from its get.ps1, the plugin for
     // Claude Code and Codex from the catalog.
     public static readonly Product InDesign = new("indesign", "NexusInDesign", "#e749a0", Availability.Ready,
@@ -103,7 +99,7 @@ public static class Products
         "https://julienpiron.fr/nexuswpp/", [], StoreUrl: "ms-windows-store://pdp/?productid=9N2VCVDH7QDX",
         Group: "windows", PackageFamily: "julienpiron.fr.NexusWpp_yq2nr3sn86fpg");
 
-    public static readonly IReadOnlyList<Product> All = [Windows, Android, Browser, Free, Keypad, Relay, AgyMail, InDesign, Wpp];
+    public static readonly IReadOnlyList<Product> All = [Windows, Android, Browser, Free, Keypad, Relay, InDesign, Wpp];
 
     /// <summary>A store app this user has installed.</summary>
     public static bool StoreInstalled(Product product, UserFolders folders) =>

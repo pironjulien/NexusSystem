@@ -45,7 +45,6 @@ Produits IA :
 • NexusAndroid : votre téléphone Android par ADB (écran, gestes, SMS, notifications, fichiers, réglages).
 • NexusBrowser : votre vrai Chrome, avec vos sessions, dans des onglets de fond.
 • NexusRelay : vos IA se parlent entre elles.
-• NexusAGYmail : Gmail pour Antigravity, avec garde-fous.
 • NexusKeypad : le MX Creative Keypad de Logitech devient le tableau de bord de vos IA.
 Produits Adobe :
 • NexusInDesign : Adobe InDesign piloté par vos IA (mises en page, styles et exports, avec retour arrière).
@@ -98,7 +97,6 @@ AI products:
 • NexusAndroid: your Android phone over ADB (screen, gestures, SMS, notifications, files, settings).
 • NexusBrowser: your real Chrome, with your sessions, in background tabs.
 • NexusRelay: your AI apps talk to each other.
-• NexusAGYmail: Gmail for Antigravity, with safeguards.
 • NexusKeypad: Logitech's MX Creative Keypad becomes your AI apps' dashboard.
 Adobe products:
 • NexusInDesign: Adobe InDesign driven by your AI apps (layouts, styles and exports, with rollback).

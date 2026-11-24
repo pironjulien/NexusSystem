@@ -5,7 +5,7 @@ namespace Nexus.Core;
 /// <summary>
 /// This PC's own choices for NexusSystem, outside the code and outside the app's virtualized AppData:
 /// %USERPROFILE%\.nexus\nexussystem.json, for example {"skip": ["claude-desktop"]}. "skip" takes the names of
-/// get-nexus.ps1's -Skip (products: windows, android, browser, relay, agymail, keypad; AI apps: claude-code,
+/// get-nexus.ps1's -Skip (products: windows, android, browser, relay, keypad; AI apps: claude-code,
 /// claude-desktop, codex, antigravity). The app never offers what is skipped there, and get-nexus.ps1 adds them to its
 /// -Skip. A missing or unreadable file means no choice.
 /// </summary>

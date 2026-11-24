@@ -146,7 +146,7 @@ public sealed partial class Maintainer(MaintenanceServices services)
         {
             if (product.InstallerOnly)
             {
-                // NexusKeypad, NexusAndroid, NexusRelay, NexusAGYmail, NexusInDesign, NexusFree: when a newer release
+                // NexusKeypad, NexusAndroid, NexusRelay, NexusInDesign, NexusFree: when a newer release
                 // exists, its published installer, unattended (NEXUS_PACK), replaces the engine and refreshes the AI
                 // connections it owns.
                 var installedOnly = services.InstalledVersion(product);
