@@ -64,6 +64,10 @@ public class CatalogTests
         Assert.Equal(Marketplace, (string?)market["name"]);
         Assert.False(string.IsNullOrEmpty((string?)market["owner"]?["name"]));
         Assert.Matches(SemVer, (string?)market["metadata"]?["version"] ?? "");
+        // The release's pack check refuses an engine whose catalogue is another version (v1.11.0 was refused on
+        // 2026-11-27 for that): get-nexus.ps1's maintenance version and the catalogue's version move together.
+        var engine = Regex.Match(Repository.Text("get-nexus.ps1"), @"\$NexusMaintenanceVersion = '([^']+)'").Groups[1].Value;
+        Assert.Equal(engine, (string?)market["metadata"]?["version"]);
         Assert.Equal(Plugins, Entries(ClaudeCatalog).Select(e => (string?)e!["name"]));
         foreach (var entry in Entries(ClaudeCatalog)) PluginSources.AssertPinned(entry!);
         Assert.DoesNotContain(Repository.TrackedFiles(), f => f.StartsWith("plugins/", StringComparison.Ordinal));

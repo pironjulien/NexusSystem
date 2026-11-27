@@ -13,7 +13,10 @@ versions have no GitHub release since 1.0.5.0). The format follows [Keep a Chang
 ### Changed
 - Runs on .NET 11, which the app carries with it: nothing to install on your PC.
 
-## [1.11.0] - 2026-11-27
+## [1.11.1] - 2026-11-27
+
+(`v1.11.0` was never published: its clean-Windows pack check refused an engine of 1.11.0 with a catalogue still at
+1.10.0. A test now keeps `get-nexus.ps1`'s maintenance version and the catalogue's version equal.)
 
 ### Changed
 - .NET 11: the SDK `global.json` pins (11.0.100), the maintenance engine `NexusMaintenance.exe` (Native AOT, its
@@ -1491,9 +1494,9 @@ Sent to the Store on 2026-10-27 (submission 4, x64+ARM64 bundle, Windows App Cer
   server instructions or tool list name anyone (neutral texts since nexus-android 0.6.2, nexus-windows 0.9.3 and
   nexus-browser 2.10.0). CI on Windows.
 
-[Unreleased]: https://github.com/pironjulien/NexusSystem/compare/v1.11.0...HEAD
-[app 1.0.23.0]: https://github.com/pironjulien/NexusSystem/tree/v1.11.0
-[1.11.0]: https://github.com/pironjulien/NexusSystem/compare/v1.10.0...v1.11.0
+[Unreleased]: https://github.com/pironjulien/NexusSystem/compare/v1.11.1...HEAD
+[app 1.0.23.0]: https://github.com/pironjulien/NexusSystem/tree/v1.11.1
+[1.11.1]: https://github.com/pironjulien/NexusSystem/compare/v1.10.0...v1.11.1
 [app 1.0.22.0]: https://github.com/pironjulien/NexusSystem/tree/v1.10.0
 [1.10.0]: https://github.com/pironjulien/NexusSystem/compare/v1.9.0...v1.10.0
 [app 1.0.21.0]: https://github.com/pironjulien/NexusSystem/tree/v1.9.0
