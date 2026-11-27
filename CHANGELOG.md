@@ -8,6 +8,11 @@ versions have no GitHub release since 1.0.5.0). The format follows [Keep a Chang
 
 ## [Unreleased]
 
+### Changed
+- Dependencies: xUnit v3 4.0.3 (Microsoft.Testing.Platform 2.5.2) for the tests, and the pinned GitHub Actions
+  (CodeQL 4.39.3, setup-dotnet 6.1.0, zizmor 0.8.1). The shared product workflows are unchanged. Dependabot no longer
+  proposes a new major of the AOT compiler and trimmer, which follow the .NET 10 runtime of the SDK `global.json` pins.
+
 ## [app 1.0.22.0] - 2026-11-27
 
 ### Removed
