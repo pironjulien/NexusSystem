@@ -15,6 +15,9 @@ versions have no GitHub release since 1.0.5.0). The format follows [Keep a Chang
 
 ## [app 1.0.22.0] - 2026-11-27
 
+### Changed
+- Built on Windows App SDK 2.7.0, Microsoft's latest release of the app's Windows foundation.
+
 ### Removed
 - NexusInDesign is no longer offered: Adobe's official connector now covers InDesign. Its page, its "Adobe products"
   tab and its updates are gone; an installation already on your PC is left as it is.

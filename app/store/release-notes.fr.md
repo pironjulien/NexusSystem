@@ -8,6 +8,9 @@ ou dépasse 1 500 caractères.
 
 ## [app 1.0.22.0] - 2026-11-27
 
+### Modifié
+- Construite sur Windows App SDK 2.7.0, la dernière version de la base Windows de l'appli publiée par Microsoft.
+
 ### Supprimé
 - NexusInDesign n'est plus proposé : le connecteur officiel d'Adobe couvre désormais InDesign. Sa page, son onglet
   « Produits Adobe » et ses mises à jour disparaissent ; une installation déjà présente sur votre PC reste telle quelle.
