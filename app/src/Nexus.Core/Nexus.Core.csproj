@@ -20,6 +20,9 @@
          Dependabot): left implicit, their version would follow the .NET SDK of the machine and break the locked restore
          whenever the CI's SDK moves. -->
     <PackageReference Include="Microsoft.NET.ILLink.Tasks" Version="11.0.0" />
+    <!-- Build provenance of downloaded release files, verified in process (Provenance.cs): Sigstore bundles, pure C#,
+         Native AOT compatible (with its Tuf and BouncyCastle.Cryptography). -->
+    <PackageReference Include="Sigstore" Version="1.1.1" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="Nexus.Core.Tests" />

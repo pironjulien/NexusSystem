@@ -26,6 +26,11 @@
           "Microsoft.WindowsAppSDK.WinUI": "2.7.0"
         }
       },
+      "BouncyCastle.Cryptography": {
+        "type": "Transitive",
+        "resolved": "2.7.0",
+        "contentHash": "U+12df8UEWHgBi04YVf/Lgi2dy3SItlIYvHjjEVa/BngCQIzDCDRBk50DDByCfDvSbe5pRNFr3b7UrVK2kMcLw=="
+      },
       "Microsoft.NET.ILLink.Tasks": {
         "type": "Transitive",
         "resolved": "11.0.0",
@@ -139,15 +144,33 @@
           "Microsoft.WindowsAppSDK.InteractiveExperiences": "2.7.0"
         }
       },
+      "Sigstore": {
+        "type": "Transitive",
+        "resolved": "1.1.1",
+        "contentHash": "5zWICtd+qivzZDcMQW2sxus4sS/05A0Zp+JLZCBeZhc6q1KPVfukVqK+99RBe4KDVm52TxjVYazTDJ2oSAytAg==",
+        "dependencies": {
+          "BouncyCastle.Cryptography": "2.7.0",
+          "Tuf": "1.1.1"
+        }
+      },
       "System.Numerics.Tensors": {
         "type": "Transitive",
         "resolved": "9.0.0",
         "contentHash": "hyJB4UlpAi19Xr9AXzu2NuagKC4lPfHObNMEAA0HmqFz2rX7wKgzeYzO/jM/eBHDhnUGFFEjk5cOoJaxqg5J4A=="
       },
+      "Tuf": {
+        "type": "Transitive",
+        "resolved": "1.1.1",
+        "contentHash": "r+suAWgnyJXiQs94MJFO/ID2kKcAHc/iqdHPrKDE7xoKuCBS6+2LG033FLTZSAxwzoGBeZM+lCBYkJYBe27IAw==",
+        "dependencies": {
+          "BouncyCastle.Cryptography": "2.7.0"
+        }
+      },
       "nexus.core": {
         "type": "Project",
         "dependencies": {
-          "Microsoft.NET.ILLink.Tasks": "[11.0.0, )"
+          "Microsoft.NET.ILLink.Tasks": "[11.0.0, )",
+          "Sigstore": "[1.1.1, )"
         }
       }
     },

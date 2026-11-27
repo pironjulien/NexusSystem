@@ -132,8 +132,8 @@ public partial class MaintenanceServices(UserFolders folders)
     static async Task<string> ManifestAsync(string repository, string tag, CancellationToken cancel) =>
         await Http.Value.GetStringAsync(new Uri($"https://github.com/{Owner}/{repository}/releases/download/{tag}/SHA256SUMS.txt"), cancel).ConfigureAwait(false);
 
-    /// <summary>A product's installer (get.ps1) of its latest release, checked against that release's checksums and,
-    /// when the official gh tool is there, its build provenance.</summary>
+    /// <summary>A product's installer (get.ps1) of its latest release, checked against that release's checksums and
+    /// its build provenance.</summary>
     public virtual async Task<PublishedFile> PublishedInstallerAsync(string repository, string work, CancellationToken cancel)
     {
         var tag = await LatestTagAsync(repository, cancel).ConfigureAwait(false);
@@ -181,32 +181,10 @@ public partial class MaintenanceServices(UserFolders folders)
         var bytes = await Http.Value.GetByteArrayAsync(new Uri($"https://github.com/{Owner}/{repository}/releases/download/{tag}/{name}"), cancel).ConfigureAwait(false);
         if (!Convert.ToHexStringLower(SHA256.HashData(bytes)).Equals(expected, StringComparison.OrdinalIgnoreCase))
             throw new InvalidDataException($"SHA-256 mismatch for {name} of {repository} {tag}: the download is not the published file.");
+        // The build provenance too, always and before the file exists on disk (Provenance: the release's own Sigstore
+        // bundle, verified here). A refused or uncheckable provenance never degrades to checksums.
+        await Provenance.VerifyAsync(Http.Value, repository, tag, expected, Provenance.ProductSigners(repository, tag), cancel).ConfigureAwait(false);
         await File.WriteAllBytesAsync(file, bytes, cancel).ConfigureAwait(false);
-        VerifyProvenance(repository, tag, file);
-    }
-
-    /// <summary>
-    /// When the official gh tool is there, the build provenance is authenticated too: signed by NexusSystem's shared
-    /// release workflow from main, or by the product's own workflow from its tag or from main. A failed attestation is
-    /// fatal; it never degrades to checksums. Nothing installs or signs in gh: a gh that is not signed in (exit code 4,
-    /// it cannot read attestations) checks nothing, as without gh; the SHA-256 is already verified.
-    /// </summary>
-    static void VerifyProvenance(string repository, string tag, string file)
-    {
-        if (AiApps.OnPath("gh") is not { } gh || !gh.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) return;
-        string[][] attempts =
-        [
-            ["attestation", "verify", file, "--repo", $"{Owner}/{repository}", "--signer-repo", $"{Owner}/NexusSystem", "--source-ref", "refs/heads/main"],
-            ["attestation", "verify", file, "--repo", $"{Owner}/{repository}", "--source-ref", $"refs/tags/{tag}"],
-            ["attestation", "verify", file, "--repo", $"{Owner}/{repository}", "--source-ref", "refs/heads/main"],
-        ];
-        var codes = new List<int>();
-        foreach (var arguments in attempts)
-        {
-            codes.Add(Run(gh, arguments).Code);
-            if (codes[^1] is 0 or 4) break;
-        }
-        if (!ReleaseRules.ProvenanceAccepted(codes)) throw new InvalidDataException($"Build provenance failed for {repository} {tag}.");
     }
 
     /// <summary>Starts the durable engine for this cycle once the lock is released, and waits for its verdict.</summary>

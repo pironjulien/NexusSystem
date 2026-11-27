@@ -8,6 +8,34 @@ versions have no GitHub release since 1.0.5.0). The format follows [Keep a Chang
 
 ## [Unreleased]
 
+## [app 1.0.24.0] - 2026-11-28
+
+### Changed
+- The app now proves by itself that the maintenance engine it installs was built by NexusSystem's official release
+  workflow (Sigstore build provenance), with nothing else to install or sign in to. An engine whose proof is refused
+  or cannot be checked is not installed.
+
+## [1.12.0] - 2026-11-28
+
+### Changed
+- Build provenance is verified by the maintenance engine itself, always: each release's own Sigstore bundle
+  (`<Product>-X.Y.Z.intoto.jsonl`) is checked in process (certificate chain, transparency log and signature against
+  Sigstore's public trust root, then the signing workflow, the source repository and ref, and the file's SHA-256 among
+  the attested subjects) before a downloaded installer or engine is written to disk. Until now this ran only through
+  the GitHub CLI and checked nothing when `gh` was absent or signed out. Accepted signers are unchanged: NexusSystem's
+  shared release workflow for the product's `main`, or the product's own workflow from its tag or `main`; the engine
+  itself only from NexusSystem's release workflow at its tag.
+- A file whose provenance is refused (other repository or workflow, altered bundle, release without bundle, file not
+  attested) is never installed. A provenance that cannot be checked (bundle or trust root unreachable) is reported as
+  such, never as verified, and nothing is installed; the next hourly cycle tries again.
+- New dependency of `Nexus.Core`: `Sigstore` 1.1.1 (MIT, pure C#, Native AOT compatible), with `Tuf` 1.1.1 and
+  `BouncyCastle.Cryptography` 2.7.0. `NexusMaintenance-x64.exe` grows from 8.6 MB to 11.3 MB. The trust root is kept
+  in memory: nothing is written to the user's profile.
+
+### Removed
+- The engine and the app no longer start `gh attestation verify`. `get-nexus.ps1`, which runs before any engine exists,
+  keeps its optional `gh` check of the engine it downloads.
+
 ## [app 1.0.23.0] - 2026-11-27
 
 ### Changed
@@ -1494,7 +1522,9 @@ Sent to the Store on 2026-10-27 (submission 4, x64+ARM64 bundle, Windows App Cer
   server instructions or tool list name anyone (neutral texts since nexus-android 0.6.2, nexus-windows 0.9.3 and
   nexus-browser 2.10.0). CI on Windows.
 
-[Unreleased]: https://github.com/pironjulien/NexusSystem/compare/v1.11.1...HEAD
+[Unreleased]: https://github.com/pironjulien/NexusSystem/compare/v1.12.0...HEAD
+[app 1.0.24.0]: https://github.com/pironjulien/NexusSystem/tree/v1.12.0
+[1.12.0]: https://github.com/pironjulien/NexusSystem/compare/v1.11.1...v1.12.0
 [app 1.0.23.0]: https://github.com/pironjulien/NexusSystem/tree/v1.11.1
 [1.11.1]: https://github.com/pironjulien/NexusSystem/compare/v1.10.0...v1.11.1
 [app 1.0.22.0]: https://github.com/pironjulien/NexusSystem/tree/v1.10.0

@@ -33,8 +33,9 @@ After a successful installation, the pack installs the maintenance engine of its
 `~\.nexus\nexussystem\maintenance\NexusMaintenance.exe`, and registers the current user's **NexusSystem Update**
 task, which starts that engine directly: a native Windows executable (no .NET to install, no PowerShell, no execution
 policy override, no window). It runs at sign-in and every hour in the background. It uses the same official product
-installers as the pack, downloaded as files and checked against the exact release's SHA-256 manifest (and their build
-provenance when the official `gh` tool is installed). The engine replaces itself with the one of the newest published
+installers as the pack, downloaded as files and checked against the exact release's SHA-256 manifest and their build
+provenance: the engine verifies the release's own Sigstore bundle itself, with no outside tool, and installs nothing
+whose provenance is refused or cannot be checked. The engine replaces itself with the one of the newest published
 NexusSystem catalog release using the same checks; it never moves to an older one. Installations made by an earlier
 release keep their PowerShell worker until its next update hands over to the engine.
 

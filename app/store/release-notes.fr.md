@@ -6,6 +6,13 @@ section anglaise. `tools/release-notes.ps1` (appelé par `tools/package.ps1 -Sto
 `release-notes.fr.txt` et refuse le paquet si la section de la version manque, n'a pas autant d'entrées que l'anglais
 ou dépasse 1 500 caractères.
 
+## [app 1.0.24.0] - 2026-11-28
+
+### Modifié
+- L'appli prouve désormais elle-même que le moteur de maintenance qu'elle installe a été construit par le workflow
+  de publication officiel de NexusSystem (provenance de build Sigstore), sans rien d'autre à installer ni à
+  connecter. Un moteur dont la preuve est refusée ou ne peut pas être vérifiée n'est pas installé.
+
 ## [app 1.0.23.0] - 2026-11-27
 
 ### Modifié

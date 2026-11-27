@@ -11,6 +11,11 @@
           "xunit.v3.mtp-v2": "[4.0.3]"
         }
       },
+      "BouncyCastle.Cryptography": {
+        "type": "Transitive",
+        "resolved": "2.7.0",
+        "contentHash": "U+12df8UEWHgBi04YVf/Lgi2dy3SItlIYvHjjEVa/BngCQIzDCDRBk50DDByCfDvSbe5pRNFr3b7UrVK2kMcLw=="
+      },
       "Microsoft.ApplicationInsights": {
         "type": "Transitive",
         "resolved": "2.23.0",
@@ -61,10 +66,27 @@
         "resolved": "5.0.0",
         "contentHash": "dDoKi0PnDz31yAyETfRntsLArTlVAVzUzCIvvEDsDsucrl33Dl8pIJG06ePTJTI3tGpeyHS9Cq7Foc/s4EeKcg=="
       },
+      "Sigstore": {
+        "type": "Transitive",
+        "resolved": "1.1.1",
+        "contentHash": "5zWICtd+qivzZDcMQW2sxus4sS/05A0Zp+JLZCBeZhc6q1KPVfukVqK+99RBe4KDVm52TxjVYazTDJ2oSAytAg==",
+        "dependencies": {
+          "BouncyCastle.Cryptography": "2.7.0",
+          "Tuf": "1.1.1"
+        }
+      },
       "System.Security.AccessControl": {
         "type": "Transitive",
         "resolved": "6.0.1",
         "contentHash": "IQ4NXP/B3Ayzvw0rDQzVTYsCKyy0Jp9KI6aYcK7UnGVlR9+Awz++TIPCQtPYfLJfOpm8ajowMR09V7quD3sEHw=="
+      },
+      "Tuf": {
+        "type": "Transitive",
+        "resolved": "1.1.1",
+        "contentHash": "r+suAWgnyJXiQs94MJFO/ID2kKcAHc/iqdHPrKDE7xoKuCBS6+2LG033FLTZSAxwzoGBeZM+lCBYkJYBe27IAw==",
+        "dependencies": {
+          "BouncyCastle.Cryptography": "2.7.0"
+        }
       },
       "xunit.analyzers": {
         "type": "Transitive",
@@ -137,7 +159,8 @@
       "nexus.core": {
         "type": "Project",
         "dependencies": {
-          "Microsoft.NET.ILLink.Tasks": "[11.0.0, )"
+          "Microsoft.NET.ILLink.Tasks": "[11.0.0, )",
+          "Sigstore": "[1.1.1, )"
         }
       }
     }

@@ -7,6 +7,29 @@
         "requested": "[11.0.0, )",
         "resolved": "11.0.0",
         "contentHash": "gK2aq4XvChj5kvozpPHrkfKkr7zc5Z4xoTrJb4GPZzDEPMlCk0TX632bwY3LsWcX2UVcVRQBBGzsBGC2lq6YhA=="
+      },
+      "Sigstore": {
+        "type": "Direct",
+        "requested": "[1.1.1, )",
+        "resolved": "1.1.1",
+        "contentHash": "5zWICtd+qivzZDcMQW2sxus4sS/05A0Zp+JLZCBeZhc6q1KPVfukVqK+99RBe4KDVm52TxjVYazTDJ2oSAytAg==",
+        "dependencies": {
+          "BouncyCastle.Cryptography": "2.7.0",
+          "Tuf": "1.1.1"
+        }
+      },
+      "BouncyCastle.Cryptography": {
+        "type": "Transitive",
+        "resolved": "2.7.0",
+        "contentHash": "U+12df8UEWHgBi04YVf/Lgi2dy3SItlIYvHjjEVa/BngCQIzDCDRBk50DDByCfDvSbe5pRNFr3b7UrVK2kMcLw=="
+      },
+      "Tuf": {
+        "type": "Transitive",
+        "resolved": "1.1.1",
+        "contentHash": "r+suAWgnyJXiQs94MJFO/ID2kKcAHc/iqdHPrKDE7xoKuCBS6+2LG033FLTZSAxwzoGBeZM+lCBYkJYBe27IAw==",
+        "dependencies": {
+          "BouncyCastle.Cryptography": "2.7.0"
+        }
       }
     },
     "net11.0-windows10.0.19041/win-arm64": {},

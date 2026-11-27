@@ -224,7 +224,7 @@ public partial class PackServices(UserFolders folders, IPackOutput output, bool 
 
     /// <summary>
     /// A product's official installer: the get.ps1 of its latest release, checked against that release's
-    /// SHA256SUMS.txt (and its build provenance when gh is there), run with -File in Windows PowerShell, in this console.
+    /// SHA256SUMS.txt and its build provenance (Provenance), run with -File in Windows PowerShell, in this console.
     /// </summary>
     public virtual int RunProductInstaller(PackInstaller pack, PackProduct product, string work)
     {

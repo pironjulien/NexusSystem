@@ -259,7 +259,7 @@ public partial class MaintenanceSetup(UserFolders folders)
     /// <summary>
     /// The engine of this build's own catalog release for this PC's architecture, downloaded next to its durable path
     /// (never under %LOCALAPPDATA%, which an MSIX app such as this one sees virtualized), checked against that
-    /// release's SHA256SUMS.txt and, when the official gh tool is signed in, its build provenance.
+    /// release's SHA256SUMS.txt and its build provenance (Provenance).
     /// </summary>
     public virtual async Task<EngineFile> DownloadEngineAsync(CancellationToken cancel)
     {
@@ -271,23 +271,13 @@ public partial class MaintenanceSetup(UserFolders folders)
         var bytes = await Http.Value.GetByteArrayAsync(new Uri($"{release}/{name}"), cancel).ConfigureAwait(false);
         if (!Convert.ToHexStringLower(SHA256.HashData(bytes)).Equals(expected, StringComparison.OrdinalIgnoreCase))
             throw new InvalidDataException($"SHA-256 mismatch for {name} of NexusSystem {tag}: the download is not the published file.");
+        // Signed by NexusSystem's release workflow from this very tag, checked before the file exists on disk.
+        await Provenance.VerifyAsync(Http.Value, "NexusSystem", tag, expected, [new("NexusSystem", $"refs/tags/{tag}")], cancel).ConfigureAwait(false);
         var folder = MaintenanceUpdates.Root(Folders);
         Directory.CreateDirectory(folder);
         var file = Path.Combine(folder, $"NexusMaintenance.download-{Environment.ProcessId}.tmp");
         await File.WriteAllBytesAsync(file, bytes, cancel).ConfigureAwait(false);
-        VerifyProvenance(file, tag);
         return new EngineFile(file, expected);
-    }
-
-    /// <summary>
-    /// Build provenance through gh, when it is installed: exit code 4 means gh is not signed in and cannot read
-    /// attestations (the SHA-256 is already verified); any other failure is fatal.
-    /// </summary>
-    public virtual void VerifyProvenance(string file, string tag)
-    {
-        if (AiApps.OnPath("gh") is not { } gh || !gh.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) return;
-        var run = MaintenanceServices.Run(gh, ["attestation", "verify", file, "--repo", $"{Owner}/NexusSystem", "--source-ref", $"refs/tags/{tag}"]);
-        if (run.Code is not (0 or 4)) throw new InvalidDataException($"Build provenance failed for NexusSystem {tag} ({MaintenanceServices.Explain(run)}).");
     }
 
     /// <summary>The app's start: an existing installation without the maintenance task gets it, from this build's release.</summary>
