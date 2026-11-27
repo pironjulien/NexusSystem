@@ -8,6 +8,24 @@ versions have no GitHub release since 1.0.5.0). The format follows [Keep a Chang
 
 ## [Unreleased]
 
+## [app 1.0.22.0] - 2026-11-27
+
+### Removed
+- NexusInDesign is no longer offered: Adobe's official connector now covers InDesign. Its page, its "Adobe products"
+  tab and its updates are gone; an installation already on your PC is left as it is.
+
+## [1.10.0] - 2026-11-27
+
+### Removed
+- NexusInDesign is retired: Adobe's official "Adobe for Creativity" connector now covers InDesign (in the cloud, with
+  a local version announced for 2027). The catalog (`products.json`, its "Adobe products" group), both plugin
+  catalogs (`nexus-indesign`), the pack (`get-nexus.ps1 -Only/-Skip`, `NexusMaintenance.exe --install`), the hourly
+  maintenance, the app (its page, its icons, its running-server detection) and the clean-Windows pack check no
+  longer list, install, update or check it. A `-Only`, `-Skip` or `nexussystem.json` that still names `indesign` is
+  told it is retired and goes on without it (`-Only indesign` alone selects nothing); an existing installation
+  (`~\.nexus\nexus-indesign`, the `nexus-indesign` plugins of Claude Code and Codex, a running `NexusInDesign.exe`)
+  is left untouched and ignored.
+
 ## [app 1.0.21.0] - 2026-11-24
 
 ### Removed
@@ -1451,7 +1469,9 @@ Sent to the Store on 2026-10-27 (submission 4, x64+ARM64 bundle, Windows App Cer
   server instructions or tool list name anyone (neutral texts since nexus-android 0.6.2, nexus-windows 0.9.3 and
   nexus-browser 2.10.0). CI on Windows.
 
-[Unreleased]: https://github.com/pironjulien/NexusSystem/compare/v1.9.0...HEAD
+[Unreleased]: https://github.com/pironjulien/NexusSystem/compare/v1.10.0...HEAD
+[app 1.0.22.0]: https://github.com/pironjulien/NexusSystem/tree/v1.10.0
+[1.10.0]: https://github.com/pironjulien/NexusSystem/compare/v1.9.0...v1.10.0
 [app 1.0.21.0]: https://github.com/pironjulien/NexusSystem/tree/v1.9.0
 [1.9.0]: https://github.com/pironjulien/NexusSystem/compare/v1.8.0...v1.9.0
 [app 1.0.20.0]: https://github.com/pironjulien/NexusSystem/commit/8937e00a5e2b9ee681a0d5b1b084686f3edb8467

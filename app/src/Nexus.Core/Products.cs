@@ -34,7 +34,7 @@ public sealed record Product(
     string? StoreUrl = null,
     // Former names of the Antigravity plugin, still recognised while public installations carry them.
     IReadOnlyList<string>? AntigravityFormerPlugins = null,
-    // The group of the app's menu and home page (ProductCatalog's groups: ai, adobe, windows, or one the online catalog adds).
+    // The group of the app's menu and home page (ProductCatalog's groups: ai, windows, or one the online catalog adds).
     string Group = "ai",
     // A store app's package family: installed when Windows has its folder under %LOCALAPPDATA%\Packages.
     string? PackageFamily = null,
@@ -89,17 +89,12 @@ public static class Products
         "https://julienpiron.fr/nexusrelay/", [AiApp.ClaudeCode, AiApp.Codex, AiApp.Antigravity], Server: "nexus-relay",
         AntigravityPlugin: "nexus-relay", JournalFolder: "relay", MinAis: 2);
 
-    // Adobe InDesign through its COM automation (NexusInDesign 4.0.0): the engine from its get.ps1, the plugin for
-    // Claude Code and Codex from the catalog.
-    public static readonly Product InDesign = new("indesign", "NexusInDesign", "#e749a0", Availability.Ready,
-        null, [AiApp.ClaudeCode, AiApp.Codex], Server: "nexus-indesign", ClaudePlugin: "nexus-indesign", JournalFolder: "indesign", Group: "adobe");
-
     // A live hardware dashboard as the Windows wallpaper: not an AI tool, published on the Microsoft Store.
     public static readonly Product Wpp = new("wpp", "NexusWpp", "#53fff4", Availability.OtherStore,
         "https://julienpiron.fr/nexuswpp/", [], StoreUrl: "ms-windows-store://pdp/?productid=9N2VCVDH7QDX",
         Group: "windows", PackageFamily: "julienpiron.fr.NexusWpp_yq2nr3sn86fpg");
 
-    public static readonly IReadOnlyList<Product> All = [Windows, Android, Browser, Free, Keypad, Relay, InDesign, Wpp];
+    public static readonly IReadOnlyList<Product> All = [Windows, Android, Browser, Free, Keypad, Relay, Wpp];
 
     /// <summary>A store app this user has installed.</summary>
     public static bool StoreInstalled(Product product, UserFolders folders) =>

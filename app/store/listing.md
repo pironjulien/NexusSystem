@@ -46,8 +46,6 @@ Produits IA :
 • NexusBrowser : votre vrai Chrome, avec vos sessions, dans des onglets de fond.
 • NexusRelay : vos IA se parlent entre elles.
 • NexusKeypad : le MX Creative Keypad de Logitech devient le tableau de bord de vos IA.
-Produits Adobe :
-• NexusInDesign : Adobe InDesign piloté par vos IA (mises en page, styles et exports, avec retour arrière).
 Produits Windows :
 • NexusWpp : votre PC en un coup d'œil, en direct sur votre fond d'écran (Microsoft Store).
 
@@ -98,8 +96,6 @@ AI products:
 • NexusBrowser: your real Chrome, with your sessions, in background tabs.
 • NexusRelay: your AI apps talk to each other.
 • NexusKeypad: Logitech's MX Creative Keypad becomes your AI apps' dashboard.
-Adobe products:
-• NexusInDesign: Adobe InDesign driven by your AI apps (layouts, styles and exports, with rollback).
 Windows products:
 • NexusWpp: your PC at a glance, live on your wallpaper (Microsoft Store).
 

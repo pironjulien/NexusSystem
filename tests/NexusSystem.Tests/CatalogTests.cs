@@ -15,8 +15,8 @@ public class CatalogTests
     const string Marketplace = "nexus-plugins";
     static readonly Regex SemVer = new(@"^\d+\.\d+\.\d+$");
     static readonly Regex KebabCase = new(@"^[a-z0-9]+(-[a-z0-9]+)*$");
-    static readonly string[] Plugins = ["nexus-android", "nexus-windows", "nexus-browser", "nexus-relay", "nexus-keypad", "nexus-indesign", "nexus-free"];
-    static readonly string[] CodexPlugins = ["nexus-android", "nexus-windows", "nexus-browser", "nexus-relay", "nexus-keypad", "nexus-indesign", "nexus-free"];
+    static readonly string[] Plugins = ["nexus-android", "nexus-windows", "nexus-browser", "nexus-relay", "nexus-keypad", "nexus-free"];
+    static readonly string[] CodexPlugins = ["nexus-android", "nexus-windows", "nexus-browser", "nexus-relay", "nexus-keypad", "nexus-free"];
     const string StableWindows = @"${USERPROFILE}\.nexus\nexus-windows\NexusWindows.exe";
 
     /// <summary>Exactly what each Claude Code plugin declares (the private catalog's native forms, public).</summary>
@@ -27,7 +27,6 @@ public class CatalogTests
         ["nexus-browser"] = """{"nexus-browser":{"type":"http","url":"http://127.0.0.1:16182/mcp?agent=claude","headers":{"Authorization":"Bearer ${NEXUS_MCP_TOKEN}"}}}""",
         ["nexus-windows"] = """{"nexus-windows":{"type":"stdio","command":"${USERPROFILE}\\.nexus\\nexus-windows\\NexusWindows.exe","args":["--mcp","--agent","claude"]}}""",
         ["nexus-keypad"] = null,  // hooks and modules only, no MCP server
-        ["nexus-indesign"] = """{"nexus-indesign":{"type":"stdio","command":"${USERPROFILE}\\.nexus\\nexus-indesign\\NexusInDesign.exe","args":["--mcp"]}}""",
         ["nexus-free"] = """{"nexus-free":{"type":"stdio","command":"${USERPROFILE}\\.nexus\\nexus-free\\NexusFree.exe","args":["--mcp"]}}""",
     };
 
@@ -38,7 +37,6 @@ public class CatalogTests
         ["nexus-android"] = """{"nexus-android":{"url":"http://127.0.0.1:16180/mcp","bearer_token_env_var":"NEXUS_MCP_TOKEN","startup_timeout_sec":60}}""",
         ["nexus-browser"] = """{"nexus-browser":{"url":"http://127.0.0.1:16182/mcp?agent=codex","bearer_token_env_var":"NEXUS_MCP_TOKEN","startup_timeout_sec":60}}""",
         ["nexus-windows"] = """{"nexus-windows":{"command":"cmd.exe","args":["/d","/c","cd","/d","%USERPROFILE%\\.nexus\\nexus-windows","&&",".\\NexusWindows.exe","--mcp","--agent","codex"],"startup_timeout_sec":120}}""",
-        ["nexus-indesign"] = """{"nexus-indesign":{"command":"cmd.exe","args":["/d","/c","cd","/d","%USERPROFILE%\\.nexus\\nexus-indesign","&&",".\\NexusInDesign.exe","--mcp"],"startup_timeout_sec":60,"tool_timeout_sec":900}}""",
         ["nexus-free"] = """{"nexus-free":{"command":"cmd.exe","args":["/d","/c","cd","/d","%USERPROFILE%\\.nexus\\nexus-free","&&",".\\NexusFree.exe","--mcp"],"startup_timeout_sec":120}}""",
         // nexus-keypad: hooks only, no MCP server.
     };

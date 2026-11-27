@@ -73,15 +73,17 @@ public sealed class PackInstaller(PackServices services)
     };
 
     /// <summary>The products whose installer configures every AI app found in one run, told the selection in NEXUS_PACK_TARGETS.</summary>
-    static readonly string[] OneRunForAll = ["windows", "android", "browser", "relay", "indesign", "free"];
+    static readonly string[] OneRunForAll = ["windows", "android", "browser", "relay", "free"];
 
     /// <summary>
-    /// Retired products: NexusAGYmail (Antigravity's official Gmail connector replaces it). A -Only, -Skip or
-    /// nexussystem.json that still names one is told so and goes on without it; an installation is left as it is.
+    /// Retired products: NexusAGYmail (Antigravity's official Gmail connector replaces it), NexusInDesign (Adobe's
+    /// official connector covers InDesign). A -Only, -Skip or nexussystem.json that still names one is told so and
+    /// goes on without it; an installation is left as it is.
     /// </summary>
     static readonly Dictionary<string, string> Retired = new()
     {
         ["agymail"] = "NexusAGYmail is retired (Antigravity's official Gmail connector replaces it): ignored.",
+        ["indesign"] = "NexusInDesign is retired (Adobe's official connector covers InDesign): ignored.",
     };
 
     /// <summary>The AI apps that add this catalog with Git.</summary>
@@ -93,7 +95,6 @@ public sealed class PackInstaller(PackServices services)
         ("android", "Look at my phone and tell me what is on the screen."),
         ("browser", "Open https://example.com in a background tab and give me the page as Markdown."),
         ("relay", "Use NexusRelay to ask Codex for a second opinion on this file."),
-        ("indesign", "Create an A4 InDesign document with a title on its first page and show me the preview."),
     ];
 
     UserFolders Folders => services.Folders;
@@ -324,7 +325,7 @@ public sealed class PackInstaller(PackServices services)
             }
             // 2. Each product's own native installer, in this order: NexusWindows (engine at its stable path),
             //    NexusAndroid (daemon and adb), NexusBrowser (daemon and Chrome's native host), NexusRelay (daemon),
-            //    NexusInDesign, NexusFree. Each is told the AI apps chosen here;
+            //    NexusFree. Each is told the AI apps chosen here;
             //    a failed installer fails every cell it serves, plugin cells included.
             foreach (var key in OneRunForAll)
             {

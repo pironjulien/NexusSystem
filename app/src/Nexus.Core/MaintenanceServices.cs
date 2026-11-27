@@ -322,7 +322,6 @@ public partial class MaintenanceServices(UserFolders folders)
         {
             "android" => (Path.Combine(Folders.Nexus, "nexus-android", "releases"), "*", "NexusAndroid.exe"),
             "relay" => (Path.Combine(Folders.LocalAppData, "NexusRelay", "versions"), "*", "NexusRelay.exe"),
-            "indesign" => (Path.Combine(Folders.Nexus, "nexus-indesign"), null, "NexusInDesign.exe"),
             "free" => (Path.Combine(Folders.Nexus, "nexus-free"), null, "NexusFree.exe"),
             _ => (null, null, null),
         };

@@ -21,7 +21,6 @@ public static class Servers
         ["android"] = ["nexus-android", "nexus_android"],
         ["browser"] = ["nexus-browser", "nexus_browser", "NexusBrowser\\app\\client\\mcp_server.py"],
         ["relay"] = ["nexus-relay", "nexus_relay"],
-        ["indesign"] = ["indesign-mcp-secure"],
     };
 
     public static IReadOnlyList<RunningServer> Find()
@@ -79,7 +78,6 @@ public static class Servers
             "nexusandroid.exe" => Products.Android,
             "nexusbrowser.exe" => Products.Browser,
             "nexusrelay.exe" => Products.Relay,
-            "nexusindesign.exe" => Products.InDesign,
             "nexuscodex.uia.exe" => Products.Windows,
             _ => null,
         };

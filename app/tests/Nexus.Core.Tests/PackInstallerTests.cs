@@ -145,7 +145,7 @@ public class PackInstallerTests
             "NexusWindows  for Claude Code, Claude Desktop, Codex, Antigravity", "NexusAndroid  for Claude Code, Claude Desktop, Codex, Antigravity",
             "NexusBrowser  for Claude Code, Claude Desktop, Codex, Antigravity", "NexusRelay    for Claude Code, Codex, Antigravity",
             "NexusKeypad   needs Logi Options+", "Prerequisites, once: none", "Dry run: nothing installed.");
-        HasNot(output, "NexusFree", "NexusAGYmail", "Node.js", " uv");
+        HasNot(output, "NexusFree", "NexusAGYmail", "NexusInDesign", "Node.js", " uv");
     }
 
     [Fact]
@@ -241,23 +241,26 @@ public class PackInstallerTests
         Has(Run(codexAgy, only: ["relay"]).Output, "NexusRelay    for Codex, Antigravity");
     }
 
-    [Fact]
-    public void RetiredAgymailIsIgnored()
+    [Theory]
+    [InlineData("agymail", "NexusAGYmail")]
+    [InlineData("indesign", "NexusInDesign")]
+    public void RetiredProductIsIgnored(string key, string name)
     {
-        // NexusAGYmail is retired: naming it never fails, never installs it, and -Only with it alone selects nothing.
+        // A retired product (NexusAGYmail 1.9.0, NexusInDesign 1.10.0): naming it never fails, never installs it, and
+        // -Only with it alone selects nothing.
         using var profile = new FakeProfile(".claude", ".codex", @".gemini\antigravity", @"AppData\Roaming\Claude", ".nexus");
-        var alone = Run(profile, only: ["agymail"]);
+        var alone = Run(profile, only: [key]);
         Assert.Equal(0, alone.Code);
-        Has(alone.Output, "NexusAGYmail is retired", "Nothing to install with these options.");
+        Has(alone.Output, $"{name} is retired", "Nothing to install with these options.");
         HasNot(alone.Output, "NexusWindows  for");
-        var skipped = Run(profile, only: ["windows,agymail"], skip: ["agymail"]);
+        var skipped = Run(profile, only: [$"windows,{key}"], skip: [key]);
         Assert.Equal(0, skipped.Code);
-        Has(skipped.Output, "NexusAGYmail is retired", "NexusWindows  for Claude Code, Claude Desktop, Codex, Antigravity");
-        HasNot(skipped.Output, "NexusAGYmail  for", "Unknown name");
-        profile.Write(@".nexus\nexussystem.json", """{"skip": ["agymail"]}""");
+        Has(skipped.Output, $"{name} is retired", "NexusWindows  for Claude Code, Claude Desktop, Codex, Antigravity");
+        HasNot(skipped.Output, $"{name} for", $"{name}  for", "Unknown name");
+        profile.Write(@".nexus\nexussystem.json", $$"""{"skip": ["{{key}}"]}""");
         var local = Run(profile, only: ["windows"]).Output;
         Has(local, "NexusWindows  for Claude Code, Claude Desktop, Codex, Antigravity");
-        HasNot(local, "unknown name", "NexusAGYmail");
+        HasNot(local, "unknown name", name);
     }
 
     [Fact]

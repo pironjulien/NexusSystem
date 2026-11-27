@@ -50,7 +50,7 @@ and installer of the Nexus ecosystem: pick the products you want, à la carte.
 ## 🚀 Quick start
 
 Windows 10 or 11, no administrator rights, nothing to install first. Pick only the products you want (`windows`,
-`browser`, `android`, `relay`, `keypad`, `indesign`) or install everything that fits your PC (Claude Code,
+`browser`, `android`, `relay`, `keypad`) or install everything that fits your PC (Claude Code,
 Claude Desktop, Codex, Antigravity).
 
 > [!TIP]
@@ -93,7 +93,7 @@ add this catalog (Windows asks once), gives Claude Code and Codex the plugins of
 own official native installer (`get.ps1` of its repository). No Python, no uv: every product is a native Windows
 engine (win-x64 and win-arm64), downloaded from its GitHub release and checked against its `SHA256SUMS.txt`.
 
-**Options.** `-Only` and `-Skip` take product names (`windows`, `android`, `browser`, `relay`, `indesign`,
+**Options.** `-Only` and `-Skip` take product names (`windows`, `android`, `browser`, `relay`,
 `keypad`; `free` only when named) or AI app names (`claude-code`, `claude-desktop`, `codex`, `antigravity`); `-DryRun`
 shows the plan and installs nothing. Each product has one installer for every AI app: it is told the AI apps chosen
 here and adds no second server beside a plugin. For example:
@@ -133,8 +133,8 @@ installer only does what is missing.
 
 ## 🧩 The plugins
 
-**Computer use in the background for Claude Code and Codex.** Seven plugins for Claude Code and Codex alike (Android, Windows,
-Chrome, the Relay between AI apps, the Logitech keypad, Adobe InDesign, administrator commands). Each includes its guide and reaches its product's
+**Computer use in the background for Claude Code and Codex.** Six plugins for Claude Code and Codex alike (Android, Windows,
+Chrome, the Relay between AI apps, the Logitech keypad, administrator commands). Each includes its guide and reaches its product's
 native engine, installed by NexusSystem (the app or the line above) or by the product's own `get.ps1`:
 
 | Plugin | What the AI gets | Reaches |
@@ -272,7 +272,6 @@ Your AIs (Claude, Codex, Antigravity) at work on your Windows apps, real Chrome 
 <tr>
 <td align="center" width="96"><a href="https://github.com/pironjulien/NexusKeypad"><img src="https://julienpiron.fr/nexuskeypad/assets/nexuskeypad-mark.svg" width="44" alt=""><br><sub><b>Keypad</b></sub></a></td>
 <td align="center" width="96"><a href="https://github.com/pironjulien/NexusFree"><img src="https://julienpiron.fr/nexusfree/assets/nexusfree-mark.svg" width="44" alt=""><br><sub><b>Free</b></sub></a></td>
-<td align="center" width="96"><a href="https://github.com/pironjulien/NexusInDesign"><img src="https://julienpiron.fr/nexusindesign/assets/nexusindesign-mark.svg" width="44" alt=""><br><sub><b>InDesign</b></sub></a></td>
 <td align="center" width="96"><a href="https://github.com/pironjulien/NexusWpp"><img src="https://julienpiron.fr/nexuswpp/assets/nexuswpp-mark.svg" width="44" alt=""><br><sub><b>Wpp</b></sub></a></td>
 </tr>
 </table>

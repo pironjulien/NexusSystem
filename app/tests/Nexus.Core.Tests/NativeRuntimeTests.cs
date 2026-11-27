@@ -19,6 +19,8 @@ public class NativeRuntimeTests
             [13] = (1, "NexusBrowser.exe", @"C:\Local\NexusBrowser\native\NexusBrowser.exe --mcp"),
             // A leftover server of the retired NexusAGYmail is no Nexus product any more.
             [14] = (2, "NexusAGYmail.exe", @"C:\Users\u\.nexus\nexus-agymail\app\0.13.0\NexusAGYmail.exe --mcp"),
+            // Nor is one of the retired NexusInDesign.
+            [16] = (1, "NexusInDesign.exe", @"C:\Users\u\.nexus\nexus-indesign\NexusInDesign.exe --mcp"),
             [15] = (2, "NexusCodex.UIA.exe", @"C:\Local\NexusCodex\ComputerUse\native\NexusCodex.UIA.exe --mcp --agent antigravity"),
             [20] = (0, "NexusBrowser.exe", "NexusBrowser.exe chrome-extension://abcdefghijklmnopabcdefghijklmnop/ --parent-window=0"),
             [21] = (0, "NexusBrowser.exe", "NexusBrowser.exe --selftest"),
@@ -32,6 +34,7 @@ public class NativeRuntimeTests
         Assert.Null(found[12].StartedBy);
         Assert.Equal(AiApp.Codex, found[13].StartedBy);
         Assert.False(found.ContainsKey(14));
+        Assert.False(found.ContainsKey(16));
         Assert.Equal(AiApp.Antigravity, found[15].StartedBy);
     }
 

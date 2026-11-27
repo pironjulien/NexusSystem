@@ -26,7 +26,6 @@ public static class ProductCatalog
     public static readonly IReadOnlyList<ProductGroup> BuiltInGroups =
     [
         new("ai", "Produits IA", "AI products"),
-        new("adobe", "Produits Adobe", "Adobe products"),
         new("windows", "Produits Windows", "Windows products"),
     ];
 

@@ -8,11 +8,6 @@
       "en": "AI products"
     },
     {
-      "key": "adobe",
-      "fr": "Produits Adobe",
-      "en": "Adobe products"
-    },
-    {
       "key": "windows",
       "fr": "Produits Windows",
       "en": "Windows products"
@@ -100,19 +95,6 @@
       "about": {
         "fr": "Élévation administrateur et exécution privilégiée SYSTEM sans blocage UAC pour la Trinité.",
         "en": "Administrator elevation and SYSTEM privileged execution without UAC friction for the Trinity."
-      }
-    },
-    {
-      "key": "indesign",
-      "name": "NexusInDesign",
-      "group": "adobe",
-      "state": "ready",
-      "repository": "NexusInDesign",
-      "accent": "#e749a0",
-      "page": "https://julienpiron.fr/nexusindesign/",
-      "about": {
-        "fr": "Adobe InDesign piloté par vos IA : mises en page, styles et exports, avec retour arrière.",
-        "en": "Adobe InDesign driven by your AI apps: layouts, styles and exports, with rollback."
       }
     },
     {

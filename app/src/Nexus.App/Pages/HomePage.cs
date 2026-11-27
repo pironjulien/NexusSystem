@@ -8,7 +8,7 @@ namespace Nexus.App.Pages;
 
 /// <summary>
 /// The hub's home, like the Microsoft Store's: a banner that shows the products one after the other with two tiles
-/// beside it, the AI apps found, then one panel per group (AI, Adobe, Windows) whose rows give each product's state on
+/// beside it, the AI apps found, then one panel per group (AI, Windows) whose rows give each product's state on
 /// this PC (installed or not, up to date or not) and its one way in (the user's AI app or a store), and a button that
 /// has the AI install them all. Updates have their own page, as in the Store.
 /// </summary>

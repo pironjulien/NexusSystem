@@ -6,6 +6,12 @@ section anglaise. `tools/release-notes.ps1` (appelé par `tools/package.ps1 -Sto
 `release-notes.fr.txt` et refuse le paquet si la section de la version manque, n'a pas autant d'entrées que l'anglais
 ou dépasse 1 500 caractères.
 
+## [app 1.0.22.0] - 2026-11-27
+
+### Supprimé
+- NexusInDesign n'est plus proposé : le connecteur officiel d'Adobe couvre désormais InDesign. Sa page, son onglet
+  « Produits Adobe » et ses mises à jour disparaissent ; une installation déjà présente sur votre PC reste telle quelle.
+
 ## [app 1.0.21.0] - 2026-11-24
 
 ### Supprimé

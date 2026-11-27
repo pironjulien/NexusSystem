@@ -18,7 +18,9 @@ public class ProductGroupsTests
     {
         // The AI products install through the AI apps; a store app only through its store; a private one not yet.
         Assert.All(Products.All.Where(p => p.Group == "ai"), p => Assert.Null(p.StoreUrl));
-        Assert.Equal([Products.InDesign], Products.All.Where(p => p.Group == "adobe"));
+        // NexusInDesign, the only Adobe product, is retired (1.10.0): no "Adobe products" group any more.
+        Assert.DoesNotContain(Products.All, p => p.Group == "adobe");
+        Assert.Equal(["ai", "windows"], ProductCatalog.BuiltInGroups.Select(g => g.Key));
         Assert.Equal([Products.Wpp], Products.All.Where(p => p.Group == "windows"));
         Assert.Equal(Availability.OtherStore, Products.Wpp.Availability);
         Assert.StartsWith("ms-windows-store://", Products.Wpp.StoreUrl);
@@ -30,7 +32,7 @@ public class ProductGroupsTests
         // The product page shows the activity of the AIs from the common journal (NexusShared/journal/FORMAT.md): every
         // product an AI drives (an MCP server, or the keypad's AI keys) writes one; NexusWpp, not an AI tool, has none.
         Assert.All(Products.All.Where(p => p.Server is not null || p == Products.Keypad), p => Assert.False(string.IsNullOrEmpty(p.JournalFolder), p.Name));
-        Assert.Equal("indesign", Products.InDesign.JournalFolder);
+        Assert.Equal("free", Products.Free.JournalFolder);
         Assert.Null(Products.Wpp.JournalFolder);
     }
 

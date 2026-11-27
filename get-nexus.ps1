@@ -12,7 +12,7 @@
 # catalog, runs each product's own official installer (the get.ps1 of its latest release, checked the same way),
 # reports what each AI app declares, and registers the hourly "NexusSystem Update" task that starts that same engine.
 # Windows PowerShell 5.1 or PowerShell 7, no administrator rights. Run it again at any time: only what is missing is done.
-#   -Only / -Skip  product names (windows, android, browser, relay, indesign, keypad; free only when named) or AI names (claude-code,
+#   -Only / -Skip  product names (windows, android, browser, relay, keypad; free only when named) or AI names (claude-code,
 #                  claude-desktop, codex, antigravity), comma separated
 #   -DryRun        show the plan and do nothing
 #   -NoGuide       do not open Chrome on its extensions page at the end (the guide is printed instead)
@@ -51,7 +51,7 @@ if ($PSVersionTable.PSEdition -eq 'Desktop') {
 }
 $ProgressPreference = 'SilentlyContinue'  # Invoke-WebRequest is many times slower with its progress bar
 [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
-$NexusMaintenanceVersion = '1.9.0'
+$NexusMaintenanceVersion = '1.10.0'
 
 function Get-NexusMaintenanceEngineName {
     # The engine of this PC's architecture: arm64 on an ARM64 Windows, also from an emulated x64 PowerShell.

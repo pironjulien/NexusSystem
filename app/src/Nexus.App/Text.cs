@@ -97,8 +97,6 @@ public static class Text
         ["Browser.About"] = ("Votre vrai Chrome, avec vos sessions, dans des onglets de fond.", "Your real Chrome, with your sessions, in background tabs."),
         ["Keypad.About"] = ("Le MX Creative Keypad de Logitech devient le tableau de bord de vos IA.", "Logitech's MX Creative Keypad becomes your AI apps' dashboard."),
         ["Relay.About"] = ("Vos IA se parlent entre elles.", "Your AI apps talk to each other."),
-        ["Indesign.About"] = ("Adobe InDesign piloté par vos IA : mises en page, styles et exports, avec retour arrière.",
-            "Adobe InDesign driven by your AI apps: layouts, styles and exports, with rollback."),
         ["Wpp.About"] = ("Votre PC en un coup d'œil : CPU, GPU, NPU, RAM, disque et réseau en direct sur votre fond d'écran.",
             "Your PC at a glance: CPU, GPU, NPU, RAM, disk and network live on your wallpaper."),
         ["Phone"] = ("Téléphone : activez le débogage USB", "Phone: turn on USB debugging"),
