@@ -2,7 +2,7 @@
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <!-- Built against Windows 11 24H2 (the package's MaxVersionTested comes from it), runs from Windows 10 2004. -->
-    <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
+    <TargetFramework>net11.0-windows10.0.26100.0</TargetFramework>
     <TargetPlatformMinVersion>10.0.19041.0</TargetPlatformMinVersion>
     <RootNamespace>Nexus.App</RootNamespace>
     <AssemblyName>NexusSystem</AssemblyName>
@@ -15,7 +15,7 @@
          MSIX for the Store (WindowsPackageType=MSIX at packaging). -->
     <WindowsPackageType>None</WindowsPackageType>
     <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
-    <!-- .NET itself goes in the package too: a PC without the .NET 10 Desktop Runtime (a new Windows) runs the app.
+    <!-- .NET itself goes in the package too: a PC without the .NET 11 Desktop Runtime (a new Windows) runs the app.
          ReadyToRun for the start time; no trimming (WinUI's XAML reflection breaks under it). -->
     <SelfContained>true</SelfContained>
     <PublishReadyToRun>true</PublishReadyToRun>

@@ -212,7 +212,7 @@ static class Catalog
             Content = Text.Get(view.Installed ? "UpdateAi" : "InstallAi"),
             Style = (Style)Application.Current.Resources["AccentButtonStyle"],
         };
-        HandOff(install, () => [product.Key], found, said);
+        HandOff(install, () => new[] { product.Key }, found, said);
         return install;
     }
 

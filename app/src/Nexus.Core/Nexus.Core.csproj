@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <TargetFramework>net11.0-windows10.0.19041.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
@@ -19,7 +19,7 @@
     <!-- The trimmer's tasks (their analyzers serve IsAotCompatible), pinned like any package (packages.lock.json,
          Dependabot): left implicit, their version would follow the .NET SDK of the machine and break the locked restore
          whenever the CI's SDK moves. -->
-    <PackageReference Include="Microsoft.NET.ILLink.Tasks" Version="10.0.15" />
+    <PackageReference Include="Microsoft.NET.ILLink.Tasks" Version="11.0.0" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="Nexus.Core.Tests" />

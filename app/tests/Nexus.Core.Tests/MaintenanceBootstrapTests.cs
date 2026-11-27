@@ -110,16 +110,16 @@ public class MaintenanceSetupTests
         using var profile = new FakeProfile();
         var path = MaintenanceUpdates.StatusPath(profile.Folders);
         var now = DateTimeOffset.UtcNow;
-        Assert.Equal("pending", JsonDocument.Parse(MaintenanceSetup.Status(profile.Folders, now)).RootElement.Text("state"));
+        Assert.Equal("pending", JsonElement.Parse(MaintenanceSetup.Status(profile.Folders, now)).Text("state"));
         Assert.False(File.Exists(path));
         profile.Write(@".nexus\status\nexussystem-update.json", """{"schema":1,"state":"current","checked_at":"invalid","products":[]}""");
         var bytes = File.ReadAllText(path);
-        Assert.Equal("stale", JsonDocument.Parse(MaintenanceSetup.Status(profile.Folders, now)).RootElement.Text("state"));
+        Assert.Equal("stale", JsonElement.Parse(MaintenanceSetup.Status(profile.Folders, now)).Text("state"));
         Assert.Equal(bytes, File.ReadAllText(path));
         profile.Write(@".nexus\status\nexussystem-update.json", $$"""{"schema":1,"state":"failed","checked_at":"{{now.AddMinutes(-5):O}}","products":[]}""");
-        Assert.Equal("failed", JsonDocument.Parse(MaintenanceSetup.Status(profile.Folders, now)).RootElement.Text("state"));
+        Assert.Equal("failed", JsonElement.Parse(MaintenanceSetup.Status(profile.Folders, now)).Text("state"));
         profile.Write(@".nexus\status\nexussystem-update.json", $$"""{"schema":1,"state":"success","checked_at":"{{now.AddHours(3):O}}","products":[]}""");
-        Assert.Equal("stale", JsonDocument.Parse(MaintenanceSetup.Status(profile.Folders, now)).RootElement.Text("state"));
+        Assert.Equal("stale", JsonElement.Parse(MaintenanceSetup.Status(profile.Folders, now)).Text("state"));
     }
 
     [Fact]

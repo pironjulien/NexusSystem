@@ -72,7 +72,7 @@ public sealed partial class ProductPage : UserControl
             notice.IsOpen = true;
             try
             {
-                var (text, severity) = await Catalog.CheckUpdatesAsync([product], ais, folders, progress =>
+                var (text, severity) = await Catalog.CheckUpdatesAsync(new[] { product }, ais, folders, progress =>
                 {
                     notice.Message = progress;
                     DrawState();

@@ -8,10 +8,24 @@ versions have no GitHub release since 1.0.5.0). The format follows [Keep a Chang
 
 ## [Unreleased]
 
+## [app 1.0.23.0] - 2026-11-27
+
 ### Changed
+- Runs on .NET 11, which the app carries with it: nothing to install on your PC.
+
+## [1.11.0] - 2026-11-27
+
+### Changed
+- .NET 11: the SDK `global.json` pins (11.0.100), the maintenance engine `NexusMaintenance.exe` (Native AOT, its
+  compiler and trimmer 11.0.0), `Nexus.Core`, the app and the tests. Nothing to install: the engine is a single native
+  file. The SDK's new rules are met at their root (`JsonElement.Parse` in the tests; explicit arrays where CsWinRT
+  cannot give a collection expression a concrete type).
+- The catalogs pin the .NET 11 releases: NexusBrowser v2.38.0, NexusWindows v3.18.0, NexusRelay v1.16.0, NexusFree
+  v1.5.0, NexusAndroid v0.26.0 and NexusKeypad v1.10.0 (its Logitech plugin stays on .NET 10, the runtime Logi's
+  plugin service ships).
 - Dependencies: xUnit v3 4.0.3 (Microsoft.Testing.Platform 2.5.2) for the tests, and the pinned GitHub Actions
   (CodeQL 4.39.3, setup-dotnet 6.1.0, zizmor 0.8.1). The shared product workflows are unchanged. Dependabot no longer
-  proposes a new major of the AOT compiler and trimmer, which follow the .NET 10 runtime of the SDK `global.json` pins.
+  proposes a new major of the AOT compiler and trimmer, which follow the .NET 11 runtime of the SDK `global.json` pins.
 
 ## [app 1.0.22.0] - 2026-11-27
 
@@ -1477,7 +1491,9 @@ Sent to the Store on 2026-10-27 (submission 4, x64+ARM64 bundle, Windows App Cer
   server instructions or tool list name anyone (neutral texts since nexus-android 0.6.2, nexus-windows 0.9.3 and
   nexus-browser 2.10.0). CI on Windows.
 
-[Unreleased]: https://github.com/pironjulien/NexusSystem/compare/v1.10.0...HEAD
+[Unreleased]: https://github.com/pironjulien/NexusSystem/compare/v1.11.0...HEAD
+[app 1.0.23.0]: https://github.com/pironjulien/NexusSystem/tree/v1.11.0
+[1.11.0]: https://github.com/pironjulien/NexusSystem/compare/v1.10.0...v1.11.0
 [app 1.0.22.0]: https://github.com/pironjulien/NexusSystem/tree/v1.10.0
 [1.10.0]: https://github.com/pironjulien/NexusSystem/compare/v1.9.0...v1.10.0
 [app 1.0.21.0]: https://github.com/pironjulien/NexusSystem/tree/v1.9.0

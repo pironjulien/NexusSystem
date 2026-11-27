@@ -135,7 +135,7 @@ public class MaintainerTests
         using (var profile = CodexProfile("[plugins.\"nexus-windows@nexus-plugins\"]\nenabled=true"))
             Assert.Equal("catalogue", maintainer(profile).Profile(Windows, "codex").Route);
         using var folders = new FakeProfile();
-        static JsonElement Json(string text) => JsonDocument.Parse(text).RootElement.Clone();
+        static JsonElement Json(string text) => JsonElement.Parse(text);
         Assert.False(Maintainer.OwnedJsonRoute("browser", Json("""{"url":"http://127.0.0.1:16182/mcp?agent=codex&custom=1"}"""), "codex", folders.Folders, null));
         var stable = Path.Combine(folders.Root, ".nexus", "nexus-windows", "NexusWindows.exe").Replace(@"\", @"\\", StringComparison.Ordinal);
         Assert.False(Maintainer.OwnedJsonRoute("windows", Json($$$"""{"command":"{{{stable}}}","args":["--mcp","--agent","codex"],"env":{"CUSTOM":"yes"}}"""), "codex", folders.Folders, null));
@@ -513,7 +513,7 @@ public class MaintainerTests
     public void CodexCataloguesAreClassifiedBySource()
     {
         static (PluginMaintenance.CodexCatalogue, string?) Classify(string json, string? test = null) =>
-            PluginMaintenance.ClassifyCodexCatalogue(JsonDocument.Parse(json).RootElement, test);
+            PluginMaintenance.ClassifyCodexCatalogue(JsonElement.Parse(json), test);
         Assert.Equal(PluginMaintenance.CodexCatalogue.Missing, Classify("""{"marketplaces":[{"name":"other"}]}""").Item1);
         Assert.Equal(PluginMaintenance.CodexCatalogue.Official,
             Classify("""{"marketplaces":[{"name":"nexus-plugins","marketplaceSource":{"sourceType":"git","source":"https://github.com/pironjulien/NexusSystem.git"}}]}""").Item1);

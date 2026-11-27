@@ -51,7 +51,7 @@ if ($PSVersionTable.PSEdition -eq 'Desktop') {
 }
 $ProgressPreference = 'SilentlyContinue'  # Invoke-WebRequest is many times slower with its progress bar
 [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
-$NexusMaintenanceVersion = '1.10.0'
+$NexusMaintenanceVersion = '1.11.0'
 
 function Get-NexusMaintenanceEngineName {
     # The engine of this PC's architecture: arm64 on an ARM64 Windows, also from an emulated x64 PowerShell.

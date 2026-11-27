@@ -6,6 +6,11 @@ section anglaise. `tools/release-notes.ps1` (appelé par `tools/package.ps1 -Sto
 `release-notes.fr.txt` et refuse le paquet si la section de la version manque, n'a pas autant d'entrées que l'anglais
 ou dépasse 1 500 caractères.
 
+## [app 1.0.23.0] - 2026-11-27
+
+### Modifié
+- Fonctionne sous .NET 11, que l'appli emporte avec elle : rien à installer sur votre PC.
+
 ## [app 1.0.22.0] - 2026-11-27
 
 ### Modifié

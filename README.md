@@ -68,7 +68,7 @@ Claude Desktop, Codex, Antigravity).
 **Or the NexusSystem app (recommended).** Install it from the
 [Microsoft Store](https://apps.microsoft.com/detail/9NSH2P3QLWT1), or in PowerShell
 `winget install --id 9NSH2P3QLWT1 --source msstore`, open it, tick the products and click Install. The app and the AI
-guide run the same `get-nexus.ps1`. The app's own source (WinUI 3, .NET 10) is in [`app/`](app/README.md).
+guide run the same `get-nexus.ps1`. The app's own source (WinUI 3, .NET 11) is in [`app/`](app/README.md).
 
 <details>
 <summary><b>Manual install (verified)</b></summary>
