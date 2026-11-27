@@ -15,10 +15,10 @@
         "source": "git-subdir",
         "url": "https://github.com/pironjulien/NexusAndroid.git",
         "path": "plugin",
-        "ref": "v0.26.0"
+        "ref": "v0.27.0"
       },
       "description": "Android phone over plain ADB (no root, no app): screen, gestures, SMS/RCS, notifications, files, settings. Served by the local NexusAndroid daemon, installed by NexusSystem (or NexusAndroid's get.ps1); needs USB debugging on the phone.",
-      "version": "0.26.0",
+      "version": "0.27.0",
       "category": "productivity",
       "keywords": [
         "android",
@@ -126,10 +126,10 @@
         "source": "git-subdir",
         "url": "https://github.com/pironjulien/NexusFree.git",
         "path": "plugin",
-        "ref": "v1.5.0"
+        "ref": "v1.6.0"
       },
       "description": "Administrator elevation and SYSTEM privileged execution without UAC friction for the Trinity (sfc, dism, services, registry, installations). Starts the native NexusFree engine installed by NexusSystem (or NexusFree's get.ps1).",
-      "version": "1.5.0",
+      "version": "1.6.0",
       "category": "productivity",
       "keywords": [
         "elevation",
