@@ -27,6 +27,11 @@ change ─► test locally ─► push main ─► CI: tests + build ─► vX.Y
   manifest and guide (shipped with the engine and installed by its installer).
 - Raise the version in every file the release check lists (patch for fixes) and add the `CHANGELOG.md` section
   (Keep a Changelog, English). Commit precise files with an English message.
+- Dependencies (packages and pinned actions) are updated by hand, never by merging a Dependabot pull request, and never
+  to a release younger than the `cooldown` the repository's `dependabot.yml` keeps (7 days: time to catch a compromised
+  release). "Latest" means the latest past that cooldown, which is what Dependabot proposes (NexusWindows 3.18.1 took
+  Jint and CodeQL releases 3 and 4 days old on 2026-11-27, undone in 3.18.2). Lock files are regenerated on Windows
+  (`dotnet restore --force-evaluate`), never copied from a pull request built on Linux.
 
 ## 2. Push: a development build, then stable
 
