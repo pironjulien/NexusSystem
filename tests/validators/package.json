@@ -1,0 +1,10 @@
+{
+  "name": "nexussystem-validators",
+  "version": "1.0.0",
+  "private": true,
+  "description": "CI only (test.yml): the native Claude Code command line whose `claude plugin validate` checks the catalog, pinned by version and hash in package-lock.json and installed outside the repository, without install scripts.",
+  "license": "MIT",
+  "dependencies": {
+    "@anthropic-ai/claude-code-win32-x64": "2.1.330"
+  }
+}

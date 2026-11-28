@@ -8,6 +8,13 @@ versions have no GitHub release since 1.0.5.0). The format follows [Keep a Chang
 
 ## [Unreleased]
 
+### Added
+- The release check runs the AI apps' own validators beside the catalog tests: `claude plugin validate` on the
+  marketplace and on each pinned plugin, `agy plugin validate` on each product's Antigravity plugin. CI installs both
+  command lines in its temporary folder (Claude Code's pinned by version and hash, Antigravity's from Google's
+  installer), signed in to nothing, and fails when one is missing; on a PC without them the checks are skipped and
+  say so.
+
 ## [app 1.0.24.0] - 2026-11-28
 
 ### Changed

@@ -1,6 +1,8 @@
 # Full offline check (exit code 0 when everything is fine): PowerShell lint, then `dotnet test` on the solution:
 # catalogs (Claude Code, Codex), get-nexus.ps1 on throwaway profiles under Windows PowerShell 5.1, the app's build
 # (warnings are errors) and tests. Build and test output: ~\.nexus\build\NexusSystem (Directory.Build.props).
+# The AI apps' own validators (`claude plugin validate`, `agy plugin validate`) run when they are on PATH and are
+# skipped, saying so, when they are not: CI installs both (test.yml), nothing is installed on a PC for them.
 # Nexus pre-push gate: on a Nexus workstation the run goes through ~\.nexus\git\Invoke-NexusTest.ps1 (NexusInfra), which
 # records the tested tree when it passes; the pre-push hook refuses a pushed tree that has not passed this script.
 if (-not $env:NEXUS_TEST_EMPREINTE -and (Test-Path -LiteralPath "$HOME\.nexus\git\Invoke-NexusTest.ps1")) { & "$HOME\.nexus\git\Invoke-NexusTest.ps1" -Script $PSCommandPath -Parametres $PSBoundParameters -Arguments $args; exit $LASTEXITCODE }

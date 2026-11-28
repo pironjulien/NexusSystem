@@ -11,6 +11,13 @@ updates:
     groups:
       actions:
         patterns: ["*"]
+  # Claude Code's command line, for `claude plugin validate` in CI only (test.yml).
+  - package-ecosystem: npm
+    directory: /tests/validators
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
   - package-ecosystem: nuget
     directories:
       - /app/src/Nexus.App

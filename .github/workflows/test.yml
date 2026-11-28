@@ -48,8 +48,33 @@ jobs:
       - name: PSScriptAnalyzer
         shell: pwsh
         run: if (-not (Get-Module -ListAvailable PSScriptAnalyzer)) { Install-Module PSScriptAnalyzer -Scope CurrentUser -Force }
+      # The AI apps' own validators, run by test.ps1 (VendorValidatorTests) when they are on PATH. Both are installed
+      # in the runner's temporary folder, signed in to nothing: Claude Code's native command line from npm, pinned by
+      # version and hash (tests/validators/package-lock.json, no install script), and Antigravity's from Google's
+      # installer, saved as a file then run (it checks the binary against its manifest's SHA-512).
+      - name: Vendor validators (claude, agy)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $claude = Join-Path $env:RUNNER_TEMP 'claude'
+          New-Item -ItemType Directory -Path $claude | Out-Null
+          Copy-Item tests/validators/package.json, tests/validators/package-lock.json $claude
+          npm ci --ignore-scripts --no-audit --no-fund --prefix $claude
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          $engine = Get-ChildItem (Join-Path $claude 'node_modules') -Recurse -Filter claude.exe | Select-Object -First 1
+          if (-not $engine) { throw 'claude.exe is not in the installed package' }
+          $agy = Join-Path $env:RUNNER_TEMP 'agy'
+          $installer = Join-Path $env:RUNNER_TEMP 'agy-install.ps1'
+          Invoke-WebRequest https://antigravity.google/cli/install.ps1 -OutFile $installer
+          & $installer --dir $agy --skip-path --skip-aliases
+          if (-not (Test-Path (Join-Path $agy 'agy.exe'))) { throw 'agy.exe was not installed' }
+          $engine.DirectoryName, $agy | Add-Content $env:GITHUB_PATH
+          & $engine.FullName --version
+          & (Join-Path $agy 'agy.exe') --version
       - name: test.ps1
         shell: pwsh
+        env:
+          NEXUS_REQUIRED_VALIDATORS: claude,agy
         run: ./test.ps1
       # The release builds the native maintenance engine for both architectures: the same build on every push.
       - name: NexusMaintenance native build (x64, ARM64)
